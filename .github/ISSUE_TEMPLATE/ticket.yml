@@ -1,0 +1,54 @@
+name: Ticket
+description: One worked-out piece of build work, with its source, the change, the seams under test and the done-when.
+labels: ["ticket"]
+body:
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Where this came from. The wayfinder ticket or KB decision it implements (link it), or a bug with its evidence.
+    validations:
+      required: true
+  - type: input
+    id: blocked-by
+    attributes:
+      label: Blocked by
+      description: Issue numbers, or "nothing". After creating the issue, add each one as a native dependency under Relationships in the sidebar. A "rebases onto" edge stays here as text.
+      placeholder: "nothing"
+    validations:
+      required: true
+  - type: textarea
+    id: touches
+    attributes:
+      label: Touches
+      description: Files, modules and functions this changes, checked against main today. For new code, where it goes.
+    validations:
+      required: true
+  - type: textarea
+    id: read-first
+    attributes:
+      label: Read first
+      description: The KB concepts (docs/kb/), glossary terms and job-source concepts a worker needs before editing.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Problem and change
+      description: What is missing or wrong, the decision behind it (and whose it is), and the change.
+    validations:
+      required: true
+  - type: textarea
+    id: seams
+    attributes:
+      label: Seams under test
+      description: The seams the tests drive (a NestJS controller through HTTP, a repository against a real Postgres, a worker run against a recorded job-source response, a rendered component). Name each one before any code is written. If there is no failing test to write first, say why.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: The checkable done-when list. `npm run check` passes, and lasting lessons move into docs/kb/ in the same PR.
+    validations:
+      required: true
