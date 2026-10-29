@@ -1,0 +1,100 @@
+company,sector,ats,slug,url,verified
+RBC,Bank,workday,rbc/RBCGLOBAL1,https://rbc.wd3.myworkdayjobs.com/RBCGLOBAL1,yes
+TD Bank,Bank,workday,td/TD_Bank_Careers,https://td.wd3.myworkdayjobs.com/TD_Bank_Careers,yes
+BMO,Bank,workday,bmo/External,https://bmo.wd3.myworkdayjobs.com/External,yes
+CIBC,Bank,workday,cibc/search,https://cibc.wd3.myworkdayjobs.com/search,yes
+EQ Bank,Bank,lever,eqbank,https://jobs.lever.co/eqbank,yes
+Manulife,Insurer,workday,manulife/MFCJH_Jobs,https://manulife.wd3.myworkdayjobs.com/MFCJH_Jobs,yes
+Sun Life,Insurer,workday,sunlife/Experienced-Jobs,https://sunlife.wd3.myworkdayjobs.com/Experienced-Jobs,yes
+Aviva Canada,Insurer,workday,aviva/External,https://aviva.wd1.myworkdayjobs.com/External,yes
+OMERS,Pension fund,workday,omers/OMERS_External,https://omers.wd3.myworkdayjobs.com/OMERS_External,yes
+CAAT Pension Plan,Pension fund,workday,caatpension/Careers,https://caatpension.wd10.myworkdayjobs.com/Careers,yes
+Candescent,Fintech,workday,candescent/Hiring,https://candescent.wd501.myworkdayjobs.com/Hiring,yes
+PAR Technology,Restaurant tech,ashby,PAR%20Technology,https://jobs.ashbyhq.com/PAR%20Technology,yes
+Magnet Forensics,Security software,lever,magnetforensics,https://jobs.lever.co/magnetforensics,yes
+Mercury,Fintech,greenhouse,mercury,https://job-boards.greenhouse.io/mercury,yes
+Wealthsimple,Fintech,ashby,wealthsimple,https://jobs.ashbyhq.com/wealthsimple,yes
+Faire,Marketplace,greenhouse,faire,https://job-boards.greenhouse.io/faire,yes
+Cohere,AI,ashby,cohere,https://jobs.ashbyhq.com/cohere,yes
+Ada,AI customer service,greenhouse,ada18,https://job-boards.greenhouse.io/ada18,yes
+Wave,Fintech,lever,waveapps,https://jobs.lever.co/waveapps,yes
+League,Health tech,greenhouse,leagueinc,https://job-boards.greenhouse.io/leagueinc,yes
+Top Hat,Ed tech,ashby,top-hat,https://jobs.ashbyhq.com/top-hat,yes
+KOHO,Fintech,ashby,koho,https://jobs.ashbyhq.com/koho,yes
+1Password,Security software,ashby,1password,https://jobs.ashbyhq.com/1password,yes
+Geotab,Telematics,greenhouse,geotab,https://job-boards.greenhouse.io/geotab,yes
+Clearco,Fintech,ashby,clearco,https://jobs.ashbyhq.com/clearco,yes
+Wattpad,Media tech,lever,wattpad,https://jobs.lever.co/wattpad,yes
+PointClickCare,Health tech,lever,pointclickcare,https://jobs.lever.co/pointclickcare,yes
+Jobber,SaaS,ashby,jobber,https://jobs.ashbyhq.com/jobber,yes
+Konrad,Software agency,greenhouse,konradgroup,https://job-boards.greenhouse.io/konradgroup,yes
+StackAdapt,Ad tech,greenhouse,stackadapt,https://job-boards.greenhouse.io/stackadapt,yes
+Float,Fintech,ashby,float,https://jobs.ashbyhq.com/float,yes
+Maple,Health tech,lever,getmaple,https://jobs.lever.co/getmaple,yes
+PolicyMe,Insurtech,lever,policyme,https://jobs.lever.co/policyme,yes
+Super.com,Consumer tech,ashby,super.com,https://jobs.ashbyhq.com/super.com,yes
+Achievers,HR tech,lever,achievers,https://jobs.lever.co/achievers,yes
+D2L,Ed tech,greenhouse,d2l,https://job-boards.greenhouse.io/d2l,yes
+Tenstorrent,AI hardware,greenhouse,tenstorrent,https://job-boards.greenhouse.io/tenstorrent,yes
+Waabi,Autonomous vehicles,lever,waabi,https://jobs.lever.co/waabi,yes
+Sentry,Developer tools,ashby,sentry,https://jobs.ashbyhq.com/sentry,yes
+PagerDuty,Developer tools,greenhouse,pagerduty,https://job-boards.greenhouse.io/pagerduty,yes
+Tailscale,Networking,greenhouse,tailscale,https://job-boards.greenhouse.io/tailscale,yes
+Hopper,Travel tech,ashby,hopper,https://jobs.ashbyhq.com/hopper,yes
+Interac,Payments,workday,interac/Interac,https://interac.wd3.myworkdayjobs.com/Interac,yes
+TMX Group,Capital markets,workday,tmx/TMX_Careers,https://tmx.wd3.myworkdayjobs.com/TMX_Careers,yes
+Ontario Teachers' Pension Plan,Pension fund,workday,otppb/OntarioTeachers_Careers,https://otppb.wd3.myworkdayjobs.com/OntarioTeachers_Careers,yes
+CPP Investments,Pension fund,workday,cppib/CPPInvestments,https://cppib.wd10.myworkdayjobs.com/CPPInvestments,yes
+Thomson Reuters,Information services,workday,thomsonreuters/External_Career_Site,https://thomsonreuters.wd5.myworkdayjobs.com/External_Career_Site,yes
+TELUS Health,Health tech,workday,lifeworks/External,https://lifeworks.wd3.myworkdayjobs.com/External,yes
+Stripe,Payments,greenhouse,stripe,https://job-boards.greenhouse.io/stripe,yes
+Databricks,Data platform,greenhouse,databricks,https://job-boards.greenhouse.io/databricks,yes
+Snowflake,Data platform,ashby,snowflake,https://jobs.ashbyhq.com/snowflake,yes
+Okta,Identity,greenhouse,okta,https://job-boards.greenhouse.io/okta,yes
+Pinterest,Big tech,greenhouse,pinterest,https://job-boards.greenhouse.io/pinterest,yes
+Robinhood,Fintech,greenhouse,robinhood,https://job-boards.greenhouse.io/robinhood,yes
+Lyft,Big tech,greenhouse,lyft,https://job-boards.greenhouse.io/lyft,yes
+Block,Payments,greenhouse,block,https://job-boards.greenhouse.io/block,yes
+Instacart,Big tech,greenhouse,instacart,https://job-boards.greenhouse.io/instacart,yes
+Coursera,Ed tech,greenhouse,coursera,https://job-boards.greenhouse.io/coursera,yes
+Spotify,Big tech,lever,spotify,https://jobs.lever.co/spotify,yes
+Nvidia,Semiconductors,workday,nvidia/NVIDIAExternalCareerSite,https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite,yes
+Salesforce,Big tech,workday,salesforce/External_Career_Site,https://salesforce.wd12.myworkdayjobs.com/External_Career_Site,yes
+Workday,Enterprise software,workday,workday/Workday,https://workday.wd5.myworkdayjobs.com/Workday,yes
+Ubisoft,Games,smartrecruiters,Ubisoft2,https://careers.smartrecruiters.com/Ubisoft2,yes
+Scotiabank,Bank,successfactors,jobs.scotiabank.com,https://jobs.scotiabank.com/,yes
+Canada Life,Insurer,successfactors,thegreatweP2,https://jobs.canadalife.com/,yes
+Empire Life,Insurer,adp,cid=1813b5f5-505e-4c90-9c6f-49f292293ac6,https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=1813b5f5-505e-4c90-9c6f-49f292293ac6&lang=en_CA,yes
+IGM Financial (IG Wealth Management),Wealth management,successfactors,investorsgP,https://career17.sapsf.com/career?company=investorsgP,yes
+Ontario Public Service,Government,custom,gojobs.gov.on.ca,https://www.gojobs.gov.on.ca/Jobs.aspx,no
+Ontario Power Generation,Utility,successfactors,jobs.opg.com,https://jobs.opg.com/,yes
+Hydro One,Utility,successfactors,jobs.hydroone.com,https://jobs.hydroone.com/,yes
+Toronto Hydro,Utility,successfactors,jobs.torontohydro.com,https://jobs.torontohydro.com/,yes
+Alectra,Utility,dayforce,alectra/CANDIDATEPORTAL,https://jobs.dayforcehcm.com/en-US/alectra/CANDIDATEPORTAL,yes
+IESO,Public agency,successfactors,careers.ieso.ca,https://careers.ieso.ca/,yes
+MPAC,Public agency,successfactors,careers.mpac.ca,https://careers.mpac.ca/,yes
+TTC,Transit,unknown,,https://www.ttc.ca/jobs,no
+Metrolinx,Transit,oracle-recruiting,ehtc.fa.ca2/CX_1,https://ehtc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1,yes
+City of Toronto,Municipal,successfactors,jobs.toronto.ca,https://jobs.toronto.ca/,yes
+City of Vaughan,Municipal,unknown,,https://www.vaughan.ca/about-city-vaughan/careers,no
+Town of Halton Hills,Municipal,custom,haltonhills.ca/jobs,https://www.haltonhills.ca/careers,no
+University of Toronto,Education,successfactors,jobs.utoronto.ca,https://jobs.utoronto.ca/,yes
+WSP,Engineering,oracle-recruiting,emit.fa.ca3/CX_2001,https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001,yes
+Teck,Mining,successfactors,teck.com/careers,https://www.teck.com/careers/,yes
+First Capital REIT,Real estate,jobvite,fcr,https://jobs.jobvite.com/fcr,yes
+Softchoice,IT services,unknown,,https://www.softchoice.com/careers,no
+Advanced Utility Systems,Utility software,unknown,,https://www.advancedutility.com/,no
+Questrade,Fintech,dayforce,qfg/CANDIDATEPORTAL,https://jobs.dayforcehcm.com/qfg/CANDIDATEPORTAL,yes
+Rogers,Telecom,successfactors,jobs.rogers.com,https://jobs.rogers.com/,yes
+TELUS,Telecom,successfactors,careers.telus.com,https://careers.telus.com/,yes
+Bell,Telecom,phenom,jobs.bell.ca,https://jobs.bell.ca/ca/en,no
+OpenText,Software,phenom,careers.opentext.com,https://careers.opentext.com/us/en,no
+Celestica,Electronics,successfactors,careers.celestica.com,https://careers.celestica.com/,yes
+Loblaw (Loblaw Digital),Retail,workday,myview/loblaw_careers,https://myview.wd3.myworkdayjobs.com/loblaw_careers,no
+Shopify,Commerce platform,ashby,,https://www.shopify.com/careers,no
+AMD,Semiconductors,icims,careers-amd.icims.com,https://careers.amd.com/careers-home/jobs,yes
+Microsoft,Big tech,eightfold,apply.careers.microsoft.com,https://apply.careers.microsoft.com/careers,yes
+Amazon,Big tech,custom,amazon.jobs,https://www.amazon.jobs/,yes
+Google,Big tech,custom,google.com/about/careers,https://www.google.com/about/careers/applications/jobs/results/?location=Toronto,no
+Uber,Big tech,custom,uber.com/careers,https://www.uber.com/ca/en/careers/list/,no
+Meta,Big tech,custom,metacareers.com,https://www.metacareers.com/jobs,no
