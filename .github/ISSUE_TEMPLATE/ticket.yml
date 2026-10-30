@@ -42,13 +42,13 @@ body:
     id: seams
     attributes:
       label: Seams under test
-      description: The seams the tests drive (a NestJS controller through HTTP, a repository against a real Postgres, a worker run against a recorded job-source response, a rendered component). Name each one before any code is written. If there is no failing test to write first, say why.
+      description: The seams the tests drive (a NestJS controller through HTTP, a repository against a real Postgres, a Job source adapter run against a recorded response, a rendered component). Name each one before any code is written. If there is no failing test to write first, say why.
     validations:
       required: true
   - type: textarea
     id: acceptance
     attributes:
       label: Acceptance
-      description: The checkable done-when list. `npm run check` passes, and lasting lessons move into docs/kb/ in the same PR.
+      description: The checkable done-when list. `pnpm check` passes, and lasting lessons move into docs/kb/ in the same PR.
     validations:
       required: true
