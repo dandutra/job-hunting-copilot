@@ -21,9 +21,17 @@ _Avoid_: Duplicate, copy
 One access method Postings come from, such as Greenhouse, Workday, JobSpy-LinkedIn, Adzuna or the alert inbox. One company's board on an ATS is a Watched company, not a Job source.
 _Avoid_: Portal, feed, board
 
+**Company**:
+The employer a Posting is at, with every name Job sources use for it (for example "RBC" and "Royal Bank of Canada").
+_Avoid_: Employer, organization
+
 **Watched company**:
-A company whose own ATS board is polled, named by its ATS and board slug.
+A Company whose own ATS board is polled, named by its ATS and board slug.
 _Avoid_: Target company, tracked company
+
+**Lookalike**:
+A link between two Postings that may be the same opening but lack the evidence to merge. The user merges or dismisses it.
+_Avoid_: Possible duplicate, merge candidate
 
 **Posted at**:
 The date of a Posting's earliest Sighting. Ranking uses it as the Posting's age.
