@@ -1,0 +1,115 @@
+# Production stack. Run from the repo root:
+#   IMAGE_TAG=<commit sha> docker compose -f deploy/compose.prod.yaml --env-file .env up -d --wait
+# Only `web` publishes a port, and only on 127.0.0.1, because a port published on
+# 0.0.0.0 bypasses ufw. Tailscale Serve is the way in.
+name: copilot
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-service: &service
+  restart: unless-stopped
+  logging: *logging
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://${POSTGRES_USER:-copilot}:${POSTGRES_PASSWORD:?set it in .env}@postgres:5432/${POSTGRES_DB:-copilot}
+  JOBSPY_URL: http://jobspy:8000
+
+services:
+  postgres:
+    <<: *service
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-copilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-copilot}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    image: ghcr.io/dandutra/copilot-api:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    # One-shot: it must not restart, or `up --wait` never sees it finish.
+    restart: "no"
+    logging: *logging
+    environment: *app-env
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *service
+    image: ghcr.io/dandutra/copilot-api:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA}
+    environment:
+      <<: *app-env
+      API_PORT: "3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+
+  ingest:
+    <<: *service
+    image: ghcr.io/dandutra/copilot-api:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA}
+    command: ["node", "dist/main.ingest.js"]
+    environment: *app-env
+    # Covers JobSpy's 5-minute timeout, so a run in progress finishes on SIGTERM.
+    stop_grace_period: 6m
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      # ingest has no HTTP listener; it writes this file when it starts.
+      test: ["CMD", "test", "-f", "/tmp/ingest-started"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+
+  jobspy:
+    <<: *service
+    image: ghcr.io/dandutra/copilot-jobspy:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA}
+    build:
+      context: ../apps/jobspy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+
+  web:
+    <<: *service
+    image: ghcr.io/dandutra/copilot-web:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA}
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+volumes:
+  pgdata:
