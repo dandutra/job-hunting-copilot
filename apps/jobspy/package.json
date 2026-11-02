@@ -1,0 +1,7 @@
+{
+  "name": "jobspy",
+  "private": true,
+  "scripts": {
+    "check": "uv run ruff check && uv run pytest"
+  }
+}
