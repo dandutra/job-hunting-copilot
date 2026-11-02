@@ -1,8 +1,9 @@
 # The repo is public, so these must never reach an image layer.
-**/data/
 **/.env
 **/.env.*
 !**/.env.example
+# After the negation, because the last match wins: nothing under data/ may come back.
+**/data/
 docs/
 .git/
 .github/
