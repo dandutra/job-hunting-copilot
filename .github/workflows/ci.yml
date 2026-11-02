@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  # Every commit on main keeps its result; only superseded PR runs are cancelled.
+  # A running main build is never interrupted; only superseded PR runs are cancelled.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:

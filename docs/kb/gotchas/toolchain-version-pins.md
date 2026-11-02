@@ -19,7 +19,7 @@ generated:
 
 Prisma 7 also reads the database URL from `apps/api/prisma.config.ts`, not from `schema.prisma`. The config loads the single `.env` at the repo root.
 
-`pnpm install` does not generate the Prisma client, so on a fresh clone `pnpm check` exits 2 at the API typecheck with `TS2305` on `PrismaClient`. Run `pnpm --dir apps/api exec prisma generate` after installing and after any `schema.prisma` change. The command needs `DATABASE_URL` set because `prisma.config.ts` calls `env("DATABASE_URL")`, but it never connects, so any value works.
+`pnpm install` does not generate the Prisma client, so on a fresh clone `pnpm check` exits 1 at the API typecheck with `TS2305` on `PrismaClient`. Run `pnpm --dir apps/api exec prisma generate` after installing and after any `schema.prisma` change. The command needs `DATABASE_URL` set because `prisma.config.ts` calls `env("DATABASE_URL")`, but it never connects, so any non-empty value works.
 
 `compose.yaml` needs a Docker daemon and the Compose plugin. On a Mac without Docker Desktop, `brew install colima docker-compose` and `colima start` provide both.
 
