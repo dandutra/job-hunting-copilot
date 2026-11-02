@@ -23,4 +23,4 @@ Prisma 7 also reads the database URL from `apps/api/prisma.config.ts`, not from 
 
 pnpm exits 1 with `ERR_PNPM_IGNORED_BUILDS` when a dependency has an install script that nobody approved, although the packages still land on disk. Approvals live under `allowBuilds` in `pnpm-workspace.yaml`.
 
-The `dev` and `dev:ingest` scripts pass `--env-file ../../.env`, and Node exits with code 9 when that file is missing. Copy `.env.example` to `.env` before `pnpm dev`.
+The `dev` and `dev:ingest` scripts pass `--env-file ../../.env`, so copy `.env.example` to `.env` before `pnpm dev`. Without that file `pnpm dev` keeps running, but the API and `ingest` never start, and the only sign is a `not found` line in the log.
