@@ -5,3 +5,26 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
+model Company {
+  id        Int            @id @default(autoincrement())
+  name      String
+  // A Watched company has both; the pair is the board we poll.
+  ats       String?
+  boardSlug String?        @map("board_slug")
+  aliases   CompanyAlias[]
+
+  @@unique([ats, boardSlug])
+  @@map("company")
+}
+
+model CompanyAlias {
+  id             Int     @id @default(autoincrement())
+  companyId      Int     @map("company_id")
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name           String
+  normalizedName String  @unique @map("normalized_name")
+
+  @@index([companyId])
+  @@map("company_alias")
+}
