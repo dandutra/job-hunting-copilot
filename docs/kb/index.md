@@ -27,7 +27,8 @@ Glossary: [glossary.md](glossary.md)
 - [Ingestion lives in NestJS](decisions/ingestion-lives-in-nestjs.md): one NestJS module polls every Job source through adapters and matches Sightings; Python only runs JobSpy behind `POST /scrape`.
 - [Merges need certain evidence](decisions/merges-need-certain-evidence.md): two Sightings merge automatically only on an exact key or near-identical text; anything weaker stays apart as a Lookalike, and every automatic merge is logged for review.
 - [Prisma over TypeORM](decisions/prisma-over-typeorm.md): Prisma for schema, client and migrations, chosen for readability over closeness to Spring Data JPA.
-- [App runs in the cloud](decisions/app-runs-in-the-cloud.md): the API, its ingest process, the JobSpy service, the UI and Postgres deploy with Docker Compose, the UI behind single-user auth.
+- [App runs in the cloud](decisions/app-runs-in-the-cloud.md): the API, its ingest process, the JobSpy service, the UI and Postgres deploy with Docker Compose to a DigitalOcean Droplet.
+- [The app has no public address](decisions/app-has-no-public-address.md): the Mac reaches the app over Tailscale, the Droplet accepts no inbound traffic, and the API rejects any request without the user's Tailscale identity.
 - [Personal data stays out of git](decisions/personal-data-stays-out-of-git.md): the repo is public, so profile, resumes, emails and labels live in the database and a gitignored `data/`.
 - [Master profile is a versioned YAML file](decisions/master-profile-is-a-versioned-yaml-file.md): one gitignored YAML file in our own schema with permanent Entry IDs; Postgres stores an immutable version of each import.
 - [Tiers are calibrated on blind Labels](decisions/tiers-are-calibrated-on-blind-labels.md): only Labels from the Label queue, with the Tier hidden and Postings picked across every Tier, count toward tuning and the pass marks.
