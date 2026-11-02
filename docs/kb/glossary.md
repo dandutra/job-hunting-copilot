@@ -41,6 +41,26 @@ _Avoid_: Date posted, published date
 A Posting's relevance band (A, B or C), from its fit with the Master profile, adjusted by Role family and Work arrangement. Within a Tier, newer Postings rank first.
 _Avoid_: Score, rank, match
 
+**Tier cap**:
+A rule that holds a Posting at C however strong its fit, such as a role closed to juniors, work outside the GTA, a US-only role, a required security clearance or required French. The Posting stays visible.
+_Avoid_: Filter, disqualifier, gate
+
+**Label**:
+The user's own Tier for a Posting, set by what they would do with it: A means tailor and apply on sight, B means apply if time allows, C means skip. The user may also answer "can't tell".
+_Avoid_: Rating, annotation, ground truth
+
+**Label queue**:
+The screen that shows the user one Posting at a time with its Tier hidden, picked by the app from every Tier. Only Labels from it count toward calibration.
+_Avoid_: Review queue, inbox
+
+**Feed correction**:
+The user's own Tier for a Posting, given from the feed with Jev's Tier in view. It reports a wrong Tier and does not count toward calibration.
+_Avoid_: Feed label
+
+**Thin Posting**:
+A Posting with no full description yet, only a snippet or nothing. It gets a Tier and a visible flag, and it stays out of the Label queue.
+_Avoid_: Stub, partial Posting
+
 **Role family**:
 The kind of role a Posting is for: full-stack, back-end, front-end, cloud/ops or support, in that order of preference.
 _Avoid_: Category, track
