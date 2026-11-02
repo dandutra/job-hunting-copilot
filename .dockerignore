@@ -1,0 +1,14 @@
+# The repo is public, so these must never reach an image layer.
+data/
+.env
+.env.*
+!.env.example
+docs/
+.git/
+.github/
+.claude/
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+**/.DS_Store
