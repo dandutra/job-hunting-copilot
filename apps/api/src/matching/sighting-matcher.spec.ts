@@ -158,6 +158,18 @@ describe("SightingMatcher", () => {
     expect(posting.title).toBe("Software Developer");
   });
 
+  it("matches a burst larger than the connection pool without rejecting a draft", async () => {
+    await Promise.all(
+      Array.from({ length: 60 }, (_, i) =>
+        matcher.matchSighting(draft({ listingKey: `linkedin:${i}` }), {
+          now: T0,
+        }),
+      ),
+    );
+
+    expect(await prisma.posting.count()).toBe(60);
+  }, 30_000);
+
   describe("the one-board veto", () => {
     const gh = (id: number) => `https://boards.greenhouse.io/acme/jobs/${id}`;
 
@@ -267,6 +279,7 @@ describe("SightingMatcher", () => {
 
       expect(alert.posting.id).toBe(home.posting.id);
       expect(alert.sighting.directKey).toBeNull();
+      expect(alert.sighting.directUrl).toBeNull();
     });
   });
 

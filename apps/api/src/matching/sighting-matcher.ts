@@ -72,7 +72,7 @@ export class SightingMatcher {
           now,
         });
       },
-      { timeout: TRANSACTION_TIMEOUT_MS },
+      { timeout: TRANSACTION_TIMEOUT_MS, maxWait: TRANSACTION_TIMEOUT_MS },
     );
 
     if (outcome.upgraded) await this.hooks.descriptionUpgraded(outcome.posting);
@@ -200,7 +200,7 @@ export class SightingMatcher {
             location: draft.location,
             description: draft.description,
             descriptionKind: draft.descriptionKind,
-            directUrl: draft.directUrl ?? null,
+            directUrl: directKey ? draft.directUrl : null,
             watchedCompanyId: draft.watchedCompanyId ?? null,
             firstSeenAt: now,
             lastSeenAt: now,

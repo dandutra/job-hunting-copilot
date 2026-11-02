@@ -70,6 +70,7 @@ describe("normalizeListingKey", () => {
     ["workday:acme:JR-2024-0042", "workday:acme:jr-2024-0042"],
     ["workday:acme:2024-12345", "workday:acme:2024-12345"],
     ["workday:acme:JR-2024-5", "workday:acme:jr-2024-5"],
+    ["workday:acme:2024-12-15", "workday:acme:2024-12-15"],
   ])("keeps the sequence number of %s", (key, normalized) => {
     expect(normalizeListingKey(key)).toBe(normalized);
   });
