@@ -53,8 +53,28 @@ _Avoid_: Regime, work mode
 The structured record of all of the candidate's experience, skills and education. It is the only input tailoring may draw facts from.
 _Avoid_: General resume, base resume, CV
 
+**Entry**:
+One item in the Master profile with a permanent ID, which a Tailored resume line can cite.
+_Avoid_: Item, record
+
+**Fact**:
+One Entry stating a single claim about the candidate's work, with its ownership and source. An edit that changes the claim retires the Fact and creates a new one.
+_Avoid_: Bullet, achievement
+
+**Experience**:
+One employment or volunteer position the candidate has held, as an Entry in the Master profile. A co-op counts as employment.
+_Avoid_: Role, job, work history
+
+**Project**:
+Something the candidate built on their own, outside any Experience. Work done during an Experience is recorded as Facts under that Experience.
+_Avoid_: Personal project, portfolio item
+
+**Do-not-claim**:
+A statement the candidate must never make in a Tailored resume or Tailored cover letter, even if a Fact seems to support it. It is kept in the Master profile and is never cited as a source.
+_Avoid_: Forbidden claim, exclusion
+
 **Tailored resume**:
-A resume built for one Posting by selecting and rewording entries from the Master profile. Every line traces back to a Master profile entry.
+A resume built for one Posting by selecting and rewording Entries from the Master profile. Every line cites one or more Entries.
 _Avoid_: Custom resume, adjusted resume
 
 **Tailored cover letter**:
