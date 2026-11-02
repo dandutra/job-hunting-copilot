@@ -5,8 +5,8 @@ description: NestJS, TypeScript and Prisma are held below their newest release, 
 tags: [tooling, stack]
 sources: ["#18", "#47"]
 generated:
-  by: claude-opus-5-5
-  at: 2026-11-02T18:00:00-05:00
+  by: claude-sonnet-5-5
+  at: 2026-11-02T15:00:00-05:00
 ---
 
 `pnpm add` takes the newest release, and these choices keep `pnpm install`, `pnpm check` and `prisma` working:
