@@ -35,4 +35,4 @@ Glossary: [glossary.md](glossary.md)
 
 ## Gotchas
 
-- [Toolchain version pins](gotchas/toolchain-version-pins.md): NestJS 11, TypeScript 6, Prisma 7.10.1 and no Corepack, each held back for a named reason.
+- [Toolchain version pins](gotchas/toolchain-version-pins.md): NestJS 11, TypeScript 6, Prisma 7.10.1, Node 22 and no Corepack, each for a named reason.
