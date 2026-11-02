@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { Posting, Prisma, Sighting } from "@prisma/client";
 import { CompaniesService } from "../companies/companies.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -8,6 +8,8 @@ import { kindRank, precedenceOf, SightingDraft } from "./sighting-draft";
 
 const WINDOW_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MATCHER_LOCK_ID = 2300023;
+const TRANSACTION_TIMEOUT_MS = 60_000;
 
 type Tx = Prisma.TransactionClient;
 
@@ -52,24 +54,26 @@ export class SightingMatcher {
   ): Promise<MatchResult> {
     const now = options.now ?? new Date();
     const listingKey = normalizeListingKey(draft.listingKey);
+    if (!listingKey) throw new BadRequestException("Blank listing key");
     const directKey = this.directKeyOf(draft, listingKey);
     const companyId =
       draft.watchedCompanyId ??
       (await this.companies.resolveCompany(draft.companyName)).id;
 
-    const outcome = await this.prisma.$transaction(async (tx) => {
-      const keys = [listingKey, ...(directKey ? [directKey] : [])].sort();
-      for (const key of keys) {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
-      }
-      return this.matchInTransaction(tx, {
-        draft,
-        listingKey,
-        directKey,
-        companyId,
-        now,
-      });
-    });
+    // Merges reach Postings beyond the draft's keys, so one lock serialises every match.
+    const outcome = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${MATCHER_LOCK_ID}::bigint)`;
+        return this.matchInTransaction(tx, {
+          draft,
+          listingKey,
+          directKey,
+          companyId,
+          now,
+        });
+      },
+      { timeout: TRANSACTION_TIMEOUT_MS },
+    );
 
     if (outcome.upgraded) await this.hooks.descriptionUpgraded(outcome.posting);
     return { posting: outcome.posting, sighting: outcome.sighting };
@@ -92,64 +96,69 @@ export class SightingMatcher {
       now: Date;
     },
   ) {
-    const { draft, listingKey, directKey, companyId, now } = input;
+    const { draft, listingKey, companyId, now } = input;
     const cutoff = new Date(now.getTime() - WINDOW_DAYS * DAY_MS);
     const active = { lastSeenAt: { gte: cutoff } };
-    const draftKeys = directKey ? [listingKey, directKey] : [listingKey];
 
     const existing = await tx.sighting.findFirst({
       where: { jobSource: draft.jobSource, listingKey, ...active },
       orderBy: { lastSeenAt: "desc" },
     });
 
+    // A quiet Sighting still holds its key, so the veto reads every Sighting.
+    const keysOnPosting = async (postingId: number) =>
+      keysOf(await tx.sighting.findMany({ where: { postingId } }));
+
+    let survivorId = existing?.postingId ?? null;
+    const held = survivorId ? await keysOnPosting(survivorId) : [];
+    let directKey =
+      input.directKey && !conflicts([input.directKey], held)
+        ? input.directKey
+        : null;
+    const draftKeys = () =>
+      directKey ? [listingKey, directKey] : [listingKey];
+
     const matches = await tx.sighting.findMany({
       where: {
         ...active,
         id: existing ? { not: existing.id } : undefined,
         OR: [
-          { listingKey: { in: draftKeys } },
-          { directKey: { in: draftKeys } },
+          { listingKey: { in: draftKeys() } },
+          { directKey: { in: draftKeys() } },
         ],
       },
       orderBy: { id: "asc" },
     });
+    const viaListingKey = (s: Sighting) =>
+      s.listingKey === listingKey || s.directKey === listingKey;
+    const candidateIds = [
+      ...new Set(
+        [...matches.filter(viaListingKey), ...matches].map((s) => s.postingId),
+      ),
+    ].filter((id) => id !== existing?.postingId);
 
-    const candidateIds = [...new Set(matches.map((s) => s.postingId))].filter(
-      (id) => id !== existing?.postingId,
-    );
-    let survivorId = existing?.postingId ?? null;
-    const logs: PendingLog[] = [];
+    const absorbs: (PendingLog & { absorbedPostingId: number })[] = [];
     let joinLog: PendingLog | null = null;
 
     for (const candidateId of candidateIds) {
-      const candidateSightings = await tx.sighting.findMany({
-        where: { postingId: candidateId, ...active },
-      });
-      const candidateKeys = keysOf(candidateSightings);
-      const evidence = this.evidenceFor(
-        matches.filter((s) => s.postingId === candidateId),
-        draft,
-        listingKey,
-        directKey,
-      );
+      const matched = matches.filter((s) => s.postingId === candidateId);
+      const ownMatch = matched.some(viaListingKey);
+      if (!ownMatch && !directKey) continue;
+      const candidateKeys = await keysOnPosting(candidateId);
+      const evidence = this.evidenceFor(matched, draft, listingKey, directKey);
 
       if (survivorId === null) {
-        if (conflicts(draftKeys, candidateKeys)) continue;
+        const joining = ownMatch ? [listingKey] : draftKeys();
+        if (conflicts(joining, candidateKeys)) continue;
         survivorId = candidateId;
+        held.push(...candidateKeys);
+        if (directKey && conflicts([directKey], held)) directKey = null;
         joinLog = evidence;
         continue;
       }
-      const survivorKeys = keysOf(
-        await tx.sighting.findMany({
-          where: { postingId: survivorId, ...active },
-        }),
-      );
-      if (
-        conflicts(survivorKeys, candidateKeys) ||
-        conflicts(draftKeys, candidateKeys)
-      )
-        continue;
-      logs.push({ ...evidence, absorbedPostingId: candidateId });
+      if (conflicts([...held, ...draftKeys()], candidateKeys)) continue;
+      held.push(...candidateKeys);
+      absorbs.push({ ...evidence, absorbedPostingId: candidateId });
     }
 
     const before = survivorId
@@ -171,12 +180,12 @@ export class SightingMatcher {
     }
     const homeId = survivorId;
 
-    for (const log of logs) {
-      await this.absorb(tx, log.absorbedPostingId!, homeId);
+    for (const { absorbedPostingId } of absorbs) {
+      await this.absorb(tx, absorbedPostingId, homeId);
     }
 
     const sighting = existing
-      ? await this.refreshSighting(tx, existing, input)
+      ? await this.refreshSighting(tx, existing, { ...input, directKey })
       : await tx.sighting.create({
           data: {
             postingId: homeId,
@@ -198,6 +207,7 @@ export class SightingMatcher {
           },
         });
 
+    const logs: PendingLog[] = [...absorbs];
     if (!existing && joinLog) logs.push(joinLog);
     for (const log of logs) {
       await tx.mergeLogEntry.create({
@@ -237,11 +247,12 @@ export class SightingMatcher {
         },
       };
     }
+    const reverse = matched.find((s) => s.directKey === listingKey);
     return {
       rule: "direct_url",
       evidence: {
-        key: directKey ?? listingKey,
-        directUrl: draft.directUrl ?? matched[0]?.directUrl ?? null,
+        key: reverse ? listingKey : directKey,
+        directUrl: reverse?.directUrl ?? draft.directUrl ?? null,
         matchedJobSources: matched.map((s) => s.jobSource),
         draftJobSource: draft.jobSource,
       },
@@ -282,7 +293,8 @@ export class SightingMatcher {
           draft.reportedAt < existing.reportedAt
             ? draft.reportedAt
             : existing.reportedAt,
-        companyId,
+        companyId:
+          draft.watchedCompanyId ?? existing.watchedCompanyId ?? companyId,
         companyName: draft.companyName,
         title: draft.title,
         location: draft.location,
@@ -292,7 +304,7 @@ export class SightingMatcher {
               description: draft.description,
               descriptionKind: draft.descriptionKind,
             }),
-        directUrl: draft.directUrl ?? existing.directUrl,
+        directUrl: directKey ? draft.directUrl : existing.directUrl,
         directKey: directKey ?? existing.directKey,
         watchedCompanyId: draft.watchedCompanyId ?? existing.watchedCompanyId,
         lastSeenAt: now,
@@ -300,8 +312,7 @@ export class SightingMatcher {
     });
   }
 
-  // Fields come from the highest-precedence Sighting. The description comes from the
-  // highest-precedence one that has full text, then snippet, so a bare alert never erases it.
+  // Text falls back past the top Sighting, so a bare alert never erases a description.
   private async refreshPosting(tx: Tx, postingId: number): Promise<Posting> {
     const sightings = await tx.sighting.findMany({ where: { postingId } });
     const ranked = [...sightings].sort(

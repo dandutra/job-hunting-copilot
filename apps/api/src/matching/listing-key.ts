@@ -14,11 +14,11 @@ const GREENHOUSE_HOSTS = new Set([
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WORKDAY_HOST = /^([a-z0-9-]+)\.wd\d+\.myworkdayjobs\.com$/;
 
-// Workday appends "-N" for the site, but "R-12345" is a whole id, so the
-// remainder after the strip must still hold a digit.
+// A false merge costs more than a split, so only a small suffix after a non-year id is stripped. See the exact-key gotcha.
 function stripWorkdaySiteSuffix(requisition: string): string {
-  const match = /^(.+)-\d+$/.exec(requisition);
-  return match && /\d/.test(match[1]) ? match[1] : requisition;
+  const match = /^(.*\d.*)-[1-9]\d?$/.exec(requisition);
+  if (!match || /(^|-)(19|20)\d{2}$/.test(match[1])) return requisition;
+  return match[1];
 }
 
 export function normalizeListingKey(key: string): string {
@@ -58,7 +58,6 @@ function workdayKey(tenant: string, segments: string[]): string | null {
     : null;
 }
 
-// Returns the ATS listing key a job URL points at, or null when it is not a known ATS listing.
 export function parseListingKey(rawUrl: string): string | null {
   let url: URL;
   try {

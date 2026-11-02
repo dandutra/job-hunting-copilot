@@ -113,6 +113,163 @@ describe("SightingMatcher", () => {
     expect(await prisma.sighting.count()).toBe(1);
   });
 
+  it("rejects a blank listing key", async () => {
+    await expect(
+      matcher.matchSighting(draft({ listingKey: "  " }), { now: T0 }),
+    ).rejects.toThrow();
+    expect(await prisma.sighting.count()).toBe(0);
+  });
+
+  it("loses no Sighting when concurrent drafts hit keys of Postings that merge", async () => {
+    await matcher.matchSighting(draft(), { now: T0 });
+    await matcher.matchSighting(
+      draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+      { now: T0 },
+    );
+    await matcher.matchSighting(
+      draft({
+        jobSource: "adzuna",
+        listingKey: "greenhouse:acme:1",
+        title: "Adzuna title",
+      }),
+      { now: T0 },
+    );
+
+    await Promise.all([
+      matcher.matchSighting(
+        draft({
+          jobSource: "alert-linkedin",
+          directUrl: "https://boards.greenhouse.io/acme/jobs/1",
+        }),
+        { now: T0 },
+      ),
+      matcher.matchSighting(
+        draft({
+          jobSource: "alert-indeed",
+          listingKey: "greenhouse:acme:1",
+        }),
+        { now: T0 },
+      ),
+    ]);
+
+    expect(await prisma.posting.count()).toBe(1);
+    expect(await prisma.sighting.count()).toBe(5);
+    const posting = await prisma.posting.findFirstOrThrow();
+    expect(posting.title).toBe("Software Developer");
+  });
+
+  describe("the one-board veto", () => {
+    const gh = (id: number) => `https://boards.greenhouse.io/acme/jobs/${id}`;
+
+    it("ignores a later directUrl for another listing of a board the Posting holds", async () => {
+      const board = await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      const indeed = draft({
+        jobSource: "jobspy-indeed",
+        listingKey: "indeed:abc",
+      });
+      await matcher.matchSighting({ ...indeed, directUrl: gh(1) }, { now: T0 });
+
+      const later = await matcher.matchSighting(
+        { ...indeed, directUrl: gh(2) },
+        { now: daysAfter(1) },
+      );
+
+      expect(later.posting.id).toBe(board.posting.id);
+      expect(later.sighting.directKey).toBe("greenhouse:acme:1");
+    });
+
+    it("does not absorb two candidates that conflict with each other", async () => {
+      await matcher.matchSighting(draft(), { now: T0 });
+      await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      await matcher.matchSighting(
+        draft({
+          jobSource: "jobspy-indeed",
+          listingKey: "indeed:x",
+          directUrl: gh(1),
+        }),
+        { now: T0 },
+      );
+      await matcher.matchSighting(
+        draft({
+          jobSource: "jobspy-indeed",
+          listingKey: "indeed:y",
+          directUrl: gh(1),
+        }),
+        { now: T0 },
+      );
+
+      await matcher.matchSighting(
+        draft({ jobSource: "alert-linkedin", directUrl: gh(1) }),
+        { now: T0 },
+      );
+
+      const onOnePosting = await prisma.sighting.groupBy({
+        by: ["postingId"],
+        where: { listingKey: { in: ["indeed:x", "indeed:y"] } },
+        _count: true,
+      });
+      expect(onOnePosting).toHaveLength(2);
+    });
+
+    it("counts a Sighting older than the window when it vetoes a join", async () => {
+      const board = await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      await matcher.matchSighting(
+        draft({ jobSource: "adzuna", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      await matcher.matchSighting(
+        draft({
+          listingKey: "linkedin:100",
+          directUrl: gh(1),
+        }),
+        { now: daysAfter(25) },
+      );
+
+      const later = await matcher.matchSighting(
+        draft({ jobSource: "alert-linkedin", directUrl: gh(2) }),
+        { now: daysAfter(40) },
+      );
+      const repost = await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:2" }),
+        { now: daysAfter(41) },
+      );
+
+      expect(later.posting.id).toBe(board.posting.id);
+      expect(repost.posting.id).not.toBe(board.posting.id);
+    });
+
+    it("keeps a draft on the Posting of its own listing key when its directUrl conflicts", async () => {
+      const home = await matcher.matchSighting(draft({ directUrl: gh(1) }), {
+        now: T0,
+      });
+      await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:2" }),
+        { now: T0 },
+      );
+
+      const alert = await matcher.matchSighting(
+        draft({ jobSource: "alert-linkedin", directUrl: gh(2) }),
+        { now: T0 },
+      );
+
+      expect(alert.posting.id).toBe(home.posting.id);
+      expect(alert.sighting.directKey).toBeNull();
+    });
+  });
+
   describe("directUrl", () => {
     const greenhouse = draft({
       jobSource: "greenhouse",

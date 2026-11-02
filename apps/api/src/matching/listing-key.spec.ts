@@ -66,6 +66,14 @@ describe("normalizeListingKey", () => {
     );
   });
 
+  it.each([
+    ["workday:acme:JR-2024-0042", "workday:acme:jr-2024-0042"],
+    ["workday:acme:2024-12345", "workday:acme:2024-12345"],
+    ["workday:acme:JR-2024-5", "workday:acme:jr-2024-5"],
+  ])("keeps the sequence number of %s", (key, normalized) => {
+    expect(normalizeListingKey(key)).toBe(normalized);
+  });
+
   it("keeps a requisition id whose dash is part of the id", () => {
     expect(normalizeListingKey("workday:acme:R-12345")).toBe(
       "workday:acme:r-12345",
