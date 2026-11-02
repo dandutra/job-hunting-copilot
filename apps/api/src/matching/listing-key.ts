@@ -14,10 +14,11 @@ const GREENHOUSE_HOSTS = new Set([
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WORKDAY_HOST = /^([a-z0-9-]+)\.wd\d+\.myworkdayjobs\.com$/;
 
-// A false merge costs more than a split, so only a small suffix after a non-year id is stripped. See the exact-key gotcha.
+// A false merge costs more than a split, so a suffix that could be a year's sequence or a date stays. See the exact-key gotcha.
 function stripWorkdaySiteSuffix(requisition: string): string {
   const match = /^(.*\d.*)-[1-9]\d?$/.exec(requisition);
-  if (!match || /(^|-)(19|20)\d{2}(-|$)/.test(match[1])) return requisition;
+  if (!match || /(^|-)(19|20)\d{2}(-\d{1,2})?$/.test(match[1]))
+    return requisition;
   return match[1];
 }
 

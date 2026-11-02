@@ -283,6 +283,33 @@ describe("SightingMatcher", () => {
     });
   });
 
+  it("gives a year-numbered Workday requisition on two sites one Posting", async () => {
+    const a = await matcher.matchSighting(
+      draft({
+        jobSource: "workday",
+        listingKey: "workday:acme:JR-2024-0042-1",
+      }),
+      { now: T0 },
+    );
+    const b = await matcher.matchSighting(
+      draft({
+        jobSource: "workday",
+        listingKey: "workday:acme:JR-2024-0042-2",
+      }),
+      { now: T0 },
+    );
+    const other = await matcher.matchSighting(
+      draft({
+        jobSource: "workday",
+        listingKey: "workday:acme:JR-2024-0043-1",
+      }),
+      { now: T0 },
+    );
+
+    expect(b.posting.id).toBe(a.posting.id);
+    expect(other.posting.id).not.toBe(a.posting.id);
+  });
+
   describe("directUrl", () => {
     const greenhouse = draft({
       jobSource: "greenhouse",

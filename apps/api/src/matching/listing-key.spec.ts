@@ -67,6 +67,18 @@ describe("normalizeListingKey", () => {
   });
 
   it.each([
+    ["workday:acme:JR-2024-0042-1", "workday:acme:jr-2024-0042"],
+    ["workday:acme:JR-2024-0042-2", "workday:acme:jr-2024-0042"],
+    ["workday:acme:R-2024-12345-1", "workday:acme:r-2024-12345"],
+    ["workday:acme:2024-12345-2", "workday:acme:2024-12345"],
+  ])(
+    "strips the site suffix after a year and sequence in %s",
+    (key, normalized) => {
+      expect(normalizeListingKey(key)).toBe(normalized);
+    },
+  );
+
+  it.each([
     ["workday:acme:JR-2024-0042", "workday:acme:jr-2024-0042"],
     ["workday:acme:2024-12345", "workday:acme:2024-12345"],
     ["workday:acme:JR-2024-5", "workday:acme:jr-2024-5"],
