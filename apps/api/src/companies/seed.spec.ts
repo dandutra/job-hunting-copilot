@@ -60,6 +60,25 @@ describe("seedCompanies", () => {
     expect(await snapshot()).toEqual(first);
   });
 
+  it("clears the board of a row that is no longer verified", async () => {
+    await seedCompanies(prisma, parseWatchedCsv(CSV));
+
+    await seedCompanies(
+      prisma,
+      parseWatchedCsv(
+        CSV.replace(
+          "rbc/RBCGLOBAL1,https://rbc.wd3.myworkdayjobs.com/RBCGLOBAL1,yes",
+          "rbc/RBCGLOBAL1,https://rbc.wd3.myworkdayjobs.com/RBCGLOBAL1,no",
+        ),
+      ),
+    );
+
+    const rbc = await prisma.company.findFirstOrThrow({
+      where: { name: "RBC" },
+    });
+    expect([rbc.ats, rbc.boardSlug]).toEqual([null, null]);
+  });
+
   it("resolves RBC and Royal Bank of Canada to one Company", async () => {
     await seedCompanies(prisma, parseWatchedCsv(CSV));
 

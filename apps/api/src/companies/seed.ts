@@ -73,13 +73,15 @@ export async function seedCompanies(
     for (const alias of SEED_ALIASES[row.company] ?? [])
       await companies.addAlias(company.id, alias);
 
-    if (row.verified && row.slug && POLLABLE_ATS.has(row.ats)) {
-      await prisma.company.update({
-        where: { id: company.id },
-        data: { ats: row.ats, boardSlug: row.slug },
-      });
-      watched++;
-    }
+    const isWatched = row.verified && row.slug && POLLABLE_ATS.has(row.ats);
+    // Clear the board too, so a row that lost its verification stops being polled.
+    await prisma.company.update({
+      where: { id: company.id },
+      data: isWatched
+        ? { ats: row.ats, boardSlug: row.slug }
+        : { ats: null, boardSlug: null },
+    });
+    if (isWatched) watched++;
   }
 
   return {

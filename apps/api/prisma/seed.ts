@@ -17,7 +17,7 @@ async function main() {
     console.log(
       `Seeded: ${counts.rows} rows, ${counts.companies} companies, ${counts.watched} watched`,
     );
-    if (counts.companies === 0) process.exit(1);
+    if (counts.companies === 0) process.exitCode = 1;
   } finally {
     await prisma.$disconnect();
   }
