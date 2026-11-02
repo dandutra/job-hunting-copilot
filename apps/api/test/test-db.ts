@@ -8,9 +8,15 @@ export function testDatabaseUrl(): string {
   return url.toString();
 }
 
+// Postings reference Companies without cascade, so they go first.
+export async function resetTestDb(prisma: PrismaService): Promise<void> {
+  await prisma.posting.deleteMany();
+  await prisma.company.deleteMany();
+}
+
 export async function openTestDb(): Promise<PrismaService> {
   const prisma = new PrismaService(testDatabaseUrl());
   await prisma.$connect();
-  await prisma.company.deleteMany();
+  await resetTestDb(prisma);
   return prisma;
 }
