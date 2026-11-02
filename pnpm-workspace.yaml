@@ -1,0 +1,10 @@
+packages:
+  - apps/web
+  - apps/api
+  - packages/*
+
+allowBuilds:
+  "@parcel/watcher": true
+  "@prisma/engines": true
+  esbuild: true
+  prisma: true
