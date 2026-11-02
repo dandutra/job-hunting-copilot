@@ -4,13 +4,15 @@
 # 0.0.0.0 bypasses ufw. Tailscale Serve is the way in.
 name: copilot
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
 x-service: &service
   restart: unless-stopped
-  logging:
-    driver: json-file
-    options:
-      max-size: 10m
-      max-file: "3"
+  logging: *logging
 
 x-app-env: &app-env
   DATABASE_URL: postgresql://${POSTGRES_USER:-copilot}:${POSTGRES_PASSWORD:?set it in .env}@postgres:5432/${POSTGRES_DB:-copilot}
@@ -39,6 +41,7 @@ services:
       dockerfile: apps/api/Dockerfile
     # One-shot: it must not restart, or `up --wait` never sees it finish.
     restart: "no"
+    logging: *logging
     environment: *app-env
     command: ["node_modules/.bin/prisma", "migrate", "deploy"]
     depends_on:

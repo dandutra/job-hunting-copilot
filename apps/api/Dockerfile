@@ -1,5 +1,7 @@
 # Build context is the repo root: docker build -f apps/api/Dockerfile .
 FROM node:22.23.4-slim AS build
+# Prisma picks its engine by the OpenSSL it finds at install, so this must match the runtime stage.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@12.16.1
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./

@@ -1,8 +1,8 @@
 # The repo is public, so these must never reach an image layer.
-data/
-.env
-.env.*
-!.env.example
+**/data/
+**/.env
+**/.env.*
+!**/.env.example
 docs/
 .git/
 .github/
