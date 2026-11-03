@@ -1,0 +1,40 @@
+#cloud-config
+# Runs once, on first boot. Changing it does not touch a running Droplet (see droplet.tf).
+hostname: ${hostname}
+timezone: America/Toronto
+
+users:
+  - name: deploy
+    shell: /bin/bash
+    lock_passwd: true
+
+swap:
+  filename: /swapfile
+  size: 1073741824
+  maxsize: 1073741824
+
+package_update: true
+packages:
+  - unattended-upgrades
+  - ca-certificates
+  - curl
+  - gnupg
+
+write_files:
+  - path: /etc/apt/apt.conf.d/52unattended-upgrades-local
+    permissions: "0644"
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "04:30";
+      Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+  - path: /root/first-boot.env
+    permissions: "0600"
+    encoding: b64
+    content: ${first_boot_env64}
+  - path: /usr/local/sbin/first-boot.sh
+    permissions: "0700"
+    encoding: b64
+    content: ${first_boot_b64}
+
+runcmd:
+  - [bash, /usr/local/sbin/first-boot.sh]

@@ -1,0 +1,8 @@
+# Copy to backend.hcl (gitignored) and fill in. Then: terraform init -backend-config=backend.hcl
+bucket = "jhc-tfstate-CHANGE-ME"
+key    = "prod/terraform.tfstate"
+# B2 ignores the region, but the backend requires a value.
+region = "us-east-1"
+endpoints = {
+  s3 = "https://s3.CHANGE-ME.backblazeb2.com"
+}

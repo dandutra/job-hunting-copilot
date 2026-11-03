@@ -9,3 +9,9 @@ dist/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+
+# Terraform: state and variable files can hold secrets. The lock file is committed.
+.terraform/
+*.tfstate*
+*.tfvars
+infra/backend.hcl
