@@ -12,7 +12,9 @@ BODY = {
 }
 
 
-def test_rows_serialize_with_null_and_iso_dates(client: TestClient, fake_scrape: FakeScrape) -> None:
+def test_rows_serialize_with_null_and_iso_dates(
+    client: TestClient, fake_scrape: FakeScrape
+) -> None:
     response = client.post("/scrape", json=BODY)
 
     assert response.status_code == 200
@@ -24,7 +26,7 @@ def test_rows_serialize_with_null_and_iso_dates(client: TestClient, fake_scrape:
     assert row["job_url_direct"] is None
     assert row["min_amount"] is None
     assert row["is_remote"] is False
-    assert row["emails"] == ["jobs@example.com"]
+    assert row["emails"] == "jobs@example.com, careers@example.com"
 
 
 def test_indeed_numbers_and_dates(client: TestClient, fake_scrape: FakeScrape) -> None:
@@ -38,7 +40,9 @@ def test_indeed_numbers_and_dates(client: TestClient, fake_scrape: FakeScrape) -
     assert row["job_type"] is None
 
 
-def test_request_reaches_scrape_jobs(client: TestClient, fake_scrape: FakeScrape) -> None:
+def test_request_reaches_scrape_jobs(
+    client: TestClient, fake_scrape: FakeScrape
+) -> None:
     client.post("/scrape", json=BODY)
 
     [call] = fake_scrape.calls
@@ -51,15 +55,21 @@ def test_request_reaches_scrape_jobs(client: TestClient, fake_scrape: FakeScrape
     assert not call.get("fetch_description")
 
 
-def test_indeed_searches_use_canada(client: TestClient, fake_scrape: FakeScrape) -> None:
+def test_indeed_searches_use_canada(
+    client: TestClient, fake_scrape: FakeScrape
+) -> None:
     client.post("/scrape", json={**BODY, "site": "indeed"})
 
     assert fake_scrape.calls[0]["country_indeed"] == "Canada"
 
 
-def test_blocked_board_is_200_with_errors(client: TestClient, fake_scrape: FakeScrape) -> None:
+def test_blocked_board_is_200_with_errors(
+    client: TestClient, fake_scrape: FakeScrape
+) -> None:
     blocked = recorded_frame("linkedin").iloc[0:0]
-    blocked.attrs = {"errors": {"linkedin": "429 Too Many Requests (blocked: use a proxy)"}}
+    blocked.attrs = {
+        "errors": {"linkedin": "429 Too Many Requests (blocked: use a proxy)"}
+    }
     fake_scrape.result = blocked
 
     response = client.post("/scrape", json=BODY)
@@ -84,8 +94,23 @@ def test_unknown_site_is_422(client: TestClient, fake_scrape: FakeScrape) -> Non
     assert fake_scrape.calls == []
 
 
-@pytest.mark.parametrize("field", ["search_term", "location", "hours_old", "results_wanted"])
-def test_missing_field_is_422(client: TestClient, fake_scrape: FakeScrape, field: str) -> None:
+@pytest.mark.parametrize(
+    "override",
+    [{"hours_old": -1}, {"results_wanted": 0}, {"search_term": ""}, {"location": ""}],
+)
+def test_out_of_range_field_is_422(
+    client: TestClient, fake_scrape: FakeScrape, override: dict
+) -> None:
+    assert client.post("/scrape", json={**BODY, **override}).status_code == 422
+    assert fake_scrape.calls == []
+
+
+@pytest.mark.parametrize(
+    "field", ["search_term", "location", "hours_old", "results_wanted"]
+)
+def test_missing_field_is_422(
+    client: TestClient, fake_scrape: FakeScrape, field: str
+) -> None:
     body = {k: v for k, v in BODY.items() if k != field}
 
     assert client.post("/scrape", json=body).status_code == 422
@@ -111,7 +136,9 @@ def test_no_proxies_when_env_is_unset(
     assert fake_scrape.calls[0]["proxies"] is None
 
 
-def test_request_cannot_set_proxies(client: TestClient, fake_scrape: FakeScrape) -> None:
+def test_request_cannot_set_proxies(
+    client: TestClient, fake_scrape: FakeScrape
+) -> None:
     client.post("/scrape", json={**BODY, "proxies": ["evil:1"]})
 
     assert fake_scrape.calls[0]["proxies"] is None

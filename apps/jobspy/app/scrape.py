@@ -4,17 +4,17 @@ from typing import Literal
 
 import pandas as pd
 from jobspy import scrape_jobs
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 Site = Literal["linkedin", "indeed"]
 
 
 class ScrapeRequest(BaseModel):
     site: Site
-    search_term: str
-    location: str
-    hours_old: int
-    results_wanted: int
+    search_term: str = Field(min_length=1)
+    location: str = Field(min_length=1)
+    hours_old: int = Field(ge=0)
+    results_wanted: int = Field(ge=1)
 
 
 class ScrapeResponse(BaseModel):
@@ -28,8 +28,6 @@ def proxies_from_env() -> list[str] | None:
 
 
 def _json_value(value: object) -> object:
-    if isinstance(value, (list, tuple, dict)):
-        return value
     if pd.isna(value):
         return None
     if isinstance(value, (dt.date, dt.datetime)):
@@ -54,4 +52,6 @@ def scrape(request: ScrapeRequest) -> ScrapeResponse:
         country_indeed="Canada",
         proxies=proxies_from_env(),
     )
-    return ScrapeResponse(rows=rows_as_json(frame), errors=dict(frame.attrs.get("errors", {})))
+    return ScrapeResponse(
+        rows=rows_as_json(frame), errors=dict(frame.attrs.get("errors", {}))
+    )
