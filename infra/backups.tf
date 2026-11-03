@@ -7,7 +7,18 @@ resource "b2_bucket" "backups" {
     algorithm = "AES256"
   }
 
-  # A file is hidden 30 days after upload and deleted a day later.
+  # writeFiles can hide a file, and the lifecycle then deletes it, so only the lock stops a stolen key wiping dumps.
+  file_lock_configuration {
+    is_file_lock_enabled = true
+    default_retention {
+      mode = "governance"
+      period {
+        duration = 30
+        unit     = "days"
+      }
+    }
+  }
+
   lifecycle_rules {
     file_name_prefix              = ""
     days_from_uploading_to_hiding = 30
@@ -15,7 +26,7 @@ resource "b2_bucket" "backups" {
   }
 }
 
-# No deleteFiles and no readFiles: a stolen key can add dumps but cannot remove or read them.
+# No readFiles, so a stolen key can't read old dumps. No bypassGovernance, so it can't lift the lock.
 resource "b2_application_key" "backups_writer" {
   key_name     = "${var.hostname}-backup-writer"
   capabilities = ["listBuckets", "listFiles", "writeFiles"]

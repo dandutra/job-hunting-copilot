@@ -9,10 +9,10 @@ resource "tailscale_acl" "policy" {
     }
 
     acls = [
-      # The user's own devices keep reaching each other.
+      # Stands in for the default allow-all this policy replaces.
       { action = "accept", src = ["autogroup:member"], dst = ["autogroup:self:*"] },
       { action = "accept", src = ["autogroup:member"], dst = ["tag:server:*"] },
-      # Tailscale SSH rides on port 22 of the server.
+      # The ssh rule below also needs network access to port 22.
       { action = "accept", src = ["tag:ci"], dst = ["tag:server:22"] },
     ]
 

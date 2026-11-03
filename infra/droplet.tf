@@ -6,7 +6,7 @@ resource "tailscale_tailnet_key" "server" {
   expiry        = 3600
   tags          = ["tag:server"]
 
-  # Without this, the provider makes a new key once this one expires, which changes user_data.
+  # Already the default for single-use keys; set so a switch to reusable doesn't start replacing it.
   recreate_if_invalid = "never"
 
   depends_on = [tailscale_acl.policy]

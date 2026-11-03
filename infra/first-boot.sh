@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Installs Docker and Tailscale, then publishes the web port on the tailnet. Run once by cloud-init.
 set -euo pipefail
 
-# The auth key is single-use and expires in an hour, but it has no reason to stay on disk.
+# A copy stays in cloud-init's user-data; the key is single-use, so this only tidies up.
 trap 'shred -u /root/first-boot.env' EXIT
 # shellcheck disable=SC1091
 . /root/first-boot.env
@@ -20,12 +19,14 @@ curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/${VERSION_CODENAME}.noarmor
 curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/${VERSION_CODENAME}.tailscale-keyring.list" \
   -o /etc/apt/sources.list.d/tailscale.list
 
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin tailscale
+# apt-daily often holds the dpkg lock in a new Droplet's first minutes.
+apt-get -o DPkg::Lock::Timeout=600 update
+apt-get -o DPkg::Lock::Timeout=600 install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin tailscale
 
 # Members of the docker group are root-equivalent. Only Tailscale SSH can log in as this user.
 usermod -aG docker deploy
 
-tailscale up --auth-key="${TS_AUTHKEY}" --hostname="${TS_HOSTNAME}" --ssh --advertise-tags=tag:server
-# Compose publishes the web service on 127.0.0.1:8080. Serve (not Funnel) keeps it inside the tailnet.
-tailscale serve --bg --https=443 http://127.0.0.1:8080
+# --operator lets deploy rerun `tailscale serve` over Tailscale SSH without sudo.
+tailscale up --auth-key="${TS_AUTHKEY}" --hostname="${TS_HOSTNAME}" --ssh --advertise-tags=tag:server --operator=deploy
+# With HTTPS off for the tailnet, serve waits forever on a consent link instead of failing.
+timeout 60 tailscale serve --bg --https=443 http://127.0.0.1:8080

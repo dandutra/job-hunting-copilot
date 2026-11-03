@@ -17,9 +17,9 @@ Terraform runs by hand from the Mac and never from CI, so the public repo's pipe
 - A Cloud Firewall with no inbound rules and all outbound allowed.
 - The whole Tailscale policy (`tailscale_acl`), which replaces the tailnet's current one. `tag:server` is the Droplet, `tag:ci` is for the deploy workflow, and your own devices may reach `tag:server` and log in over Tailscale SSH as `deploy`.
 - A single-use Tailscale auth key for the Droplet's first boot.
-- The backups bucket with a 30-day lifecycle, and a B2 key that can list and write but not read or delete.
+- The backups bucket with a 30-day lifecycle and a 30-day Object Lock in governance mode, and a B2 key that can list and write but not read. A write key can hide a file, and the lifecycle would delete it a day later. The lock is what keeps a stolen key from wiping the dumps. To delete a locked file early, you need a key with `bypassGovernance`.
 
-cloud-init (`infra/cloud-init.yaml` and `infra/first-boot.sh`) sets the timezone to America/Toronto, creates the `deploy` user, adds 1 GiB of swap, turns on `unattended-upgrades` with a reboot at 04:30, installs Docker and Tailscale, joins the tailnet with `--ssh`, and runs `tailscale serve --bg` to `127.0.0.1:8080`.
+cloud-init (`infra/cloud-init.yaml` and `infra/first-boot.sh`) sets the timezone to America/Toronto, creates the `deploy` user, adds 1 GiB of swap, turns on `unattended-upgrades` with a reboot at 04:30, installs Docker and Tailscale, joins the tailnet with `--ssh` and `--operator=deploy`, and runs `tailscale serve --bg` to `127.0.0.1:8080`.
 
 ## Before the first apply
 
@@ -44,7 +44,7 @@ terraform apply
 Two things were not confirmed by the docs and this apply proves them. If either fails, stop and report it on #35.
 
 - `terraform init` works against B2 through the S3 backend.
-- The free Tailscale plan includes Serve. If it does not, `tailscale serve` fails in the cloud-init log and the machine still joins the tailnet.
+- The free Tailscale plan includes Serve. If Serve or HTTPS is off, `tailscale serve` waits for a consent link instead of failing, so the script gives up after 60 seconds. The machine still joins the tailnet. Look for the link in `/var/log/cloud-init-output.log`, turn on HTTPS in the admin console's DNS page, then rerun the serve command from `infra/first-boot.sh` as `deploy` over Tailscale SSH.
 
 First boot takes a few minutes. Watch the machine appear in the Tailscale admin console.
 
@@ -53,7 +53,9 @@ First boot takes a few minutes. Watch the machine appear in the Tailscale admin 
 1. `terraform plan` shows no changes.
 2. From outside the tailnet, scan the public IP: `nmap -Pn -p- "$(terraform output -raw droplet_ipv4)"`. Every port must be filtered. Turn Tailscale off on the Mac first, or the scan goes over the tailnet.
 3. `tailscale ssh deploy@copilot` works, and `https://copilot.<tailnet>.ts.net` answers (a 502 is expected until the stack is deployed).
-4. `sudo reboot` on the Droplet, then `tailscale serve status` shows the same mapping.
+4. `deploy` has no sudo, so reboot from DigitalOcean: open the Droplet, then Power, then "Power cycle". Then `tailscale ssh deploy@copilot tailscale serve status` shows the same mapping.
+
+Root tasks on the Droplet go through the Recovery Console below.
 
 ## Rebuild from nothing
 
