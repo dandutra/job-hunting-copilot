@@ -19,8 +19,12 @@ curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/${VERSION_CODENAME}.noarmor
 curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/${VERSION_CODENAME}.tailscale-keyring.list" \
   -o /etc/apt/sources.list.d/tailscale.list
 
-# apt-daily often holds the dpkg lock in a new Droplet's first minutes.
-apt-get -o DPkg::Lock::Timeout=600 update
+# apt-daily often holds the apt locks in a new Droplet's first minutes, and update doesn't wait for its lock.
+tries=0
+until apt-get update; do
+  ((++tries < 20)) || exit 1
+  sleep 15
+done
 apt-get -o DPkg::Lock::Timeout=600 install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin tailscale
 
 # Members of the docker group are root-equivalent. Only Tailscale SSH can log in as this user.
