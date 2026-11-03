@@ -65,7 +65,14 @@ Root tasks on the Droplet go through the Recovery Console below.
 4. Replace only the server: `terraform apply -replace=tailscale_tailnet_key.server -replace=digitalocean_droplet.app`. The key is replaced as well, because the old one is single-use and expired.
 5. Deploy the stack from CI and restore the data with the restore runbook once it exists.
 
-If the state is lost, import is not worth it. Delete the Droplet and the firewall by hand. Leave the backups bucket alone: its files are locked for 30 days, and B2 won't delete a bucket that still has files. Set `TF_VAR_backups_bucket_name` to a new name and apply from empty state. Restore from the old bucket, and delete it once its last dump is older than 30 days and the lifecycle has emptied it.
+If the state is lost, import is not worth it.
+
+1. Delete the Droplet and the firewall in DigitalOcean.
+2. Delete the old Tailscale machine, as in step 3 above.
+3. In B2, delete the old `copilot-backup-writer` application key. It is no longer in state, so it stays valid until you do.
+4. Leave the backups bucket alone. Its files are locked for 30 days, and B2 won't delete a bucket that still has files.
+5. Set `TF_VAR_backups_bucket_name` to a new name in `infra/.env` and the password manager, then apply from empty state.
+6. Restore from the old bucket with a key that has `readFiles`. The Droplet's key can't read. Delete the old bucket once its last dump is older than 30 days and the lifecycle has emptied it.
 
 ## Recovery Console
 
