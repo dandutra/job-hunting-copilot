@@ -96,7 +96,7 @@ def test_unknown_site_is_422(client: TestClient, fake_scrape: FakeScrape) -> Non
 
 @pytest.mark.parametrize(
     "override",
-    [{"hours_old": -1}, {"results_wanted": 0}, {"search_term": ""}, {"location": ""}],
+    [{"hours_old": -1}, {"results_wanted": 0}, {"search_term": ""}, {"location": " "}],
 )
 def test_out_of_range_field_is_422(
     client: TestClient, fake_scrape: FakeScrape, override: dict

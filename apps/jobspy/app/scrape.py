@@ -11,8 +11,8 @@ Site = Literal["linkedin", "indeed"]
 
 class ScrapeRequest(BaseModel):
     site: Site
-    search_term: str = Field(min_length=1)
-    location: str = Field(min_length=1)
+    search_term: str = Field(pattern=r"\S")
+    location: str = Field(pattern=r"\S")
     hours_old: int = Field(ge=0)
     results_wanted: int = Field(ge=1)
 

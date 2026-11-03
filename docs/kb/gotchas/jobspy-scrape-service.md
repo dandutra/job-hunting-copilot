@@ -11,7 +11,7 @@ generated:
 
 `apps/jobspy` serves `POST /scrape` for one board per call. The NestJS adapter, not this service, decides the search terms and the schedule.
 
-- Out-of-range input (`hours_old` below 0, `results_wanted` below 1, an empty `search_term` or `location`) is a 422, because JobSpy would raise on it and turn a caller bug into a 500.
+- `hours_old` below 0 or `results_wanted` below 1 is a 422, because JobSpy raises `ValueError` on them and a caller bug would look like a broken scraper. A blank `search_term` or `location` is also a 422, because JobSpy drops an empty string and would run an unfiltered board search.
 - `errors` is an object keyed by board, copied from `jobs.attrs["errors"]`, for example `{"linkedin": "429 ... (blocked: use a proxy)"}`. A block is a 200 with rows that may be empty. Only an exception inside the service is a 500, and the adapter must treat a 500 as a broken scraper, not a blocked board.
 - `linkedin_fetch_description` stays off. Without it LinkedIn rows have a null `description`, `job_type` and `job_level`, and no salary. Indeed rows carry the description either way. Turning it on costs one extra request per LinkedIn job with no delay between them, which is the main burst risk for a 429.
 - Indeed searches always pass `country_indeed="Canada"`.
