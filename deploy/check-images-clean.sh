@@ -31,9 +31,9 @@ for image in copilot-api copilot-web copilot-jobspy; do
   fi
   processed=$((processed + 1))
 
-  # Dependencies ship their own data/ folders, so only look outside node_modules and system libs.
+  # Dependencies ship their own data/ folders, so only look outside node_modules, site-packages and system libs.
   # grep exits 1 on no match, which here means a clean image.
-  leaks=$({ grep -vE '(^|/)node_modules/|^usr/(local/)?lib/' "$workdir/listing" || true; } \
+  leaks=$({ grep -vE '(^|/)(node_modules|site-packages)/|^usr/(local/)?lib/' "$workdir/listing" || true; } \
     | { grep -E '(^|/)(data/|\.env($|\.))' || true; } \
     | { grep -v '\.env\.example$' || true; })
   if [ -n "$leaks" ]; then

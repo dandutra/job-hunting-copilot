@@ -18,6 +18,8 @@ services:
 
   jobspy:
     build: apps/jobspy
+    environment:
+      JOBSPY_PROXIES: ${JOBSPY_PROXIES:-}
     ports:
       - "127.0.0.1:${JOBSPY_PORT:-8000}:8000"
     healthcheck:

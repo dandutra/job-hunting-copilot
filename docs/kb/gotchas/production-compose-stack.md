@@ -18,6 +18,6 @@ generated:
 - nginx resolves `api` once, at start. A normal deploy recreates `web` too, because `IMAGE_TAG` changes its image. Recreating `api` alone, for example after a `POSTGRES_PASSWORD` change, leaves `/api/` returning 502 while `web` stays healthy, so restart `web` afterwards.
 - nginx strips `/api` before proxying, so the API keeps its plain routes. `/health` returns 404 from `web`, and the Compose health checks reach the API directly.
 
-The images are public. `deploy/check-images-clean.sh` fails the `smoke` job if any image holds a `data/` folder or a `.env` file outside `node_modules`, or if it can't list an image's files. `.dockerignore` is the first guard and this script is the second, because a `COPY` of a wider path would slip past the first.
+The images are public. `deploy/check-images-clean.sh` fails the `smoke` job if any image holds a `data/` folder or a `.env` file outside `node_modules` and Python's `site-packages`, or if it can't list an image's files. `.dockerignore` is the first guard and this script is the second, because a `COPY` of a wider path would slip past the first.
 
 `POSTGRES_PASSWORD` goes into `DATABASE_URL`, so it must not contain `@ : / ? #`.
