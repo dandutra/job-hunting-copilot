@@ -87,6 +87,8 @@ services:
     image: ghcr.io/dandutra/copilot-jobspy:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA}
     build:
       context: ../apps/jobspy
+    environment:
+      JOBSPY_PROXIES: ${JOBSPY_PROXIES:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
       interval: 10s
