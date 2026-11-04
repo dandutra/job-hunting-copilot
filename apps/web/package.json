@@ -10,9 +10,11 @@
     "format": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm test"
+    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm test",
+    "generate:types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
+    "openapi-fetch": "^0.17.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

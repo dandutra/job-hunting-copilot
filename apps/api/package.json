@@ -11,12 +11,15 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm test",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "generate:spec": "ts-node --transpile-only -O '{\"rootDir\":\".\"}' scripts/write-openapi.ts",
+    "generate:types": "openapi-typescript ../jobspy/openapi.json -o src/ingestion/jobspy/schema.d.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.8",
     "@nestjs/core": "^11.2.8",
     "@nestjs/platform-express": "^11.2.8",
+    "@nestjs/swagger": "^11.4.7",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "pg": "^8.23.1",
@@ -37,6 +40,7 @@
     "prettier": "^3.9.10",
     "supertest": "^7.3.1",
     "ts-jest": "^29.4.15",
+    "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1"

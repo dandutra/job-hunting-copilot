@@ -2,10 +2,17 @@
   "name": "job-hunting-copilot",
   "private": true,
   "packageManager": "pnpm@12.16.1",
-  "engines": { "node": ">=22.22.2 <23" },
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
   "scripts": {
     "dev": "pnpm --parallel --filter web --filter api run dev:all",
-    "check": "pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check",
+    "generate": "pnpm --filter api run generate:spec && pnpm --dir apps/jobspy run generate:spec && pnpm --filter web run generate:types && pnpm --filter api run generate:types",
+    "generate:check": "node scripts/check-generated.mjs",
+    "check": "node --test scripts/check-generated.test.mjs && pnpm generate:check && pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check",
     "profile:check": "pnpm --filter master-profile run profile:check"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
   }
 }

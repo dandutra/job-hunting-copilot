@@ -1,2 +1,4 @@
 dist/
 pnpm-lock.yaml
+openapi.json
+src/ingestion/jobspy/schema.d.ts
