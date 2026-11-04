@@ -6,7 +6,11 @@ import { SightingDraft } from "../matching/sighting-draft";
 import { SightingMatcher } from "../matching/sighting-matcher";
 import { PrismaService } from "../prisma/prisma.service";
 import { Alert, AlertHook } from "./alert-hook";
-import { IngestScheduler, INGEST_OPTIONS } from "./ingest-scheduler";
+import {
+  IngestScheduler,
+  INGEST_LOCK_ID,
+  INGEST_OPTIONS,
+} from "./ingest-scheduler";
 import { IngestionModule } from "./ingestion.module";
 import {
   AdapterResult,
@@ -262,7 +266,7 @@ describe("IngestScheduler", () => {
     const tick = scheduler([a]).tick(T0);
     await a.started;
 
-    await prisma.$queryRaw`SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype = 'advisory' AND objid = 2100021`;
+    await prisma.$queryRaw`SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype = 'advisory' AND objid = ${INGEST_LOCK_ID}`;
     await new Promise((r) => setTimeout(r, 100));
     release();
 

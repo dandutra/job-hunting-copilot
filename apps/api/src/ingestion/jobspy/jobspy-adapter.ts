@@ -30,7 +30,7 @@ export function jobspyConfigFromEnv(
   site: JobspyConfig["site"],
   env: NodeJS.ProcessEnv = process.env,
 ): JobspyConfig {
-  const resultsWanted = Number(env.JOBSPY_RESULTS_WANTED || 50);
+  const resultsWanted = Number(env.JOBSPY_RESULTS_WANTED?.trim() || 50);
   if (!Number.isInteger(resultsWanted) || resultsWanted < 1) {
     throw new Error(
       `JOBSPY_RESULTS_WANTED must be a positive integer, not "${env.JOBSPY_RESULTS_WANTED}"`,
@@ -45,6 +45,7 @@ export function jobspyConfigFromEnv(
     timeoutMs: TIMEOUT_MS,
   };
 }
+
 // JobSpy ids look like "li-123" and "in-abc"; the listing key is "<site>:<id without prefix>".
 const ID_PREFIX = /^[a-z]+-/;
 

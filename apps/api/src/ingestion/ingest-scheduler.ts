@@ -26,7 +26,7 @@ export interface IngestOptions {
 }
 
 const HOUR_MS = 60 * 60 * 1000;
-const INGEST_LOCK_ID = 2100021;
+export const INGEST_LOCK_ID = 2100021;
 // A window reaches back past the last good poll, so a late or interrupted poll leaves no gap.
 const OVERLAP_MS = 2 * HOUR_MS;
 const FIRST_LOOKBACK_MS = 24 * HOUR_MS;
@@ -88,8 +88,7 @@ export class IngestScheduler
   async tick(now: Date = new Date()): Promise<AdapterOutcome[] | "skipped"> {
     if (this.stopping) return "skipped";
     const lock = new Client({ connectionString: this.options.lockUrl });
-    // An idle client whose socket dies emits "error"; unheard, it kills the process mid-batch.
-    // Matching is serialised and repeatable, so the poll in progress may finish without the lock.
+    // An unheard "error" from a dead idle socket kills the process mid-batch; see the ingest scheduler gotcha.
     lock.on("error", (err) =>
       this.logger.error(`Lost the ingest lock connection: ${describe(err)}`),
     );
@@ -170,7 +169,7 @@ export class IngestScheduler
         } catch (err) {
           outcome.failedDrafts++;
           outcome.errors.push({
-            // The matcher rejects a draft it can never accept, such as a company name that normalizes to nothing.
+            // The matcher rejects with BadRequest only drafts that a rerun would send again unchanged.
             kind: err instanceof BadRequestException ? "bad-row" : "fault",
             message: `draft ${draft.listingKey}: ${describe(err)}`,
           });

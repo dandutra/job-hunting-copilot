@@ -229,7 +229,7 @@ describe("jobspyConfigFromEnv", () => {
     const config = jobspyConfigFromEnv("indeed", {
       JOBSPY_SEARCH_TERM: "",
       JOBSPY_LOCATION: " ",
-      JOBSPY_RESULTS_WANTED: "",
+      JOBSPY_RESULTS_WANTED: " ",
     });
 
     expect(config).toMatchObject({
