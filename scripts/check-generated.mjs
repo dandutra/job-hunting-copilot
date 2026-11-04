@@ -17,8 +17,7 @@ const read = (f) => {
   }
 };
 
-// Returns the files that `generate` changed, then puts every file back as it was,
-// even when `generate` throws partway, so the check never edits the tree.
+// Restore in `finally` so a failed generate never leaves the tree edited.
 export function findStale(files, generate) {
   const before = new Map(files.map((f) => [f, read(f)]));
   try {
@@ -43,5 +42,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     );
     process.exit(1);
   }
-  console.log(`Generated files are current (${GENERATED_FILES.length} checked).`);
+  console.log(
+    `Generated files are current (${GENERATED_FILES.length} checked).`,
+  );
 }
