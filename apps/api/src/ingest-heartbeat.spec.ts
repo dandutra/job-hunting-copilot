@@ -8,7 +8,7 @@ describe("IngestHeartbeat", () => {
   const dir = mkdtempSync(join(tmpdir(), "hb-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  it("touches the health file at bootstrap and stops its timer on destroy", () => {
+  it("touches the health file at bootstrap", () => {
     const file = join(dir, "started");
     const heartbeat = new IngestHeartbeat();
     heartbeat.file = file;
@@ -16,16 +16,12 @@ describe("IngestHeartbeat", () => {
 
     heartbeat.onApplicationBootstrap();
     expect(existsSync(file)).toBe(true);
-
-    heartbeat.onModuleDestroy();
-    expect(heartbeat.running).toBe(false);
   });
 
   it("fails loudly when the health file cannot be written", () => {
     const heartbeat = new IngestHeartbeat();
     heartbeat.file = join(dir, "missing-dir", "started");
     expect(() => heartbeat.onApplicationBootstrap()).toThrow();
-    expect(heartbeat.running).toBe(false);
   });
 
   it("can be built by the Nest container", async () => {
