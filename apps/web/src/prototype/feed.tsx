@@ -102,7 +102,7 @@ export function FeedInbox() {
           return (
             <div key={t}>
               <button
-                className="group-head"
+                className={`group-head gh-${t}`}
                 onClick={() => setHidden((h) => ({ ...h, [t]: !h[t] }))}
               >
                 {hidden[t] ? "▸" : "▾"} Tier {t}{" "}

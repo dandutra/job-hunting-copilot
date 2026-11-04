@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { mergeLog, postings, byId, type MergeEntry, type Rule } from "./data";
 import { useStore } from "./state";
+import { Links } from "./bits";
 
 const rules: Rule[] = ["exact key", "Indeed URL to ATS key", "text"];
 
@@ -35,13 +36,19 @@ function Lookalikes() {
       {open.map((p) => {
         const o = byId(p.lookalike!.otherId);
         return (
-          <div key={p.id} className="row between ml-row">
-            <span>
-              <b>{p.title}</b> {p.company}, {p.location} ⇄ {o.company},{" "}
-              {o.location}
-              <div className="small muted">{p.lookalike!.reason}</div>
-            </span>
-            <span>
+          <div key={p.id} className="ml-row">
+            <div className="small muted">{p.lookalike!.reason}</div>
+            <div className="pair">
+              {[p, o].map((x) => (
+                <div key={x.id} className="side">
+                  <b>{x.title}</b>
+                  <div>{x.company}</div>
+                  <div className="muted">{x.location}</div>
+                  <Links p={x} />
+                </div>
+              ))}
+            </div>
+            <div className="row">
               <button
                 className="mini"
                 onClick={() => resolveLookalike(p.id, "merged")}
@@ -54,7 +61,7 @@ function Lookalikes() {
               >
                 Not the same
               </button>
-            </span>
+            </div>
           </div>
         );
       })}
@@ -198,13 +205,16 @@ export function MergeCompare() {
   const { merges, resolveMerge } = useStore();
   const [rule, setRule] = useState<Rule | "all">("all");
   const queue = mergeLog.filter(
-    (m) => !merges[m.id] && (rule === "all" || m.rule === rule),
+    (m) =>
+      m.rule !== "exact key" &&
+      !merges[m.id] &&
+      (rule === "all" || m.rule === rule),
   );
   const m = queue[0];
   return (
     <div className="ml-compare">
       <div className="row wrap">
-        {(["all", ...rules] as const).map((r) => (
+        {(["all", "Indeed URL to ATS key", "text"] as const).map((r) => (
           <button
             key={r}
             className={`chip ${rule === r ? "on" : ""}`}
@@ -214,12 +224,19 @@ export function MergeCompare() {
             <span className="count">
               {
                 mergeLog.filter(
-                  (x) => !merges[x.id] && (r === "all" || x.rule === r),
+                  (x) =>
+                    x.rule !== "exact key" &&
+                    !merges[x.id] &&
+                    (r === "all" || x.rule === r),
                 ).length
               }
             </span>
           </button>
         ))}
+        <span className="muted small">
+          {mergeLog.filter((x) => x.rule === "exact key").length} exact-key
+          merges arrived reviewed. Split one from its Posting.
+        </span>
       </div>
       {!m ? (
         <p className="muted">Nothing left to review here.</p>

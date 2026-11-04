@@ -6,8 +6,8 @@
   --line: #e7e5e4;
   --card: #fff;
   --a: #15803d;
-  --b: #b45309;
-  --c: #78716c;
+  --b: #ca8a04;
+  --c: #dc2626;
   --accent: #2563eb;
   --bad: #b91c1c;
   --warn: #a16207;
@@ -668,4 +668,14 @@ kbd {
   border-radius: 6px;
   padding: 8px;
   margin-bottom: 6px;
+}
+
+.gh-A {
+  background: #dcfce7;
+}
+.gh-B {
+  background: #fef9c3;
+}
+.gh-C {
+  background: #fee2e2;
 }
