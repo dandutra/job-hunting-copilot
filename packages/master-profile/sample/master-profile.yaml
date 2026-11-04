@@ -41,6 +41,10 @@ projects:
     name: Pocket Planner
     links: [https://example.com/pocket-planner]
     repo: example-sam/pocket-planner
+  - id: P2
+    name: Abandoned Chat Bot
+    links: []
+    retired: true
 
 education:
   - id: D1
@@ -48,6 +52,12 @@ education:
     program: BSc Computer Science
     start: 2019-09
     end: 2023-06
+  - id: D2
+    school: Example Night School
+    program: Certificate in Web Design
+    start: 2018-01
+    end: 2018-06
+    retired: true
 
 facts:
   - id: F1
@@ -110,6 +120,10 @@ skills:
   - id: S3
     name: Customer support
     evidence: [F7]
+  - id: S4
+    name: Account reporting
+    evidence: [F6]
+    retired: true
 
 do_not_claims:
   - id: X1

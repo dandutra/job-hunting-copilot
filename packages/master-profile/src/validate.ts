@@ -93,6 +93,8 @@ function crossChecks(profile: Profile): ProfileError[] {
         add(fact.id, `source "${source}" is not in the top-level sources list`);
       }
     }
+    if (fact.related.includes(fact.id))
+      add(fact.id, `related lists ${fact.id} itself`);
     const refs: [string, string, string][] = [
       [fact.parent, "parent", "EPD"],
       ...fact.related.map((r): [string, string, string] => [r, "related", "F"]),

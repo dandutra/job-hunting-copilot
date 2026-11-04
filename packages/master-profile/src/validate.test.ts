@@ -219,4 +219,31 @@ describe("validateProfile", () => {
     expect(ids).toContain("F1");
     expect(ids).toContain("S1");
   });
+  it("rejects a month outside 01-12 and names the Entry", () => {
+    const errors = errorsFor((raw) => {
+      experiences(raw)[0].start = "2022-13";
+    });
+    expect(errors).toContainEqual(expect.objectContaining({ id: "E1" }));
+  });
+
+  it("rejects a link that is not http or https", () => {
+    const errors = errorsFor((raw) => {
+      (raw.projects as Record<string, unknown>[])[0].links = [
+        "javascript:alert(1)",
+      ];
+    });
+    expect(errors).toContainEqual(expect.objectContaining({ id: "P1" }));
+  });
+
+  it("rejects a Fact related to itself", () => {
+    const errors = errorsFor((raw) => {
+      facts(raw)[0].related = ["F1"];
+    });
+    expect(errors).toContainEqual(
+      expect.objectContaining({
+        id: "F1",
+        message: expect.stringContaining("itself"),
+      }),
+    );
+  });
 });

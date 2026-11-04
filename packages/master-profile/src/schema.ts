@@ -18,7 +18,14 @@ const idOf = (letter: string) =>
 const anyId = z.string().regex(/^[EFPDSX][1-9][0-9]*$/, "must look like F12");
 const date = z
   .string()
-  .regex(/^\d{4}-\d{2}(-\d{2})?$/, "must be YYYY-MM or YYYY-MM-DD");
+  .regex(
+    /^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?$/,
+    "must be YYYY-MM or YYYY-MM-DD",
+  );
+const link = z.url({
+  protocol: /^https?$/,
+  error: "must be an http or https URL",
+});
 const text = z.string().trim().min(1);
 
 export const ExperienceSchema = z.strictObject({
@@ -49,7 +56,7 @@ export const FactSchema = z.strictObject({
 export const ProjectSchema = z.strictObject({
   id: idOf("P"),
   name: text,
-  links: z.array(z.url()).default([]),
+  links: z.array(link).default([]),
   repo: text.optional(),
   retired: z.boolean().default(false),
 });
@@ -82,7 +89,7 @@ export const ProfileSchema = z.strictObject({
     name: text,
     city: text,
     email: z.email(),
-    links: z.array(z.url()).default([]),
+    links: z.array(link).default([]),
   }),
   rules: z.array(text).default([]),
   experiences: z.array(ExperienceSchema).default([]),
