@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm test",
-    "generate:types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts"
+    "generate:types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts",
+    "prototype": "vite --open /prototype.html"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0",
