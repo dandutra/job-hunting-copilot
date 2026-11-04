@@ -9,7 +9,7 @@
     "dev": "pnpm --parallel --filter web --filter api run dev:all",
     "generate": "pnpm --filter api run generate:spec && pnpm --dir apps/jobspy run generate:spec && pnpm --filter web run generate:types && pnpm --filter api run generate:types",
     "generate:check": "node scripts/check-generated.mjs",
-    "check": "pnpm generate:check && pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check",
+    "check": "node --test scripts/check-generated.test.mjs && pnpm generate:check && pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check",
     "profile:check": "pnpm --filter master-profile run profile:check"
   },
   "devDependencies": {
