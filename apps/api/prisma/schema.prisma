@@ -97,3 +97,11 @@ model MergeLogEntry {
   @@index([postingId])
   @@map("merge_log_entry")
 }
+
+// Where each adapter's next window starts, so a restart or a long outage still covers the gap.
+model IngestCursor {
+  adapter    String   @id
+  lastPollAt DateTime @map("last_poll_at")
+
+  @@map("ingest_cursor")
+}

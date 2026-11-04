@@ -39,10 +39,11 @@ Glossary: [glossary.md](glossary.md)
 - [Toolchain version pins](gotchas/toolchain-version-pins.md): NestJS 11, TypeScript 6, Prisma 7.10.1, Node 22 and no Corepack, each for a named reason; `prisma generate` is a manual step after install.
 - [Company names and Watched boards](gotchas/company-names-and-watched-boards.md): "Canada" is stripped from every name, so aliases carry the long forms; only five ATSes count as pollable.
 - [Exact-key matching rules](gotchas/exact-key-matching.md): the board veto, the Workday suffix strip, the 30-day window without a unique key, and field precedence.
-- [Production Compose stack](gotchas/production-compose-stack.md): `prisma` is a runtime dependency, `migrate` never restarts, `ingest` is healthy by file and kept alive by a placeholder timer, and CI checks images for `data/` and `.env`.
+- [Production Compose stack](gotchas/production-compose-stack.md): `prisma` is a runtime dependency, `migrate` never restarts, `ingest` is healthy by file, and CI checks images for `data/` and `.env`.
 - [JobSpy scrape service](gotchas/jobspy-scrape-service.md): `errors` is keyed by board, LinkedIn descriptions stay off, proxies come only from `JOBSPY_PROXIES`, and the fixtures are trimmed research samples.
 - [Master profile schema package](gotchas/master-profile-schema-package.md): validation runs in two passes, `fitSummary` drops more than the ticket lists, and the source-only package cannot yet be imported by the CommonJS API.
 - [API contract pipeline](gotchas/api-contract-pipeline.md): `pnpm generate` rewrites both specs and the generated types, `pnpm check` fails on drift, and the spec script needs ts-node, not tsx.
+- [Ingest scheduler](gotchas/ingest-scheduler.md): the lock needs its own connection and an error listener, the drain runs in `onModuleDestroy`, a window advances only after a poll with no blocked or fault error, and `/scrape` has no paging.
 
 ## Runbooks
 

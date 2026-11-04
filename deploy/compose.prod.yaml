@@ -17,6 +17,10 @@ x-service: &service
 x-app-env: &app-env
   DATABASE_URL: postgresql://${POSTGRES_USER:-copilot}:${POSTGRES_PASSWORD:?set it in .env}@postgres:5432/${POSTGRES_DB:-copilot}
   JOBSPY_URL: http://jobspy:8000
+  # Blank means the ingest defaults; see the ingest scheduler gotcha.
+  JOBSPY_SEARCH_TERM: ${JOBSPY_SEARCH_TERM:-}
+  JOBSPY_LOCATION: ${JOBSPY_LOCATION:-}
+  JOBSPY_RESULTS_WANTED: ${JOBSPY_RESULTS_WANTED:-}
 
 services:
   postgres:

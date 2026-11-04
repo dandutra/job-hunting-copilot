@@ -10,6 +10,7 @@ export function testDatabaseUrl(): string {
 
 // Postings reference Companies without cascade, so they go first.
 export async function resetTestDb(prisma: PrismaService): Promise<void> {
+  await prisma.ingestCursor.deleteMany();
   await prisma.posting.deleteMany();
   await prisma.company.deleteMany();
 }
