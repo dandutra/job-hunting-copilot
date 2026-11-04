@@ -8,3 +8,8 @@ allowBuilds:
   "@prisma/engines": true
   esbuild: true
   prisma: true
+  # Telemetry only; the install script is not needed.
+  "@scarf/scarf": false
+
+minimumReleaseAgeExclude:
+  - "@nestjs/swagger@11.4.8"
