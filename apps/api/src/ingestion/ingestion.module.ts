@@ -8,7 +8,7 @@ import {
   INGEST_OPTIONS,
 } from "./ingest-scheduler";
 import { JOB_SOURCE_ADAPTERS, JobSourceAdapter } from "./job-source-adapter";
-import { JobspyAdapter } from "./jobspy/jobspy-adapter";
+import { JobspyAdapter, jobspyConfigFromEnv } from "./jobspy/jobspy-adapter";
 import { LogPollHooks, PollHooks } from "./poll-hooks";
 
 const JOBSPY_SITES = ["linkedin", "indeed"] as const;
@@ -30,20 +30,7 @@ const JOBSPY_SITES = ["linkedin", "indeed"] as const;
       inject: [AlertHook],
       useFactory: (alerts: AlertHook): JobSourceAdapter[] =>
         JOBSPY_SITES.map(
-          (site) =>
-            new JobspyAdapter(
-              {
-                baseUrl: process.env.JOBSPY_URL ?? "http://localhost:8000",
-                site,
-                searchTerm:
-                  process.env.JOBSPY_SEARCH_TERM ?? "software developer",
-                location: process.env.JOBSPY_LOCATION ?? "Canada",
-                resultsWanted: Number(process.env.JOBSPY_RESULTS_WANTED ?? 50),
-                // The ingest container gets 6 minutes to stop, and a poll in progress finishes first.
-                timeoutMs: 5 * 60 * 1000,
-              },
-              alerts,
-            ),
+          (site) => new JobspyAdapter(jobspyConfigFromEnv(site), alerts),
         ),
     },
   ],

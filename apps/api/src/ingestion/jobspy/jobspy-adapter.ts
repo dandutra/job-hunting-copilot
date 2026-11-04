@@ -22,6 +22,29 @@ export interface JobspyConfig {
 }
 
 const HOUR_MS = 60 * 60 * 1000;
+// The ingest container gets 6 minutes to stop, and a poll in progress finishes first.
+const TIMEOUT_MS = 5 * 60 * 1000;
+
+// A blank variable means the default, because Compose passes unset ones through as "".
+export function jobspyConfigFromEnv(
+  site: JobspyConfig["site"],
+  env: NodeJS.ProcessEnv = process.env,
+): JobspyConfig {
+  const resultsWanted = Number(env.JOBSPY_RESULTS_WANTED || 50);
+  if (!Number.isInteger(resultsWanted) || resultsWanted < 1) {
+    throw new Error(
+      `JOBSPY_RESULTS_WANTED must be a positive integer, not "${env.JOBSPY_RESULTS_WANTED}"`,
+    );
+  }
+  return {
+    baseUrl: env.JOBSPY_URL || "http://localhost:8000",
+    site,
+    searchTerm: env.JOBSPY_SEARCH_TERM?.trim() || "software developer",
+    location: env.JOBSPY_LOCATION?.trim() || "Canada",
+    resultsWanted,
+    timeoutMs: TIMEOUT_MS,
+  };
+}
 // JobSpy ids look like "li-123" and "in-abc"; the listing key is "<site>:<id without prefix>".
 const ID_PREFIX = /^[a-z]+-/;
 

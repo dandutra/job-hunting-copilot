@@ -230,6 +230,46 @@ describe("IngestScheduler", () => {
     },
   );
 
+  it("treats a draft the matcher rejects as a bad row, so the window still advances", async () => {
+    const a = new FakeAdapter("a", {
+      drafts: [draft(1, { companyName: "Canada" }), draft(2)],
+      errors: [],
+    });
+    const s = scheduler([a]);
+
+    await s.tick(T0);
+    await s.tick(hoursAfter(1));
+
+    expect(finished[0][0]).toEqual(
+      expect.objectContaining({
+        status: "ok",
+        matched: 1,
+        failedDrafts: 1,
+        errors: [
+          { kind: "bad-row", message: expect.stringContaining("linkedin:1") },
+        ],
+      }),
+    );
+    expect(a.windows[1].since.getTime()).toBeLessThan(T0.getTime());
+    expect(a.windows[1].since.getTime()).toBeGreaterThan(
+      hoursAfter(-24).getTime(),
+    );
+  });
+
+  it("survives losing its lock connection during a poll", async () => {
+    const a = new FakeAdapter("a", { drafts: [draft(1)], errors: [] });
+    const release = a.holdOpen();
+    const tick = scheduler([a]).tick(T0);
+    await a.started;
+
+    await prisma.$queryRaw`SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype = 'advisory' AND objid = 2100021`;
+    await new Promise((r) => setTimeout(r, 100));
+    release();
+
+    expect(await tick).toEqual([expect.objectContaining({ status: "ok" })]);
+    expect(await prisma.sighting.count()).toBe(1);
+  });
+
   it("finishes the adapter in progress on shutdown and starts no other", async () => {
     const a = new FakeAdapter("a", {
       drafts: [draft(1), draft(2)],

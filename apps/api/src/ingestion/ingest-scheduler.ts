@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   Logger,
@@ -87,6 +88,11 @@ export class IngestScheduler
   async tick(now: Date = new Date()): Promise<AdapterOutcome[] | "skipped"> {
     if (this.stopping) return "skipped";
     const lock = new Client({ connectionString: this.options.lockUrl });
+    // An idle client whose socket dies emits "error"; unheard, it kills the process mid-batch.
+    // Matching is serialised and repeatable, so the poll in progress may finish without the lock.
+    lock.on("error", (err) =>
+      this.logger.error(`Lost the ingest lock connection: ${describe(err)}`),
+    );
     await lock.connect();
     try {
       const { rows } = await lock.query<{ locked: boolean }>(
@@ -164,7 +170,8 @@ export class IngestScheduler
         } catch (err) {
           outcome.failedDrafts++;
           outcome.errors.push({
-            kind: "fault",
+            // The matcher rejects a draft it can never accept, such as a company name that normalizes to nothing.
+            kind: err instanceof BadRequestException ? "bad-row" : "fault",
             message: `draft ${draft.listingKey}: ${describe(err)}`,
           });
         }

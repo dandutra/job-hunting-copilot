@@ -3,7 +3,11 @@ import { createServer, IncomingMessage, Server } from "node:http";
 import { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { Alert, AlertHook } from "../alert-hook";
-import { JobspyAdapter, JobspyConfig } from "./jobspy-adapter";
+import {
+  JobspyAdapter,
+  JobspyConfig,
+  jobspyConfigFromEnv,
+} from "./jobspy-adapter";
 
 const FIXTURES = join(__dirname, "../../../../jobspy/tests/fixtures");
 const rows = (name: string) =>
@@ -218,4 +222,46 @@ describe("JobspyAdapter", () => {
     expect(errors).toEqual([{ kind: "fault", message: expect.any(String) }]);
     expect(alerts).toHaveLength(1);
   });
+});
+
+describe("jobspyConfigFromEnv", () => {
+  it("uses the defaults for blank variables, as Compose passes unset ones", () => {
+    const config = jobspyConfigFromEnv("indeed", {
+      JOBSPY_SEARCH_TERM: "",
+      JOBSPY_LOCATION: " ",
+      JOBSPY_RESULTS_WANTED: "",
+    });
+
+    expect(config).toMatchObject({
+      searchTerm: "software developer",
+      location: "Canada",
+      resultsWanted: 50,
+    });
+  });
+
+  it("reads the search from the environment", () => {
+    const config = jobspyConfigFromEnv("linkedin", {
+      JOBSPY_URL: "http://jobspy:8000",
+      JOBSPY_SEARCH_TERM: "data engineer",
+      JOBSPY_LOCATION: "Montreal, QC",
+      JOBSPY_RESULTS_WANTED: "20",
+    });
+
+    expect(config).toMatchObject({
+      baseUrl: "http://jobspy:8000",
+      site: "linkedin",
+      searchTerm: "data engineer",
+      location: "Montreal, QC",
+      resultsWanted: 20,
+    });
+  });
+
+  it.each(["abc", "0", "2.5"])(
+    "refuses a results count of %s at startup",
+    (value) => {
+      expect(() =>
+        jobspyConfigFromEnv("indeed", { JOBSPY_RESULTS_WANTED: value }),
+      ).toThrow("JOBSPY_RESULTS_WANTED");
+    },
+  );
 });
