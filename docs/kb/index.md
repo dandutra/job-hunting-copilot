@@ -33,6 +33,7 @@ Glossary: [glossary.md](glossary.md)
 - [Master profile is a versioned YAML file](decisions/master-profile-is-a-versioned-yaml-file.md): one gitignored YAML file in our own schema with permanent Entry IDs; Postgres stores an immutable version of each import.
 - [Tiers are calibrated on blind Labels](decisions/tiers-are-calibrated-on-blind-labels.md): only Labels from the Label queue, with the Tier hidden and Postings picked across every Tier, count toward tuning and the pass marks.
 - [Resumes render with Typst and docx](decisions/resumes-render-with-typst-and-docx.md): one typed model feeds the Typst CLI for PDF and the `docx` package for DOCX, with no Chromium or LibreOffice; no real ATS has tested the output yet.
+- [Tailoring is gated by the API](decisions/tailoring-is-gated-by-the-api.md): the `/tailor` skill writes only reworded text and Entry choices, the API's Trace check gates every stored draft, and the Claim review never sees the Posting.
 
 ## Gotchas
 

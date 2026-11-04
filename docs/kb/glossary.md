@@ -94,12 +94,20 @@ A statement the candidate must never make in a Tailored resume or Tailored cover
 _Avoid_: Forbidden claim, exclusion
 
 **Tailored resume**:
-A resume built for one Posting by selecting and rewording Entries from the Master profile. Every line cites one or more Entries.
+A resume built for one Posting by selecting and rewording Entries from the Master profile. Every line cites one or more Entries. It is a draft until the user approves it, and a Posting has at most one approved Tailored resume.
 _Avoid_: Custom resume, adjusted resume
 
 **Tailored cover letter**:
-A cover letter written for one Posting from the Master profile.
+A cover letter written for one Posting from the Master profile, with every paragraph citing one or more Entries. It is approved together with its Tailored resume.
 _Avoid_: Custom cover letter
+
+**Trace check**:
+The app's rule check that every line of a Tailored resume or Tailored cover letter cites Entries it is allowed to use. It runs when a draft is submitted and again when it is approved. It cannot catch overstatement.
+_Avoid_: Validation, citation check
+
+**Claim review**:
+A reading of each line of a draft against its cited Facts and the Do-not-claims, looking for overstatement. The `/tailor-review` skill does it first, without the Posting in view, and the user does it before approving.
+_Avoid_: Fact check, audit
 
 **Application**:
 The candidate's submission for one Posting, with its status over time.
