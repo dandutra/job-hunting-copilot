@@ -5,6 +5,7 @@
   "engines": { "node": ">=22.22.2 <23" },
   "scripts": {
     "dev": "pnpm --parallel --filter web --filter api run dev:all",
-    "check": "pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check"
+    "check": "pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check",
+    "profile:check": "pnpm --filter master-profile run profile:check"
   }
 }

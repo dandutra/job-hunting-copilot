@@ -1,0 +1,118 @@
+# Invented data only. The real profile is data/master-profile.yaml, which is gitignored.
+sources: [user, repo, transcript]
+
+contact:
+  name: Sam Sample
+  city: Exampleton
+  email: sam@example.com
+  links:
+    - https://example.com/sam
+    - https://github.com/example-sam
+
+rules:
+  - Write in the past tense and avoid the word "leveraged".
+
+experiences:
+  - id: E1
+    employer: Northwind Example Inc.
+    titles: [Developer (Co-op)]
+    start: 2022-01
+    end: 2022-08
+    location: Exampleton
+    type: employment
+    fixed: true
+  - id: E2
+    employer: Example Community Club
+    titles: [Volunteer Web Lead, Volunteer Webmaster]
+    start: 2023-03
+    location: Remote
+    type: volunteer
+  - id: E3
+    employer: Old Gadget Ltd.
+    titles: [Intern]
+    start: 2021-05
+    end: 2021-08
+    location: Exampleton
+    type: employment
+    retired: true
+
+projects:
+  - id: P1
+    name: Pocket Planner
+    links: [https://example.com/pocket-planner]
+    repo: example-sam/pocket-planner
+
+education:
+  - id: D1
+    school: Example State University
+    program: BSc Computer Science
+    start: 2019-09
+    end: 2023-06
+
+facts:
+  - id: F1
+    parent: E1
+    text: Built a nightly report that lists stale accounts.
+    tags: [back-end, cloud/ops]
+    ownership: solo
+    ownership_note: Solo for the report, not the mail relay.
+    sources: [user]
+    use: [resume, cover-letter, interview]
+    related: [F2]
+  - id: F2
+    parent: E1
+    text: Worked on a team of five that shipped weekly.
+    tags: [general, leadership]
+    ownership: team
+    sources: [user, transcript]
+  - id: F3
+    parent: E2
+    text: Rebuilt the club site with React and a small Express API.
+    tags: [full-stack, front-end]
+    ownership: paired
+    sources: [user]
+    use: [resume]
+  - id: F4
+    parent: P1
+    text: Wrote a planner app with offline sync.
+    tags: [full-stack]
+    ownership: maintained
+    sources: [repo]
+  - id: F5
+    parent: D1
+    text: Completed a database course project on query planning.
+    tags: [back-end]
+    ownership: solo
+    sources: [transcript]
+    use: [interview]
+  - id: F6
+    parent: E1
+    text: Built a nightly report that lists inactive accounts.
+    tags: [back-end]
+    ownership: solo
+    sources: [user]
+    retired: true
+  - id: F7
+    parent: E2
+    text: Answered member emails about the site.
+    tags: [support]
+    ownership: solo
+    sources: [user]
+
+skills:
+  - id: S1
+    name: TypeScript
+    aliases: [TS]
+    evidence: [F3, F4]
+  - id: S2
+    name: SQL
+    evidence: [F5]
+  - id: S3
+    name: Customer support
+    evidence: [F7]
+
+do_not_claims:
+  - id: X1
+    text: Never say the club site had paying customers.
+  - id: X2
+    text: Never claim production Kubernetes experience.
