@@ -37,6 +37,14 @@ _Avoid_: Possible duplicate, merge candidate
 The date of a Posting's earliest Sighting. Ranking uses it as the Posting's age.
 _Avoid_: Date posted, published date
 
+**Closed Posting**:
+A Posting whose Watched company boards have all stopped listing it, with no Sighting from any Job source since. Only a board can close a Posting.
+_Avoid_: Expired, filled, inactive
+
+**Stale Posting**:
+A Posting with no board Sighting whose newest Sighting was last seen more than 30 days ago. It is a guess that the opening is gone.
+_Avoid_: Old, expired, closed
+
 **Tier**:
 A Posting's relevance band (A, B or C), from its fit with the Master profile, adjusted by Role family and Work arrangement. Within a Tier, newer Postings rank first.
 _Avoid_: Score, rank, match
