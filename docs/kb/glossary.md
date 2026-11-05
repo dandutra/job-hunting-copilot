@@ -122,5 +122,13 @@ A reading of each line of a draft against its cited Facts and the Do-not-claims,
 _Avoid_: Fact check, audit
 
 **Application**:
-The candidate's submission for one Posting, with its status over time.
+The candidate's submission for one job, with its status over time. The job is a Posting, or one the user adds by hand with a company, a title and an optional URL, which never becomes a Posting.
 _Avoid_: App (that word means the software)
+
+**Application status**:
+Where an Application stands: Applied, Screening, Interviewing, Offer, Accepted, Declined, Rejected or Withdrawn. The user sets it by hand and may move it to any status.
+_Avoid_: Stage, state
+
+**Ghosted**:
+A tag on an Application in Applied, Screening or Interviewing whose latest status change is more than 30 days old. The app computes it, and any status change clears it.
+_Avoid_: No response, stale (Stale describes a Posting)
