@@ -36,8 +36,10 @@ const REMOTE_FILLER = new Set([
 
 // "can" and "on" are also English words, so they name Canada or Ontario only where a place code sits; "ca" also means California.
 const CANADA_CODES = new Set(["can", "on"]);
-const BEFORE_CODE = /(^|[,(;/-]\s*)$/;
-const AFTER_CODE = /^($|\s*[,);/-])/;
+// A dash joins a code only to another code or to spaced text, so "On-site" and "Add-on" are words, not Ontario.
+const CODE_SEP_BEFORE = /(^|[,(;/|]\s*|\s[-–—]\s*|(^|[^a-z0-9])(can|on)[-–—])$/;
+const CODE_SEP_AFTER =
+  /^\s*($|[,);/|.]|[-–—](\s|$|(can|on|remote)([^a-z0-9]|$)))/;
 
 function words(text: string): string[] {
   return text
@@ -51,14 +53,13 @@ function hasPhrase(tokens: string[], phrase: string): boolean {
   return tokens.some((_, i) => target.every((w, j) => tokens[i + j] === w));
 }
 
-// True for "CAN-ON-Remote", "Ottawa, ON" and "Remote (ON)", but not "Remote or On-site" or "based on EST".
 function hasCanadaCode(text: string): boolean {
   const lower = text.toLowerCase();
   for (const m of lower.matchAll(/[a-z0-9]+/g)) {
     if (!CANADA_CODES.has(m[0])) continue;
     const before = lower.slice(0, m.index);
     const after = lower.slice(m.index + m[0].length);
-    if (BEFORE_CODE.test(before) && AFTER_CODE.test(after)) return true;
+    if (CODE_SEP_BEFORE.test(before) && CODE_SEP_AFTER.test(after)) return true;
   }
   return false;
 }
