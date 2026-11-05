@@ -41,6 +41,7 @@ function draft(id: number, over: Partial<SightingDraft> = {}): SightingDraft {
 
 class FakeAdapter extends JobSourceAdapter {
   windows: PollWindow[] = [];
+  seenStop: boolean[] = [];
   // Set to hold a poll open until the test calls release().
   gate?: Promise<void>;
   started!: Promise<void>;
@@ -49,6 +50,7 @@ class FakeAdapter extends JobSourceAdapter {
   constructor(
     readonly name: string,
     public result: AdapterResult | Error = { drafts: [], errors: [] },
+    override readonly minIntervalMs: number = HOUR,
   ) {
     super();
     this.rearm();
@@ -68,6 +70,7 @@ class FakeAdapter extends JobSourceAdapter {
     this.windows.push(window);
     this.markStarted();
     await this.gate;
+    this.seenStop.push(window.shouldStop());
     if (this.result instanceof Error) throw this.result;
     return this.result;
   }
@@ -301,6 +304,179 @@ describe("IngestScheduler", () => {
     ]);
     expect(await s.tick(hoursAfter(1))).toBe("skipped");
     expect(b.windows).toHaveLength(0);
+  });
+
+  describe("intervals", () => {
+    it("runs a 3-hour adapter on the first tick and skips it on the next two", async () => {
+      const a = new FakeAdapter("a", { drafts: [], errors: [] }, 3 * HOUR);
+      const s = scheduler([a]);
+
+      await s.tick(T0);
+      await s.tick(hoursAfter(1));
+      await s.tick(hoursAfter(2));
+      expect(a.windows).toHaveLength(1);
+      expect(finished[1][0].status).toBe("skipped");
+
+      await s.tick(hoursAfter(3));
+      expect(a.windows).toHaveLength(2);
+    });
+
+    it("still runs an hourly adapter when a tick arrives a few milliseconds early", async () => {
+      const a = new FakeAdapter("a");
+      const s = scheduler([a]);
+
+      await s.tick(T0);
+      await s.tick(new Date(hoursAfter(1).getTime() - 5));
+
+      expect(a.windows).toHaveLength(2);
+    });
+
+    it("skips a failed adapter until its interval passes, and keeps its window", async () => {
+      const a = new FakeAdapter("a", new Error("down"), 3 * HOUR);
+      const s = scheduler([a]);
+
+      await s.tick(T0);
+      await s.tick(hoursAfter(1));
+      await s.tick(hoursAfter(2));
+      expect(a.windows).toHaveLength(1);
+
+      await s.tick(hoursAfter(3));
+      expect(a.windows).toHaveLength(2);
+      expect(a.windows[1].since).toEqual(hoursAfter(3 - 24));
+      const cursor = await prisma.ingestCursor.findUnique({
+        where: { adapter: "a" },
+      });
+      expect(cursor?.lastPollAt).toBeNull();
+      expect(cursor?.lastAttemptAt).toEqual(hoursAfter(3));
+    });
+  });
+
+  it("fails and alerts when the attempt cannot be recorded", async () => {
+    const a = new FakeAdapter("a", { drafts: [draft(1)], errors: [] });
+    const broken = new Proxy(prisma, {
+      get: (target, key) =>
+        key === "ingestCursor"
+          ? {
+              findUnique: () => Promise.resolve(null),
+              upsert: () => Promise.reject(new Error("db blip")),
+            }
+          : Reflect.get(target, key),
+    });
+    const s = new IngestScheduler([a], matcher, broken, alertHook, pollHooks, {
+      lockUrl: testDatabaseUrl(),
+    });
+
+    await s.tick(T0);
+
+    expect(finished[0][0]).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        matched: 1,
+        errors: [
+          { kind: "fault", message: expect.stringContaining("db blip") },
+        ],
+      }),
+    );
+    expect(alerts).toEqual([
+      expect.objectContaining({ kind: "fault", adapter: "a" }),
+    ]);
+  });
+
+  describe("board adapters", () => {
+    const board = (name: string) =>
+      prisma.company.create({
+        data: { name, ats: "greenhouse", boardSlug: name.toLowerCase() },
+      });
+
+    it("matches the other boards' drafts when one board is blocked, and counts both", async () => {
+      const dead = await board("Dead");
+      const live = await board("Live");
+      const a = new FakeAdapter("boards", {
+        drafts: [draft(1, { companyName: "Live" })],
+        errors: [
+          {
+            kind: "blocked",
+            message: "403",
+            watchedCompanyId: dead.id,
+            httpStatus: 403,
+          },
+        ],
+        boards: [
+          { watchedCompanyId: dead.id, status: "failed" },
+          { watchedCompanyId: live.id, status: "ok" },
+        ],
+      });
+
+      await scheduler([a]).tick(T0);
+
+      expect(await prisma.sighting.count()).toBe(1);
+      expect(finished[0][0]).toEqual(
+        expect.objectContaining({
+          status: "failed",
+          matched: 1,
+          boards: { ok: 1, failed: 1, incomplete: 0 },
+        }),
+      );
+      expect(alerts).toEqual([
+        expect.objectContaining({
+          kind: "blocked",
+          adapter: "boards",
+          company: "Dead",
+        }),
+      ]);
+    });
+
+    it("alerts a 404 board once across 24 hourly ticks, naming the Company, and again on day two", async () => {
+      const gone = await board("Gone");
+      const a = new FakeAdapter("boards", {
+        drafts: [],
+        errors: [
+          {
+            kind: "blocked",
+            message: "404",
+            watchedCompanyId: gone.id,
+            httpStatus: 404,
+          },
+        ],
+      });
+      const s = scheduler([a]);
+
+      for (let h = 0; h < 24; h++) await s.tick(hoursAfter(h));
+      expect(alerts).toEqual([expect.objectContaining({ company: "Gone" })]);
+
+      await s.tick(hoursAfter(24));
+      expect(alerts).toHaveLength(2);
+    });
+
+    it("alerts a non-404 board error on every tick", async () => {
+      const slow = await board("Slow");
+      const a = new FakeAdapter("boards", {
+        drafts: [],
+        errors: [{ kind: "fault", message: "500", watchedCompanyId: slow.id }],
+      });
+      const s = scheduler([a]);
+
+      await s.tick(T0);
+      await s.tick(hoursAfter(1));
+
+      expect(alerts).toHaveLength(2);
+    });
+  });
+
+  it("tells the adapter to stop once the drain starts", async () => {
+    const a = new FakeAdapter("a");
+    const s = scheduler([a]);
+    const release = a.holdOpen();
+    const tick = s.tick(T0);
+    await a.started;
+    expect(a.windows[0].shouldStop()).toBe(false);
+
+    const drain = s.drain();
+    expect(a.windows[0].shouldStop()).toBe(true);
+    release();
+    await drain;
+    await tick;
+    expect(a.seenStop).toEqual([true]);
   });
 
   it("adds no duplicate Sightings when an interrupted adapter runs again", async () => {

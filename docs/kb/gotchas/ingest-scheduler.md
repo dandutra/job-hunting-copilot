@@ -9,7 +9,11 @@ generated:
   at: 2026-11-04T12:30:00-05:00
 ---
 
-`IngestScheduler` in `apps/api/src/ingestion/` polls every adapter once an hour and hands each draft to `matchSighting`.
+`IngestScheduler` in `apps/api/src/ingestion/` ticks once an hour and hands each draft to `matchSighting`.
+
+- An adapter declares `minIntervalMs` (default one hour). The scheduler skips it until that long after `ingest_cursor.last_attempt_at`, which is written after every attempt, failed or not. A failing slow adapter is therefore retried at its own rate, not every tick. `last_poll_at` keeps its old meaning (the last poll with no `blocked` or `fault` error) and is empty until the first good poll. If the cursor write itself fails, the poll is reported `failed` and alerts, even when every draft matched. The adapter then runs again on the next tick, because `last_attempt_at` was not written either. The check allows 60 seconds of tick jitter, so an hourly adapter is not skipped for a tick that arrives a few milliseconds early.
+- Board adapters (one request per Watched company) ignore `since`, tag each error with `watchedCompanyId` and list every board in `AdapterResult.boards`. One board's error never stops the others, and their drafts still reach the matcher. The scheduler, not the adapter, alerts for board errors, naming the Company. A board error with `httpStatus` 404 alerts at most once per 24 hours per board, counted from the last alert that was delivered. That memory lives in the process, so a restart can repeat one alert.
+- `PollWindow.shouldStop()` turns true when the drain starts. A board adapter checks it between requests and returns what it has. A board cut off this way is reported `incomplete`, which is neither an error nor a full read, so it must never be used as evidence that a Posting left the board.
 
 - The advisory lock (`pg_try_advisory_lock`) lives on a `pg` client opened for each tick, not on Prisma. A pooled connection can change between queries, so a lock taken through Prisma could be released early or never. Ending the client drops the lock. The lock also stops two `ingest` containers from polling together during a deploy.
 - The lock client needs an `error` listener: if its idle socket dies mid-poll, `pg` emits `error`, and with no listener the process crashes. The poll in progress then finishes without the lock, which is safe because the matcher has its own lock and a rerun adds nothing.

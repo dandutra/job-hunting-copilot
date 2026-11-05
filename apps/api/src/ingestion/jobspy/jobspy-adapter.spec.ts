@@ -14,7 +14,11 @@ const rows = (name: string) =>
   JSON.parse(readFileSync(join(FIXTURES, name), "utf8"));
 
 const NOW = new Date("2026-11-04T12:00:00Z");
-const window = { since: new Date("2026-11-04T08:30:00Z"), now: NOW };
+const window = {
+  since: new Date("2026-11-04T08:30:00Z"),
+  now: NOW,
+  shouldStop: () => false,
+};
 
 describe("JobspyAdapter", () => {
   let server: Server;

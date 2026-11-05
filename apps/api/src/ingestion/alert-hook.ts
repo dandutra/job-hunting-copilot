@@ -4,6 +4,8 @@ export interface Alert {
   // "blocked" is a board refusing us, "fault" is the scraper or network failing.
   kind: "blocked" | "fault";
   adapter: string;
+  // The Company whose board failed, for board adapters.
+  company?: string;
   message: string;
 }
 

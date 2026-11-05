@@ -46,7 +46,7 @@ Glossary: [glossary.md](glossary.md)
 - [JobSpy scrape service](gotchas/jobspy-scrape-service.md): `errors` is keyed by board, LinkedIn descriptions stay off, proxies come only from `JOBSPY_PROXIES`, and the fixtures are trimmed research samples.
 - [Master profile schema package](gotchas/master-profile-schema-package.md): validation runs in two passes, `fitSummary` drops more than the ticket lists, and the source-only package cannot yet be imported by the CommonJS API.
 - [API contract pipeline](gotchas/api-contract-pipeline.md): `pnpm generate` rewrites both specs and the generated types, `pnpm check` fails on drift, and the spec script needs ts-node, not tsx.
-- [Ingest scheduler](gotchas/ingest-scheduler.md): the lock needs its own connection and an error listener, the drain runs in `onModuleDestroy`, a window advances only after a poll with no blocked or fault error, and `/scrape` has no paging.
+- [Ingest scheduler](gotchas/ingest-scheduler.md): the lock needs its own connection and an error listener, the drain runs in `onModuleDestroy`, `minIntervalMs` paces each adapter from `last_attempt_at`, a 404 board alerts once a day, a window advances only after a poll with no blocked or fault error, and `/scrape` has no paging.
 
 ## Runbooks
 
