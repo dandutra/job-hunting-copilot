@@ -115,7 +115,7 @@ export class JobspyAdapter extends JobSourceAdapter {
   private inArea(row: Record<string, unknown>): boolean {
     const location = text(row.location) ?? "";
     return inSearchArea([
-      row.is_remote === true ? `remote ${location}` : location,
+      row.is_remote === true ? `Remote, ${location}` : location,
     ]);
   }
 

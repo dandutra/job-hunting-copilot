@@ -121,6 +121,7 @@ describe("JobspyAdapter", () => {
           row,
           { ...row, id: "in-vancouver", location: "Vancouver, BC, Canada" },
           { ...row, id: "in-remote", location: "Canada", is_remote: true },
+          { ...row, id: "in-ottawa", location: "Ottawa, ON", is_remote: true },
         ],
         errors: {},
       },
@@ -132,6 +133,7 @@ describe("JobspyAdapter", () => {
     expect(drafts.map((d) => d.listingKey)).toEqual([
       "indeed:9ed1c4e22c77bcfb",
       "indeed:remote",
+      "indeed:ottawa",
     ]);
   });
 

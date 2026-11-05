@@ -33,6 +33,10 @@ describe("inSearchArea", () => {
     "CAN-ON-Remote",
     "Remote - Worldwide",
     "Remote (Global)",
+    "Remote - Ottawa, ON",
+    "Remote, Waterloo, ON, CA",
+    "CAN-ON-Ottawa-Remote",
+    "Remote (ON)",
     "richmond-hill, on",
     "Toronto; New York",
   ])("accepts the form %s", (location) => {
