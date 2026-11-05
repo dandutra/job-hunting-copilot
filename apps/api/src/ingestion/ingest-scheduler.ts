@@ -208,7 +208,16 @@ export class IngestScheduler
         .alert({ kind: "fault", adapter: adapter.name, message: describe(err) })
         .catch(() => undefined);
     }
-    if (attempted) await this.recordAttempt(adapter, now, advanced);
+    if (attempted) {
+      const failure = await this.recordAttempt(adapter, now, advanced);
+      if (failure) {
+        outcome.status = "failed";
+        outcome.errors.push({ kind: "fault", message: failure });
+        await this.alerts
+          .alert({ kind: "fault", adapter: adapter.name, message: failure })
+          .catch(() => undefined);
+      }
+    }
     outcome.durationMs = Date.now() - started;
     return outcome;
   }
@@ -217,7 +226,7 @@ export class IngestScheduler
     adapter: JobSourceAdapter,
     now: Date,
     advanced: boolean,
-  ) {
+  ): Promise<string | undefined> {
     const data = advanced
       ? { lastAttemptAt: now, lastPollAt: now }
       : { lastAttemptAt: now };
@@ -227,10 +236,9 @@ export class IngestScheduler
         create: { adapter: adapter.name, ...data },
         update: data,
       });
+      return undefined;
     } catch (err) {
-      this.logger.error(
-        `Could not record the ${adapter.name} attempt: ${describe(err)}`,
-      );
+      return `could not record the attempt: ${describe(err)}`;
     }
   }
 
@@ -250,7 +258,6 @@ export class IngestScheduler
         if (last && now.getTime() - last.getTime() < NOT_FOUND_ALERT_MS) {
           continue;
         }
-        this.notFoundAlertedAt.set(id, now);
       }
       try {
         const company = await this.prisma.company.findUnique({ where: { id } });
@@ -260,6 +267,7 @@ export class IngestScheduler
           company: company?.name ?? `company ${id}`,
           message: e.message,
         });
+        if (e.httpStatus === 404) this.notFoundAlertedAt.set(id, now);
       } catch (err) {
         this.logger.error(`Board alert failed: ${describe(err)}`);
       }

@@ -351,6 +351,37 @@ describe("IngestScheduler", () => {
     });
   });
 
+  it("fails and alerts when the attempt cannot be recorded", async () => {
+    const a = new FakeAdapter("a", { drafts: [draft(1)], errors: [] });
+    const broken = new Proxy(prisma, {
+      get: (target, key) =>
+        key === "ingestCursor"
+          ? {
+              findUnique: () => Promise.resolve(null),
+              upsert: () => Promise.reject(new Error("db blip")),
+            }
+          : Reflect.get(target, key),
+    });
+    const s = new IngestScheduler([a], matcher, broken, alertHook, pollHooks, {
+      lockUrl: testDatabaseUrl(),
+    });
+
+    await s.tick(T0);
+
+    expect(finished[0][0]).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        matched: 1,
+        errors: [
+          { kind: "fault", message: expect.stringContaining("db blip") },
+        ],
+      }),
+    );
+    expect(alerts).toEqual([
+      expect.objectContaining({ kind: "fault", adapter: "a" }),
+    ]);
+  });
+
   describe("board adapters", () => {
     const board = (name: string) =>
       prisma.company.create({
