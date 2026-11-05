@@ -46,7 +46,7 @@ A Posting whose Watched company boards have all stopped listing it, with no Sigh
 _Avoid_: Expired, filled, inactive
 
 **Stale Posting**:
-A Posting with no board Sighting whose newest Sighting was last seen more than 30 days ago. It is a guess that the opening is gone.
+A Posting with no live board Sighting whose newest Sighting was last seen more than 30 days ago. A board Sighting is live when it is closed or was seen in the last 30 days. It is a guess that the opening is gone.
 _Avoid_: Old, expired, closed
 
 **Tier**:

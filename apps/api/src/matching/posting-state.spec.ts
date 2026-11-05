@@ -63,9 +63,30 @@ describe("postingState", () => {
     expect(postingState(sightings, NOW)).toBe("open");
   });
 
-  it("never calls a Posting with an open board Sighting stale", () => {
-    const old = board({ closedAt: null, lastSeenAt: daysAgo(90) });
-    expect(postingState([old], NOW)).toBe("open");
+  it("goes stale when an open board Sighting is quiet for 30 days", () => {
+    const quiet = (d: number) =>
+      board({ closedAt: null, lastSeenAt: daysAgo(d) });
+    expect(postingState([quiet(31)], NOW)).toBe("stale");
+    expect(postingState([quiet(30)], NOW)).toBe("open");
+  });
+
+  it("stays open when an aggregator still reports a Posting whose board went quiet", () => {
+    const quiet = board({ closedAt: null, lastSeenAt: daysAgo(40) });
+    expect(postingState([quiet, aggregator()], NOW)).toBe("open");
+  });
+
+  it("is closed when one board closed it and another board went quiet", () => {
+    const quiet = board({
+      watchedCompanyId: 2,
+      closedAt: null,
+      lastSeenAt: daysAgo(40),
+    });
+    expect(postingState([board(), quiet], NOW)).toBe("closed");
+  });
+
+  it("stays closed long after the close", () => {
+    const old = board({ lastSeenAt: daysAgo(90), closedAt: daysAgo(89) });
+    expect(postingState([old], NOW)).toBe("closed");
   });
 
   it("is open with no Sightings", () => {
