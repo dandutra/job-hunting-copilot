@@ -112,6 +112,31 @@ describe("JobspyAdapter", () => {
     ]);
   });
 
+  it("sends only the rows inside the Search area", async () => {
+    const [row] = rows("indeed_rows.json");
+    respond = async () => [
+      200,
+      {
+        rows: [
+          row,
+          { ...row, id: "in-vancouver", location: "Vancouver, BC, Canada" },
+          { ...row, id: "in-remote", location: "Canada", is_remote: true },
+          { ...row, id: "in-ottawa", location: "Ottawa, ON", is_remote: true },
+        ],
+        errors: {},
+      },
+    ];
+
+    const { drafts, errors } = await adapter().poll(window);
+
+    expect(errors).toEqual([]);
+    expect(drafts.map((d) => d.listingKey)).toEqual([
+      "indeed:9ed1c4e22c77bcfb",
+      "indeed:remote",
+      "indeed:ottawa",
+    ]);
+  });
+
   it("maps a LinkedIn row and treats a present description as full", async () => {
     const [row] = rows("linkedin_rows.json");
     respond = async () => [
@@ -238,7 +263,7 @@ describe("jobspyConfigFromEnv", () => {
 
     expect(config).toMatchObject({
       searchTerm: "software developer",
-      location: "Canada",
+      location: "Toronto, ON",
       resultsWanted: 50,
     });
   });

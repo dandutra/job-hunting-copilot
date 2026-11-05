@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { SightingDraft } from "../../matching/sighting-draft";
 import { AlertHook } from "../alert-hook";
 import {
@@ -6,6 +7,7 @@ import {
   JobSourceAdapter,
   PollWindow,
 } from "../job-source-adapter";
+import { inSearchArea } from "../search-area";
 import type { components } from "./schema";
 
 type ScrapeRequest = components["schemas"]["ScrapeRequest"];
@@ -40,7 +42,7 @@ export function jobspyConfigFromEnv(
     baseUrl: env.JOBSPY_URL || "http://localhost:8000",
     site,
     searchTerm: env.JOBSPY_SEARCH_TERM?.trim() || "software developer",
-    location: env.JOBSPY_LOCATION?.trim() || "Canada",
+    location: env.JOBSPY_LOCATION?.trim() || "Toronto, ON",
     resultsWanted,
     timeoutMs: TIMEOUT_MS,
   };
@@ -62,6 +64,7 @@ function isScrapeResponse(body: unknown): body is ScrapeResponse {
 
 export class JobspyAdapter extends JobSourceAdapter {
   readonly name: string;
+  private readonly logger = new Logger(JobspyAdapter.name);
 
   constructor(
     private readonly config: JobspyConfig,
@@ -87,7 +90,12 @@ export class JobspyAdapter extends JobSourceAdapter {
     }
 
     const drafts: SightingDraft[] = [];
+    let outside = 0;
     for (const row of response.rows) {
+      if (!this.inArea(row)) {
+        outside++;
+        continue;
+      }
       const draft = this.toDraft(row, window.now);
       if (typeof draft === "string") {
         errors.push({ kind: "bad-row", message: draft });
@@ -95,7 +103,20 @@ export class JobspyAdapter extends JobSourceAdapter {
         drafts.push(draft);
       }
     }
+    if (outside > 0) {
+      this.logger.log(
+        `${this.name}: dropped ${outside} of ${response.rows.length} rows outside the Search area`,
+      );
+    }
     return { drafts, errors };
+  }
+
+  // JobSpy often reports remote jobs as just "Canada" with is_remote set.
+  private inArea(row: Record<string, unknown>): boolean {
+    const location = text(row.location) ?? "";
+    return inSearchArea([
+      row.is_remote === true ? `Remote, ${location}` : location,
+    ]);
   }
 
   // Returns the response, or a message describing why the scraper failed.
