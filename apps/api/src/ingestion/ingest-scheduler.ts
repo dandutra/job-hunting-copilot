@@ -12,6 +12,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AlertHook } from "./alert-hook";
 import {
   AdapterError,
+  BoardReport,
   JOB_SOURCE_ADAPTERS,
   JobSourceAdapter,
 } from "./job-source-adapter";
@@ -31,6 +32,9 @@ export const INGEST_LOCK_ID = 2100021;
 const OVERLAP_MS = 2 * HOUR_MS;
 const FIRST_LOOKBACK_MS = 24 * HOUR_MS;
 const MAX_LOOKBACK_MS = 7 * 24 * HOUR_MS;
+// Tick times jitter by milliseconds, so an hourly adapter must not be skipped for arriving a hair early.
+const INTERVAL_GRACE_MS = 60 * 1000;
+const NOT_FOUND_ALERT_MS = 24 * HOUR_MS;
 
 // Only these stop the window from advancing. A bad row never gets better by asking again.
 const RETRYABLE: AdapterError["kind"][] = ["blocked", "fault"];
@@ -47,6 +51,8 @@ export class IngestScheduler
   private timer?: NodeJS.Timeout;
   private stopping = false;
   private current?: Promise<unknown>;
+  // Lost on restart, which costs at most one repeat alert per dead board.
+  private readonly notFoundAlertedAt = new Map<number, Date>();
 
   constructor(
     @Inject(JOB_SOURCE_ADAPTERS) private readonly adapters: JobSourceAdapter[],
@@ -146,21 +152,36 @@ export class IngestScheduler
   ): Promise<AdapterOutcome> {
     const started = Date.now();
     const outcome = this.skipped(adapter);
+    let advanced = false;
+    let attempted = false;
     try {
       const cursor = await this.prisma.ingestCursor.findUnique({
         where: { adapter: adapter.name },
       });
+      if (
+        cursor?.lastAttemptAt &&
+        now.getTime() - cursor.lastAttemptAt.getTime() + INTERVAL_GRACE_MS <
+          adapter.minIntervalMs
+      ) {
+        return outcome;
+      }
+      attempted = true;
       const since = new Date(
         Math.max(
-          cursor
+          cursor?.lastPollAt
             ? cursor.lastPollAt.getTime() - OVERLAP_MS
             : now.getTime() - FIRST_LOOKBACK_MS,
           now.getTime() - MAX_LOOKBACK_MS,
         ),
       );
-      const result = await adapter.poll({ since, now });
+      const result = await adapter.poll({
+        since,
+        now,
+        shouldStop: () => this.stopping,
+      });
       outcome.drafts = result.drafts.length;
       outcome.errors = [...result.errors];
+      if (result.boards) outcome.boards = countBoards(result.boards);
 
       for (const draft of result.drafts) {
         try {
@@ -178,13 +199,8 @@ export class IngestScheduler
 
       const retry = outcome.errors.some((e) => RETRYABLE.includes(e.kind));
       outcome.status = retry ? "failed" : "ok";
-      if (!retry) {
-        await this.prisma.ingestCursor.upsert({
-          where: { adapter: adapter.name },
-          create: { adapter: adapter.name, lastPollAt: now },
-          update: { lastPollAt: now },
-        });
-      }
+      advanced = !retry;
+      await this.alertBoardErrors(adapter, outcome.errors, now);
     } catch (err) {
       outcome.status = "failed";
       outcome.errors.push({ kind: "fault", message: describe(err) });
@@ -192,7 +208,67 @@ export class IngestScheduler
         .alert({ kind: "fault", adapter: adapter.name, message: describe(err) })
         .catch(() => undefined);
     }
+    if (attempted) await this.recordAttempt(adapter, now, advanced);
     outcome.durationMs = Date.now() - started;
     return outcome;
   }
+
+  private async recordAttempt(
+    adapter: JobSourceAdapter,
+    now: Date,
+    advanced: boolean,
+  ) {
+    const data = advanced
+      ? { lastAttemptAt: now, lastPollAt: now }
+      : { lastAttemptAt: now };
+    try {
+      await this.prisma.ingestCursor.upsert({
+        where: { adapter: adapter.name },
+        create: { adapter: adapter.name, ...data },
+        update: data,
+      });
+    } catch (err) {
+      this.logger.error(
+        `Could not record the ${adapter.name} attempt: ${describe(err)}`,
+      );
+    }
+  }
+
+  // Board errors alert here, not in the adapter, because the daily 404 limit needs one place that sees every tick.
+  private async alertBoardErrors(
+    adapter: JobSourceAdapter,
+    errors: AdapterError[],
+    now: Date,
+  ) {
+    for (const e of errors) {
+      if (e.watchedCompanyId === undefined || !RETRYABLE.includes(e.kind)) {
+        continue;
+      }
+      const id = e.watchedCompanyId;
+      if (e.httpStatus === 404) {
+        const last = this.notFoundAlertedAt.get(id);
+        if (last && now.getTime() - last.getTime() < NOT_FOUND_ALERT_MS) {
+          continue;
+        }
+        this.notFoundAlertedAt.set(id, now);
+      }
+      try {
+        const company = await this.prisma.company.findUnique({ where: { id } });
+        await this.alerts.alert({
+          kind: e.kind as "blocked" | "fault",
+          adapter: adapter.name,
+          company: company?.name ?? `company ${id}`,
+          message: e.message,
+        });
+      } catch (err) {
+        this.logger.error(`Board alert failed: ${describe(err)}`);
+      }
+    }
+  }
+}
+
+function countBoards(boards: BoardReport[]) {
+  const count = { ok: 0, failed: 0, incomplete: 0 };
+  for (const b of boards) count[b.status]++;
+  return count;
 }

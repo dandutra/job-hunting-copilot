@@ -98,10 +98,12 @@ model MergeLogEntry {
   @@map("merge_log_entry")
 }
 
-// Where each adapter's next window starts, so a restart or a long outage still covers the gap.
+// lastPollAt is where each adapter's next window starts, so a restart or a long outage still covers the gap.
+// lastAttemptAt (any outcome) paces an adapter with a long minIntervalMs, so a failure is not retried every tick.
 model IngestCursor {
-  adapter    String   @id
-  lastPollAt DateTime @map("last_poll_at")
+  adapter       String    @id
+  lastPollAt    DateTime? @map("last_poll_at")
+  lastAttemptAt DateTime? @map("last_attempt_at")
 
   @@map("ingest_cursor")
 }

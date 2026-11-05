@@ -9,6 +9,8 @@ export interface AdapterOutcome {
   matched: number;
   failedDrafts: number;
   errors: AdapterError[];
+  // Only board adapters report these.
+  boards?: { ok: number; failed: number; incomplete: number };
   durationMs: number;
 }
 
@@ -24,7 +26,7 @@ export class LogPollHooks extends PollHooks {
   async pollFinished(outcomes: AdapterOutcome[]): Promise<void> {
     for (const o of outcomes) {
       this.logger.log(
-        `${o.adapter} ${o.status}: ${o.drafts} drafts, ${o.matched} matched, ${o.failedDrafts} failed, ${o.errors.length} errors, ${o.durationMs} ms`,
+        `${o.adapter} ${o.status}: ${o.drafts} drafts, ${o.matched} matched, ${o.failedDrafts} failed, ${o.errors.length} errors, ${o.durationMs} ms${o.boards ? `, boards ${o.boards.ok} ok ${o.boards.failed} failed ${o.boards.incomplete} incomplete` : ""}`,
       );
       for (const e of o.errors) {
         this.logger.warn(`${o.adapter} ${e.kind}: ${e.message}`);
