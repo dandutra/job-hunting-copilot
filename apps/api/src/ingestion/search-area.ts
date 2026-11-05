@@ -28,9 +28,15 @@ const REMOTE_FILLER = new Set([
   "flexible",
   "distributed",
   "telecommute",
+  "worldwide",
+  "global",
+  "globally",
+  "international",
 ]);
 
-// Lowercase words separated by single spaces, so a name matches only at word edges.
+// Beside "remote" these name Canada or Ontario; "ca" is left out because it also means California.
+const CANADA = new Set(["canada", "can", "ontario", "on"]);
+
 function words(text: string): string[] {
   return text
     .toLowerCase()
@@ -47,12 +53,12 @@ function entryInArea(location: string): boolean {
   const tokens = words(location);
   if (CITIES.some((city) => hasPhrase(tokens, city))) return true;
   if (!tokens.includes("remote")) return false;
-  if (tokens.includes("canada") || tokens.includes("ontario")) return true;
+  if (tokens.some((t) => CANADA.has(t))) return true;
   // Any other word is a place we cannot judge, so it keeps the row out.
   return tokens.every((t) => REMOTE_FILLER.has(t));
 }
 
-// A caller splits multi-location text itself; a string holding several places still passes if one is in.
+// A caller splits multi-location text itself.
 export function inSearchArea(locations: string[]): boolean {
   return locations.some(entryInArea);
 }

@@ -28,6 +28,11 @@ describe("inSearchArea", () => {
     "Hybrid (Toronto)",
     "Remote",
     "Remote, Ontario",
+    "Remote, ON",
+    "CAN-Remote",
+    "CAN-ON-Remote",
+    "Remote - Worldwide",
+    "Remote (Global)",
     "richmond-hill, on",
     "Toronto; New York",
   ])("accepts the form %s", (location) => {
@@ -37,6 +42,8 @@ describe("inSearchArea", () => {
   it.each([
     "Remote - US",
     "Remote, United States",
+    "Remote - EMEA",
+    "Remote, CA",
     "Montreal, QC",
     "Hamilton, ON",
     "Vancouver, BC",
