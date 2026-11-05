@@ -34,8 +34,8 @@ const REMOTE_FILLER = new Set([
   "international",
 ]);
 
-// Beside "remote" these name Canada or Ontario; "ca" is left out because it also means California.
-const CANADA = new Set(["canada", "can", "ontario", "on"]);
+// "can" and "on" are also English words, so they count only when nothing else names a place; "ca" also means California.
+const CANADA_CODES = new Set(["can", "on"]);
 
 function words(text: string): string[] {
   return text
@@ -53,9 +53,9 @@ function entryInArea(location: string): boolean {
   const tokens = words(location);
   if (CITIES.some((city) => hasPhrase(tokens, city))) return true;
   if (!tokens.includes("remote")) return false;
-  if (tokens.some((t) => CANADA.has(t))) return true;
+  if (tokens.includes("canada") || tokens.includes("ontario")) return true;
   // Any other word is a place we cannot judge, so it keeps the row out.
-  return tokens.every((t) => REMOTE_FILLER.has(t));
+  return tokens.every((t) => REMOTE_FILLER.has(t) || CANADA_CODES.has(t));
 }
 
 // A caller splits multi-location text itself.
