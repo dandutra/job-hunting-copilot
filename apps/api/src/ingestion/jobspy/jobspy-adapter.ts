@@ -108,7 +108,7 @@ export class JobspyAdapter extends JobSourceAdapter {
         `${this.name}: dropped ${outside} of ${response.rows.length} rows outside the Search area`,
       );
     }
-    return { drafts, errors };
+    return { drafts, errors, completeBoards: [] };
   }
 
   // JobSpy often reports remote jobs as just "Canada" with is_remote set.
@@ -153,7 +153,11 @@ export class JobspyAdapter extends JobSourceAdapter {
 
   private async fault(message: string): Promise<AdapterResult> {
     await this.alerts.alert({ kind: "fault", adapter: this.name, message });
-    return { drafts: [], errors: [{ kind: "fault", message }] };
+    return {
+      drafts: [],
+      errors: [{ kind: "fault", message }],
+      completeBoards: [],
+    };
   }
 
   // Returns the draft, or a message naming the field that made the row unusable.

@@ -7,11 +7,13 @@ import {
   OnModuleDestroy,
 } from "@nestjs/common";
 import { Client } from "pg";
+import { normalizeListingKey } from "../matching/listing-key";
 import { SightingMatcher } from "../matching/sighting-matcher";
 import { PrismaService } from "../prisma/prisma.service";
 import { AlertHook } from "./alert-hook";
 import {
   AdapterError,
+  AdapterResult,
   BoardReport,
   JOB_SOURCE_ADAPTERS,
   JobSourceAdapter,
@@ -35,6 +37,8 @@ const MAX_LOOKBACK_MS = 7 * 24 * HOUR_MS;
 // Tick times jitter by milliseconds, so an hourly adapter must not be skipped for arriving a hair early.
 const INTERVAL_GRACE_MS = 60 * 1000;
 const NOT_FOUND_ALERT_MS = 24 * HOUR_MS;
+// A listing missing from one complete read may be a bad page, so it must stay missing this long.
+const CLOSE_GRACE_MS = 24 * HOUR_MS;
 
 // Only these stop the window from advancing. A bad row never gets better by asking again.
 const RETRYABLE: AdapterError["kind"][] = ["blocked", "fault"];
@@ -197,6 +201,8 @@ export class IngestScheduler
         }
       }
 
+      await this.closeMissing(result, now, outcome);
+
       const retry = outcome.errors.some((e) => RETRYABLE.includes(e.kind));
       outcome.status = retry ? "failed" : "ok";
       advanced = !retry;
@@ -220,6 +226,41 @@ export class IngestScheduler
     }
     outcome.durationMs = Date.now() - started;
     return outcome;
+  }
+
+  // Only a complete board listing is evidence; see the "Only boards close a Posting" decision.
+  private async closeMissing(
+    result: AdapterResult,
+    now: Date,
+    outcome: AdapterOutcome,
+  ) {
+    for (const id of result.completeBoards) {
+      const listed = new Set(
+        result.drafts
+          .filter((d) => d.watchedCompanyId === id)
+          .map((d) => normalizeListingKey(d.listingKey)),
+      );
+      const open = { watchedCompanyId: id, closedAt: null };
+      if (listed.size === 0) {
+        const count = await this.prisma.sighting.count({ where: open });
+        if (count > 0) {
+          // No watchedCompanyId on the error: a board that really emptied would alert every hour.
+          outcome.errors.push({
+            kind: "fault",
+            message: `board of company ${id} listed no jobs but has ${count} open; closed none`,
+          });
+        }
+        continue;
+      }
+      await this.prisma.sighting.updateMany({
+        where: {
+          ...open,
+          listingKey: { notIn: [...listed] },
+          lastSeenAt: { lt: new Date(now.getTime() - CLOSE_GRACE_MS) },
+        },
+        data: { closedAt: now },
+      });
+    }
   }
 
   private async recordAttempt(
