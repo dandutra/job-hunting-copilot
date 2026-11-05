@@ -35,6 +35,7 @@ Glossary: [glossary.md](glossary.md)
 - [Resumes render with Typst and docx](decisions/resumes-render-with-typst-and-docx.md): one typed model feeds the Typst CLI for PDF and the `docx` package for DOCX, with no Chromium or LibreOffice; no real ATS has tested the output yet.
 - [Tailoring is gated by the API](decisions/tailoring-is-gated-by-the-api.md): the `/tailor` skill writes only reworded text and Entry choices, the API's Trace check gates every stored draft, and the Claim review never sees the Posting.
 - [Only boards close a Posting](decisions/only-boards-close-a-posting.md): a Posting is Closed only on a Watched company board's evidence; one from other Job sources goes Stale after 30 quiet days, and both leave the feed without touching an Application.
+- [Postings stay inside the Search area](decisions/postings-stay-inside-the-search-area.md): every adapter drops rows outside Toronto, the GTA and remote-Canada before matching, so out-of-area jobs are never stored and a job that moves out of the area closes.
 
 ## Gotchas
 

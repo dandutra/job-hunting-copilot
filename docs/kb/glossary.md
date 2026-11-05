@@ -29,6 +29,10 @@ _Avoid_: Employer, organization
 A Company whose own ATS board is polled, named by its ATS and board slug.
 _Avoid_: Target company, tracked company
 
+**Search area**:
+The places a Posting must name to enter the app: Toronto, the GTA municipalities, and remote work open to Canada or naming no country. A Posting that names several places is in the area if any one of them is.
+_Avoid_: Region, location filter, GTA
+
 **Lookalike**:
 A link between two Postings that may be the same opening but lack the evidence to merge. The user merges or dismisses it.
 _Avoid_: Possible duplicate, merge candidate
