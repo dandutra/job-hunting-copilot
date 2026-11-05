@@ -79,6 +79,7 @@ model Sighting {
   @@index([directKey])
   @@index([postingId])
   @@index([lastSeenAt])
+  @@index([watchedCompanyId])
   @@map("sighting")
 }
 

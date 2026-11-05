@@ -23,9 +23,9 @@ export function postingState(
       ? "stale"
       : "open";
   }
-  if (boards.some((s) => s.closedAt === null)) return "open";
-  const latestClose = Math.max(
-    ...boards.map((s) => (s.closedAt as Date).getTime()),
+  const closes = boards.flatMap((s) =>
+    s.closedAt ? [s.closedAt.getTime()] : [],
   );
-  return newestSeen > latestClose ? "open" : "closed";
+  if (closes.length < boards.length) return "open";
+  return newestSeen > Math.max(...closes) ? "open" : "closed";
 }

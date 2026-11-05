@@ -240,9 +240,9 @@ export class IngestScheduler
           .filter((d) => d.watchedCompanyId === id)
           .map((d) => normalizeListingKey(d.listingKey)),
       );
-      const open = { watchedCompanyId: id, closedAt: null };
+      const openOnBoard = { watchedCompanyId: id, closedAt: null };
       if (listed.size === 0) {
-        const count = await this.prisma.sighting.count({ where: open });
+        const count = await this.prisma.sighting.count({ where: openOnBoard });
         if (count > 0) {
           // No watchedCompanyId on the error: a board that really emptied would alert every hour.
           outcome.errors.push({
@@ -254,7 +254,7 @@ export class IngestScheduler
       }
       await this.prisma.sighting.updateMany({
         where: {
-          ...open,
+          ...openOnBoard,
           listingKey: { notIn: [...listed] },
           lastSeenAt: { lt: new Date(now.getTime() - CLOSE_GRACE_MS) },
         },
