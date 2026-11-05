@@ -16,18 +16,17 @@ export function postingState(
 ): PostingState {
   if (sightings.length === 0) return "open";
   const quietSince = now.getTime() - STALE_AFTER_DAYS * DAY_MS;
-  // An open board Sighting quiet for 30 days means its board is no longer read cleanly, so it is no evidence either way.
-  const boards = sightings.filter(
-    (s) =>
-      s.watchedCompanyId !== null &&
-      (s.closedAt !== null || s.lastSeenAt.getTime() >= quietSince),
-  );
+  const boards = sightings.filter((s) => s.watchedCompanyId !== null);
   const newestSeen = Math.max(...sightings.map((s) => s.lastSeenAt.getTime()));
 
-  if (boards.length === 0) return newestSeen < quietSince ? "stale" : "open";
+  // A healthy board refreshes its open Sightings hourly, so one quiet for 30 days keeps nothing open.
+  const listedNow = boards.some(
+    (s) => s.closedAt === null && s.lastSeenAt.getTime() >= quietSince,
+  );
+  if (listedNow) return "open";
   const closes = boards.flatMap((s) =>
     s.closedAt ? [s.closedAt.getTime()] : [],
   );
-  if (closes.length < boards.length) return "open";
-  return newestSeen > Math.max(...closes) ? "open" : "closed";
+  if (closes.length > 0 && newestSeen <= Math.max(...closes)) return "closed";
+  return newestSeen < quietSince ? "stale" : "open";
 }

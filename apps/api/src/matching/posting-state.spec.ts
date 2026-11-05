@@ -84,6 +84,34 @@ describe("postingState", () => {
     expect(postingState([board(), quiet], NOW)).toBe("closed");
   });
 
+  it("goes stale when a board Sighting seen after an old close goes quiet", () => {
+    const closedLongAgo = board({
+      lastSeenAt: daysAgo(61),
+      closedAt: daysAgo(60),
+    });
+    const quiet = board({
+      watchedCompanyId: 2,
+      closedAt: null,
+      lastSeenAt: daysAgo(40),
+    });
+    expect(postingState([closedLongAgo, quiet], NOW)).toBe("stale");
+  });
+
+  it("goes stale when an aggregator report after an old close goes quiet", () => {
+    const closedLongAgo = board({
+      lastSeenAt: daysAgo(61),
+      closedAt: daysAgo(60),
+    });
+    const linkedin = aggregator({ lastSeenAt: daysAgo(50) });
+    expect(postingState([closedLongAgo, linkedin], NOW)).toBe("stale");
+  });
+
+  it("goes stale when a quiet board and an aggregator are both over 30 days old", () => {
+    const quiet = board({ closedAt: null, lastSeenAt: daysAgo(40) });
+    const linkedin = aggregator({ lastSeenAt: daysAgo(35) });
+    expect(postingState([quiet, linkedin], NOW)).toBe("stale");
+  });
+
   it("stays closed long after the close", () => {
     const old = board({ lastSeenAt: daysAgo(90), closedAt: daysAgo(89) });
     expect(postingState([old], NOW)).toBe("closed");

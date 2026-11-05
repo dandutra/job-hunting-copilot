@@ -42,11 +42,11 @@ The date of a Posting's earliest Sighting. Ranking uses it as the Posting's age.
 _Avoid_: Date posted, published date
 
 **Closed Posting**:
-A Posting whose Watched company boards have all stopped listing it, with no Sighting from any Job source since. Only a board can close a Posting.
+A Posting with at least one closed board Sighting, no open board Sighting seen in the last 30 days, and no Sighting from any Job source since the latest close. Only a board can close a Posting.
 _Avoid_: Expired, filled, inactive
 
 **Stale Posting**:
-A Posting with no live board Sighting whose newest Sighting was last seen more than 30 days ago. A board Sighting is live when it is closed or was seen in the last 30 days. It is a guess that the opening is gone.
+A Posting that is not Closed, has no open board Sighting seen in the last 30 days, and whose newest Sighting was last seen more than 30 days ago. It is a guess that the opening is gone.
 _Avoid_: Old, expired, closed
 
 **Tier**:
