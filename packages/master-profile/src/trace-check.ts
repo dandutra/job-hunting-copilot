@@ -55,6 +55,9 @@ export function traceCheck(
     fact.related.some((id) => id === ownerId || parentOf.get(id) === ownerId);
   const fail = (rule: TraceRule, location: string, detail: string) =>
     failures.push({ rule, location, detail });
+  // An unknown ID is draft text and may be prose, so only a known ID is echoed.
+  const missing = (id: string) =>
+    known.has(id) ? `${id} is retired` : "an unknown ID";
 
   const checkLine = (
     line: Line,
@@ -66,14 +69,13 @@ export function traceCheck(
     for (const id of line.cites) {
       const entry = live.get(id);
       if (!entry) {
-        fail(
-          1,
-          location,
-          known.has(id) ? `${id} is retired` : `${id} is unknown`,
-        );
+        fail(1, location, missing(id));
         continue;
       }
-      if (entry.kind !== "fact") continue;
+      if (entry.kind !== "fact") {
+        if (ownerId) fail(3, location, `${id} is not a Fact`);
+        continue;
+      }
       const { fact } = entry;
       if (!fact.use.includes(surface)) {
         fail(2, location, `${id} is not allowed on ${surface}`);
@@ -91,13 +93,7 @@ export function traceCheck(
     sections.forEach((section, i) => {
       const where = `${key}[${i}]`;
       if (!live.has(section.id)) {
-        fail(
-          1,
-          where,
-          known.has(section.id)
-            ? `${section.id} is retired`
-            : `${section.id} is unknown`,
-        );
+        fail(1, where, missing(section.id));
       }
       section.bullets.forEach((bullet, j) =>
         checkLine(bullet, `${where}.bullets[${j}]`, "resume", section.id),
@@ -111,11 +107,7 @@ export function traceCheck(
 
   draft.educationIds.forEach((id, i) => {
     if (!live.has(id)) {
-      fail(
-        1,
-        `educationIds[${i}]`,
-        known.has(id) ? `${id} is retired` : `${id} is unknown`,
-      );
+      fail(1, `educationIds[${i}]`, missing(id));
     }
   });
 
@@ -124,11 +116,7 @@ export function traceCheck(
     const where = `skills[${i}]`;
     const skill = skillsById.get(line.skillId);
     if (!skill || skill.retired) {
-      fail(
-        1,
-        where,
-        skill ? `${line.skillId} is retired` : `${line.skillId} is unknown`,
-      );
+      fail(1, where, skill ? `${skill.id} is retired` : "an unknown ID");
       return;
     }
     if (line.text !== skill.name && !skill.aliases.includes(line.text)) {
@@ -141,18 +129,17 @@ export function traceCheck(
   );
 
   // A fixed Experience is filled by the API, so the draft lists it and writes nothing under it.
-  const listed = new Map(draft.experiences.map((s) => [s.id, s]));
   for (const exp of profile.experiences) {
     if (!exp.fixed || exp.retired) continue;
-    const section = listed.get(exp.id);
-    if (!section) fail(5, "experiences", `${exp.id} is fixed and was dropped`);
-    else if (section.bullets.length > 0) {
-      fail(
-        5,
-        `experiences[${draft.experiences.indexOf(section)}]`,
-        `${exp.id} is fixed and was reworded`,
-      );
-    }
+    let listed = false;
+    draft.experiences.forEach((section, i) => {
+      if (section.id !== exp.id) return;
+      listed = true;
+      if (section.bullets.length > 0) {
+        fail(5, `experiences[${i}]`, `${exp.id} is fixed and was reworded`);
+      }
+    });
+    if (!listed) fail(5, "experiences", `${exp.id} is fixed and was dropped`);
   }
 
   return failures.length === 0 ? { ok: true } : { ok: false, failures };

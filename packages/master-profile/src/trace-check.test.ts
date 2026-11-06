@@ -113,6 +113,23 @@ describe("traceCheck", () => {
     expect(rulesOf(profile, d)).toEqual([3]);
   });
 
+  it("rule 3: a bullet cites an Entry that is not a Fact", () => {
+    const profile = profileWith((raw) => {
+      (raw.experiences as object[]).push({
+        id: "E2",
+        employer: "Other Co",
+        titles: ["Dev"],
+        start: "2019-01",
+        location: "Testville",
+        type: "employment",
+      });
+    });
+    const d = draftWith((d) => {
+      d.experiences[0].bullets = [{ text: "x", cites: ["E2"] }];
+    });
+    expect(rulesOf(profile, d)).toEqual([3]);
+  });
+
   it("rule 3 passes when the Fact's related names the Entry", () => {
     const profile = profileWith((raw) => {
       (raw.projects as object[]).push({ id: "P2", name: "Other" });
@@ -153,6 +170,10 @@ describe("traceCheck", () => {
     );
     expect(rulesOf(profile, reworded)).toEqual([5]);
     expect(rulesOf(profile, dropped)).toEqual([5]);
+    const listedTwice = draftWith((d) =>
+      d.experiences.push({ id: "E1", bullets: [] }),
+    );
+    expect(rulesOf(profile, listedTwice)).toEqual([5]);
     expect(traceCheck(profile, clean)).toEqual({ ok: true });
   });
 
@@ -170,7 +191,13 @@ describe("traceCheck", () => {
   it("never puts draft text in a failure", () => {
     const d = draftWith((d) => {
       d.summary = { text: "SECRET-LINE", cites: [] };
-      d.skills = [{ skillId: "S1", text: "SECRET-SKILL" }];
+      d.skills = [
+        { skillId: "S1", text: "SECRET-SKILL" },
+        { skillId: "SECRET-SKILL-ID", text: "x" },
+      ];
+      d.coverLetter = [{ text: "x", cites: ["SECRET-CITE"] }];
+      d.experiences.push({ id: "SECRET-SECTION", bullets: [] });
+      d.educationIds = ["SECRET-EDUCATION"];
     });
     expect(JSON.stringify(traceCheck(profileWith(), d))).not.toContain(
       "SECRET",
