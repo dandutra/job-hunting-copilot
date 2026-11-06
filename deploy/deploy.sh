@@ -9,7 +9,7 @@ sha="${1:-}"
 compose_file=deploy/compose.prod.yaml
 [ -f "$compose_file" ] || { echo "run from the directory that holds $compose_file" >&2; exit 2; }
 
-required=(POSTGRES_PASSWORD)
+required=(POSTGRES_PASSWORD ALLOWED_TAILSCALE_LOGIN)
 declare -A seen=()
 umask 077
 env_tmp=$(mktemp .env.XXXXXX)
