@@ -5,3 +5,14 @@ export {
   type ValidationResult,
 } from "./validate";
 export { fitSummary } from "./fit-summary";
+export {
+  traceCheck,
+  TailoredDraftSchema,
+  type DraftSection,
+  type Line,
+  type SkillLine,
+  type TailoredDraft,
+  type TraceFailure,
+  type TraceResult,
+  type TraceRule,
+} from "./trace-check";
