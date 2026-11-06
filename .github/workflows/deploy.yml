@@ -1,0 +1,134 @@
+name: Deploy
+
+on:
+  # Docs go straight to main, so a docs-only push must not redeploy.
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**"]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full commit SHA to deploy. A rollback is a run with an earlier SHA.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One deploy at a time, and a running deploy is never cancelled (the ingest drain takes up to 6 minutes).
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  # A push deploys its own commit; a manual run deploys the SHA it was given.
+  TARGET_SHA: ${{ inputs.sha || github.sha }}
+
+jobs:
+  check:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # Synthetic values for the throwaway service container below.
+      DATABASE_URL: postgresql://ci:ci-password@localhost:5432/copilot
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: copilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d copilot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir apps/api exec prisma generate
+      - run: pnpm check
+
+  build:
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+      # Compose requires a value for these even for a build; the images never read it.
+      POSTGRES_PASSWORD: build-only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the images once
+        run: docker compose -f deploy/compose.prod.yaml build
+      - name: No image holds personal data
+        run: deploy/check-images-clean.sh
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the images tagged by commit SHA
+        run: docker compose -f deploy/compose.prod.yaml push migrate jobspy web
+
+  deploy:
+    # A manual run skips check and build, which only a push runs.
+    needs: build
+    if: ${{ !cancelled() && (needs.build.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check the SHA
+        run: |
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "TARGET_SHA is not a full commit SHA" >&2; exit 1; }
+        shell: bash
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          persist-credentials: false
+      - uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: copilot
+      - name: Send the Compose file and deploy.sh
+        run: |
+          tar -c deploy/compose.prod.yaml deploy/deploy.sh \
+            | tailscale ssh deploy@copilot 'mkdir -p ~/copilot && tar -x -C ~/copilot'
+      - name: Deploy
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JOBSPY_PROXIES: ${{ secrets.JOBSPY_PROXIES }}
+          JOBSPY_SEARCH_TERM: ${{ vars.JOBSPY_SEARCH_TERM }}
+          JOBSPY_LOCATION: ${{ vars.JOBSPY_LOCATION }}
+          JOBSPY_RESULTS_WANTED: ${{ vars.JOBSPY_RESULTS_WANTED }}
+        # The values go over stdin, so none reaches a command line on either machine.
+        run: |
+          printf '%s\n' \
+            "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
+            "JOBSPY_PROXIES=${JOBSPY_PROXIES}" \
+            "JOBSPY_SEARCH_TERM=${JOBSPY_SEARCH_TERM}" \
+            "JOBSPY_LOCATION=${JOBSPY_LOCATION}" \
+            "JOBSPY_RESULTS_WANTED=${JOBSPY_RESULTS_WANTED}" \
+            | tailscale ssh deploy@copilot "cd ~/copilot && ./deploy/deploy.sh ${TARGET_SHA}"

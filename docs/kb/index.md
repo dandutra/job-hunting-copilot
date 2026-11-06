@@ -54,3 +54,4 @@ Glossary: [glossary.md](glossary.md)
 ## Runbooks
 
 - [Provision the server](runbooks/provision.md): build, check, rebuild and recover the Droplet, firewall, Tailscale policy and backups bucket with Terraform from the Mac.
+- [Deploy, roll back and rotate secrets](runbooks/deploy.md): how a push to `main` reaches the Droplet, the rollback run, the migration rule, the one-time GitHub and Tailscale settings, and secret rotation.
