@@ -58,6 +58,7 @@ services:
     environment:
       <<: *app-env
       API_PORT: "3000"
+      ALLOWED_TAILSCALE_LOGIN: ${ALLOWED_TAILSCALE_LOGIN:?set it in .env}
     depends_on:
       migrate:
         condition: service_completed_successfully

@@ -48,7 +48,7 @@ Glossary: [glossary.md](glossary.md)
 - [Master profile schema package](gotchas/master-profile-schema-package.md): validation runs in two passes, `fitSummary` drops more than the ticket lists, `traceCheck` reports a bad draft shape as a failure and lets bullets cite only Facts, and the source-only package cannot yet be imported by the CommonJS API.
 - [API contract pipeline](gotchas/api-contract-pipeline.md): `pnpm generate` rewrites both specs and the generated types, `pnpm check` fails on drift, and the spec script needs ts-node, not tsx.
 - [Ingest scheduler](gotchas/ingest-scheduler.md): the lock needs its own connection and an error listener, the drain runs in `onModuleDestroy`, `minIntervalMs` paces each adapter from `last_attempt_at`, a 404 board alerts once a day, a window advances only after a poll with no blocked or fault error, `/scrape` has no paging, and only a complete board listing closes a Sighting, after a 24-hour grace and never from an empty listing.
-
+- [Tailnet identity guard](gotchas/tailnet-identity-guard.md): the global guard 401s without the user's `Tailscale-User-Login`, 403s a state-changing request whose `Origin` host differs from `Host`, exempts only `@Public()` routes, and depends on nginx forwarding both headers.
 - [Workday resume parsing](gotchas/workday-resume-parsing.md): Workday read the "(CPP)" in a program name as the college, never fills Skills from a resume, hyphenated line breaks extract joined, and every autofilled field needs a manual check.
 
 ## Runbooks

@@ -69,8 +69,9 @@ jobs:
       packages: write
     env:
       IMAGE_TAG: ${{ github.sha }}
-      # Compose requires a value for these even for a build; the images never read it.
+      # Compose requires a value for these even for a build; the images never read them.
       POSTGRES_PASSWORD: build-only
+      ALLOWED_TAILSCALE_LOGIN: build-only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -124,6 +125,7 @@ jobs:
       - name: Deploy
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          ALLOWED_TAILSCALE_LOGIN: ${{ secrets.ALLOWED_TAILSCALE_LOGIN }}
           JOBSPY_PROXIES: ${{ secrets.JOBSPY_PROXIES }}
           JOBSPY_SEARCH_TERM: ${{ vars.JOBSPY_SEARCH_TERM }}
           JOBSPY_LOCATION: ${{ vars.JOBSPY_LOCATION }}
@@ -132,6 +134,7 @@ jobs:
         run: |
           printf '%s\n' \
             "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
+            "ALLOWED_TAILSCALE_LOGIN=${ALLOWED_TAILSCALE_LOGIN}" \
             "JOBSPY_PROXIES=${JOBSPY_PROXIES}" \
             "JOBSPY_SEARCH_TERM=${JOBSPY_SEARCH_TERM}" \
             "JOBSPY_LOCATION=${JOBSPY_LOCATION}" \
