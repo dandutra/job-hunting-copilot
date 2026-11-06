@@ -19,7 +19,6 @@ export function postingState(
   const boards = sightings.filter((s) => s.watchedCompanyId !== null);
   const newestSeen = Math.max(...sightings.map((s) => s.lastSeenAt.getTime()));
 
-  // A healthy board refreshes its open Sightings hourly, so one quiet for 30 days keeps nothing open.
   const listedNow = boards.some(
     (s) => s.closedAt === null && s.lastSeenAt.getTime() >= quietSince,
   );

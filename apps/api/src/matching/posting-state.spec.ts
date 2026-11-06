@@ -22,7 +22,7 @@ function aggregator(over: Partial<StateSighting> = {}): StateSighting {
 }
 
 describe("postingState", () => {
-  it("is closed when every board Sighting is closed and nothing was seen after", () => {
+  it("is closed when its boards closed it and nothing was seen after the latest close", () => {
     expect(postingState([board(), board({ closedAt: daysAgo(3) })], NOW)).toBe(
       "closed",
     );
@@ -75,7 +75,7 @@ describe("postingState", () => {
     expect(postingState([quiet, aggregator()], NOW)).toBe("open");
   });
 
-  it("is closed when one board closed it and another board went quiet", () => {
+  it("is closed when one board closed it and the other board went quiet before the close", () => {
     const quiet = board({
       watchedCompanyId: 2,
       closedAt: null,
@@ -110,6 +110,46 @@ describe("postingState", () => {
     const quiet = board({ closedAt: null, lastSeenAt: daysAgo(40) });
     const linkedin = aggregator({ lastSeenAt: daysAgo(35) });
     expect(postingState([quiet, linkedin], NOW)).toBe("stale");
+  });
+
+  it("is open when a board seen 29 days ago still lists it next to an old close", () => {
+    const closedLongAgo = board({
+      lastSeenAt: daysAgo(61),
+      closedAt: daysAgo(60),
+    });
+    const listed = board({
+      watchedCompanyId: 2,
+      closedAt: null,
+      lastSeenAt: daysAgo(29),
+    });
+    expect(postingState([closedLongAgo, listed], NOW)).toBe("open");
+  });
+
+  it("is open when a board still lists it after another board's newer close", () => {
+    const justClosed = board({ lastSeenAt: daysAgo(2), closedAt: daysAgo(1) });
+    const listed = board({
+      watchedCompanyId: 2,
+      closedAt: null,
+      lastSeenAt: daysAgo(3),
+    });
+    expect(postingState([justClosed, listed], NOW)).toBe("open");
+  });
+
+  it("counts a report at the instant of the close as before it", () => {
+    const linkedin = aggregator({ lastSeenAt: daysAgo(4) });
+    expect(postingState([board(), linkedin], NOW)).toBe("closed");
+  });
+
+  it("turns closed with no new report once the board holding it open goes quiet", () => {
+    const closed = board({ lastSeenAt: daysAgo(6), closedAt: daysAgo(5) });
+    const unread = board({
+      watchedCompanyId: 2,
+      closedAt: null,
+      lastSeenAt: daysAgo(10),
+    });
+    const later = new Date(NOW.getTime() + 21 * DAY);
+    expect(postingState([closed, unread], NOW)).toBe("open");
+    expect(postingState([closed, unread], later)).toBe("closed");
   });
 
   it("stays closed long after the close", () => {

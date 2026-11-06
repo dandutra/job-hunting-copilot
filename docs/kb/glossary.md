@@ -46,7 +46,7 @@ A Posting with at least one closed board Sighting, no open board Sighting seen i
 _Avoid_: Expired, filled, inactive
 
 **Stale Posting**:
-A Posting that is not Closed, has no open board Sighting seen in the last 30 days, and whose newest Sighting was last seen more than 30 days ago. It is a guess that the opening is gone.
+A Posting that is not Closed and whose newest Sighting was last seen more than 30 days ago. It is a guess that the opening is gone.
 _Avoid_: Old, expired, closed
 
 **Tier**:
