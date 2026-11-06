@@ -7,6 +7,7 @@ export {
 export { fitSummary } from "./fit-summary";
 export {
   traceCheck,
+  TailoredDraftSchema,
   type DraftSection,
   type Line,
   type SkillLine,

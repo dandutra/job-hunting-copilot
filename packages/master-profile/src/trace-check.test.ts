@@ -188,6 +188,25 @@ describe("traceCheck", () => {
     expect(rulesOf(profile, d)).toEqual([1, 4, 5]);
   });
 
+  it("returns shape failures instead of throwing on a malformed draft", () => {
+    const profile = profileWith();
+    for (const bad of [
+      {},
+      null,
+      "SECRET-STRING",
+      { ...draftWith(), summary: { text: "x" } },
+      { ...draftWith(), experiences: [{ id: "E1" }] },
+      { ...draftWith(), "SECRET-KEY": 1 },
+      { ...draftWith(), educationIds: [42] },
+    ]) {
+      const r = traceCheck(profile, bad);
+      expect(r.ok).toBe(false);
+      if (r.ok) continue;
+      expect(r.failures.every((f) => f.rule === "shape")).toBe(true);
+      expect(JSON.stringify(r)).not.toContain("SECRET");
+    }
+  });
+
   it("never puts draft text in a failure", () => {
     const d = draftWith((d) => {
       d.summary = { text: "SECRET-LINE", cites: [] };
@@ -196,7 +215,10 @@ describe("traceCheck", () => {
         { skillId: "SECRET-SKILL-ID", text: "x" },
       ];
       d.coverLetter = [{ text: "x", cites: ["SECRET-CITE"] }];
-      d.experiences.push({ id: "SECRET-SECTION", bullets: [] });
+      d.experiences.push({
+        id: "SECRET-SECTION",
+        bullets: [{ text: "x", cites: ["F1", "E1"] }],
+      });
       d.educationIds = ["SECRET-EDUCATION"];
     });
     expect(JSON.stringify(traceCheck(profileWith(), d))).not.toContain(

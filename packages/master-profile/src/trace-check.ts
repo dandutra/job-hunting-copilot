@@ -1,20 +1,36 @@
+import { z } from "zod";
 import type { Profile } from "./schema";
 
-export type Line = { text: string; cites: string[] };
-export type DraftSection = { id: string; bullets: Line[] };
-export type SkillLine = { skillId: string; text: string };
+const LineSchema = z.strictObject({
+  text: z.string(),
+  cites: z.array(z.string()),
+});
+const DraftSectionSchema = z.strictObject({
+  id: z.string(),
+  bullets: z.array(LineSchema),
+});
+const SkillLineSchema = z.strictObject({
+  skillId: z.string(),
+  text: z.string(),
+});
 
-export type TailoredDraft = {
-  experiences: DraftSection[];
-  projects: DraftSection[];
-  educationIds: string[];
-  summary: Line;
-  skills: SkillLine[];
-  coverLetter?: Line[];
-  postingText?: string;
-};
+export const TailoredDraftSchema = z.strictObject({
+  experiences: z.array(DraftSectionSchema),
+  projects: z.array(DraftSectionSchema),
+  educationIds: z.array(z.string()),
+  summary: LineSchema,
+  skills: z.array(SkillLineSchema),
+  coverLetter: z.array(LineSchema).optional(),
+  postingText: z.string().optional(),
+});
 
-export type TraceRule = 1 | 2 | 3 | 4 | 5;
+export type Line = z.infer<typeof LineSchema>;
+export type DraftSection = z.infer<typeof DraftSectionSchema>;
+export type SkillLine = z.infer<typeof SkillLineSchema>;
+export type TailoredDraft = z.infer<typeof TailoredDraftSchema>;
+
+// "shape" is a draft that isn't a TailoredDraft at all; 1 to 5 are #57's rules.
+export type TraceRule = "shape" | 1 | 2 | 3 | 4 | 5;
 export type TraceFailure = {
   rule: TraceRule;
   location: string;
@@ -43,10 +59,18 @@ function indexEntries(profile: Profile) {
 }
 
 // Pure on purpose: failures carry IDs and locations, never draft text, so callers can log them.
-export function traceCheck(
-  profile: Profile,
-  draft: TailoredDraft,
-): TraceResult {
+export function traceCheck(profile: Profile, input: unknown): TraceResult {
+  const parsed = TailoredDraftSchema.safeParse(input);
+  if (!parsed.success) {
+    // The issue code only, because zod messages can quote the bad value.
+    const failures = parsed.error.issues.map((issue) => ({
+      rule: "shape" as const,
+      location: issue.path.map(String).join(".") || "draft",
+      detail: issue.code,
+    }));
+    return { ok: false, failures };
+  }
+  const draft = parsed.data;
   const { live, known } = indexEntries(profile);
   const failures: TraceFailure[] = [];
   const parentOf = new Map(profile.facts.map((f) => [f.id, f.parent]));
@@ -95,8 +119,10 @@ export function traceCheck(
       if (!live.has(section.id)) {
         fail(1, where, missing(section.id));
       }
+      // Rule 1 already fails an unknown section, and its ID must not reach a rule 3 detail.
+      const ownerId = known.has(section.id) ? section.id : undefined;
       section.bullets.forEach((bullet, j) =>
-        checkLine(bullet, `${where}.bullets[${j}]`, "resume", section.id),
+        checkLine(bullet, `${where}.bullets[${j}]`, "resume", ownerId),
       );
     });
   };

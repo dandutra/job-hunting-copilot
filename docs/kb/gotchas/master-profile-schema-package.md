@@ -19,7 +19,7 @@ generated:
 - TypeScript stays on 6 here too. `pnpm add -D typescript` installs 7.
 - `traceCheck(profile, draft)` takes a `TailoredDraft` and returns a pass or every failing line with its rule (1 to 5). Rule 6 (latest profile version) stays with the caller.
 - A failure holds a location and, for a known Entry, its ID. An unknown ID is draft text that may be prose, so it is reported as "an unknown ID". Failures are safe to log.
-- `traceCheck` trusts the draft's shape and throws on a missing field. The caller parses the request into a `TailoredDraft` first. A bad shape is a 400, not a Trace check failure.
+- `traceCheck` takes `unknown` and parses it with `TailoredDraftSchema` itself, so it never throws. A malformed draft fails with rule `"shape"`, and the detail is the zod issue code alone, because zod messages can quote the bad value. #57 can reuse the schema for its request DTO.
 - A bullet may cite only Facts. Citing an Experience, Project, Education or Skill from a bullet fails rule 3. The summary and the cover letter may cite any live Entry.
 - A fixed Experience must be listed in the draft with no bullets. Any bullet under it counts as rewording (rule 5), and leaving it out counts as dropping it.
 - `related` holds Fact IDs, so for rule 3 a Fact from another Entry is allowed when its `related` names a Fact under the bullet's own Entry.
