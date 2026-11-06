@@ -23,6 +23,11 @@ class ThingsController {
 
 const LOGIN = "me@example.com";
 
+function restoreLogin(original: string | undefined): void {
+  if (original === undefined) delete process.env.ALLOWED_TAILSCALE_LOGIN;
+  else process.env.ALLOWED_TAILSCALE_LOGIN = original;
+}
+
 async function buildApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AuthModule],
@@ -44,7 +49,7 @@ describe("Tailnet identity guard", () => {
 
   afterAll(async () => {
     await app.close();
-    process.env.ALLOWED_TAILSCALE_LOGIN = original;
+    restoreLogin(original);
   });
 
   it("lets the right login through", async () => {
@@ -115,8 +120,23 @@ describe("Tailnet identity guard", () => {
   });
 });
 
-describe("boot", () => {
-  it("wires the guard into the real AppModule", async () => {
+describe("AppModule", () => {
+  it("guards its routes", async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+      controllers: [ThingsController],
+    }).compile();
+    const app = moduleRef.createNestApplication();
+    await app.init();
+    try {
+      const res = await request(app.getHttpServer()).get("/things");
+      expect(res.status).toBe(401);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("refuses to compile with an empty login", async () => {
     const original = process.env.ALLOWED_TAILSCALE_LOGIN;
     process.env.ALLOWED_TAILSCALE_LOGIN = "";
     try {
@@ -124,10 +144,12 @@ describe("boot", () => {
         Test.createTestingModule({ imports: [AppModule] }).compile(),
       ).rejects.toThrow(/ALLOWED_TAILSCALE_LOGIN/);
     } finally {
-      process.env.ALLOWED_TAILSCALE_LOGIN = original;
+      restoreLogin(original);
     }
   });
+});
 
+describe("boot", () => {
   it.each(["", "   ", undefined])(
     "refuses to start with ALLOWED_TAILSCALE_LOGIN=%j",
     async (value) => {
@@ -137,7 +159,7 @@ describe("boot", () => {
       try {
         await expect(buildApp()).rejects.toThrow(/ALLOWED_TAILSCALE_LOGIN/);
       } finally {
-        process.env.ALLOWED_TAILSCALE_LOGIN = original;
+        restoreLogin(original);
       }
     },
   );

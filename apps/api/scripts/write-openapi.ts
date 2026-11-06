@@ -7,7 +7,8 @@ import { buildOpenApiDocument } from "../src/openapi";
 
 async function main() {
   // The spec doesn't depend on the login, and CI has none to give.
-  process.env.ALLOWED_TAILSCALE_LOGIN ||= "spec-generator@example.com";
+  if (!process.env.ALLOWED_TAILSCALE_LOGIN?.trim())
+    process.env.ALLOWED_TAILSCALE_LOGIN = "spec-generator@example.com";
   const app = await NestFactory.create(AppModule, { logger: false });
   const document = buildOpenApiDocument(app);
   await app.close();
