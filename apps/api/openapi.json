@@ -21,6 +21,30 @@
           "Health"
         ]
       }
+    },
+    "/me": {
+      "get": {
+        "operationId": "MeController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Me"
+        ]
+      }
     }
   },
   "info": {
@@ -43,6 +67,18 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string",
+            "example": "dandutra@github"
+          }
+        },
+        "required": [
+          "login"
         ]
       }
     }

@@ -136,6 +136,29 @@ describe("AppModule", () => {
     }
   });
 
+  it("answers GET /me with the allowed login", async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    const app = moduleRef.createNestApplication();
+    await app.init();
+    try {
+      const login = process.env.ALLOWED_TAILSCALE_LOGIN!;
+      const ok = await request(app.getHttpServer())
+        .get("/me")
+        .set("Tailscale-User-Login", login);
+      expect(ok.status).toBe(200);
+      expect(ok.body).toEqual({ login });
+
+      const forged = await request(app.getHttpServer())
+        .get("/me")
+        .set("Tailscale-User-Login", "eve@example.com");
+      expect(forged.status).toBe(401);
+    } finally {
+      await app.close();
+    }
+  });
+
   it("refuses to compile with an empty login", async () => {
     const original = process.env.ALLOWED_TAILSCALE_LOGIN;
     process.env.ALLOWED_TAILSCALE_LOGIN = "";
