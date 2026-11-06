@@ -109,7 +109,7 @@ jobs:
           persist-credentials: false
       - name: Check out the SHA, which must be on main
         run: |
-          git merge-base --is-ancestor "$TARGET_SHA" HEAD || { echo "$TARGET_SHA is not on main" >&2; exit 1; }
+          git merge-base --is-ancestor "$TARGET_SHA" origin/main || { echo "$TARGET_SHA is not on main" >&2; exit 1; }
           git checkout --quiet --detach "$TARGET_SHA"
       - uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
         with:

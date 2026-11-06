@@ -24,8 +24,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   key="${BASH_REMATCH[1]}"
   value="${BASH_REMATCH[2]}"
   [ "$key" != IMAGE_TAG ] || { echo "FAIL: IMAGE_TAG comes from the argument, not stdin" >&2; exit 2; }
-  # Compose reads a single-quoted value literally; unquoted it expands $, strips quotes and cuts at " #".
-  [[ "$value" != *"'"* ]] || { echo "FAIL: the value of $key holds a single quote" >&2; exit 2; }
+  # Compose reads a single-quoted value literally, except that \' escapes the quote and runs on into the next line.
+  [[ "$value" != *[\'\\]* ]] || { echo "FAIL: the value of $key holds a ' or a \\" >&2; exit 2; }
   [ -z "$value" ] || seen[$key]=1
   printf "%s='%s'\n" "$key" "$value" >>"$env_tmp"
 done
@@ -48,16 +48,18 @@ fail() {
 # The ingest drain of up to 6 minutes happens before the wait starts; the job's 15-minute timeout covers both.
 "${compose[@]}" up -d --wait --wait-timeout 300 --remove-orphans || fail
 # nginx resolves api once at start, and a same-SHA run that recreates api leaves web unchanged.
-"${compose[@]}" up -d --wait --wait-timeout 120 --no-deps --force-recreate web || fail
+"${compose[@]}" restart web || fail
+"${compose[@]}" up -d --wait --wait-timeout 60 --no-deps web || fail
 
 # Keeps the deployed SHA plus the two newest others. An image in use refuses removal.
 pruned=0 kept=0
 for image in copilot-api copilot-web copilot-jobspy; do
-  listing=$(docker image ls "ghcr.io/dandutra/$image" --format '{{.CreatedAt}}|{{.Tag}}')
+  listing=$(docker image ls "ghcr.io/dandutra/$image" --format '{{.CreatedAt}}|{{.Tag}}') \
+    || { echo "WARN: could not list $image, so none was pruned" >&2; continue; }
   mapfile -t tags < <(printf '%s\n' "$listing" | sort -r | cut -d'|' -f2)
   others=0
   for tag in "${tags[@]}"; do
-    [ -n "$tag" ] || continue
+    [ -n "$tag" ] && [ "$tag" != "<none>" ] || continue
     if [ "$tag" = "$sha" ]; then kept=$((kept + 1)); continue; fi
     others=$((others + 1))
     if [ "$others" -le 2 ]; then kept=$((kept + 1)); continue; fi

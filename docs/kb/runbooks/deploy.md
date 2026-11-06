@@ -16,7 +16,7 @@ Nothing here is manual on a normal day. A push to `main` that touches anything o
 1. `check` runs `pnpm check` against a throwaway Postgres.
 2. `build` builds the three images once with `docker compose build`, runs `deploy/check-images-clean.sh`, and pushes them to `ghcr.io/dandutra/copilot-*` tagged by the commit SHA. Only this job has `packages: write`.
 3. `deploy` runs in the `production` environment. It joins the tailnet as an ephemeral `tag:ci` node, sends `deploy/compose.prod.yaml` and `deploy/deploy.sh` over Tailscale SSH, and runs the script as `deploy`.
-4. `deploy.sh` reads the `.env` lines from stdin and writes each value single-quoted, because Compose reads a quoted value literally and an unquoted one expands `$`. A value can't hold a `'`. It pulls, moves the file into `~/copilot/.env` with mode 600, runs `docker compose up -d --wait`, recreates `web`, then keeps the deployed SHA and the two newest other SHAs of each image.
+4. `deploy.sh` reads the `.env` lines from stdin and writes each value single-quoted, because Compose reads a quoted value literally and an unquoted one expands `$`. A value can't hold a `'` or a `\`. It pulls, moves the file into `~/copilot/.env` with mode 600, runs `docker compose up -d --wait`, restarts `web`, then keeps the deployed SHA and the two newest other SHAs of each image.
 
 Pull requests run the `check`, `smoke` and `shellcheck` jobs in `ci.yml` and never push or deploy. `pull_request_target` is never used. A docs-only push deploys nothing, and a push with both docs and code deploys.
 
@@ -44,7 +44,7 @@ These are settings on GitHub and Tailscale, so no file in the repo can enforce t
 
 1. **Packages.** After the first push, set each of `copilot-api`, `copilot-web` and `copilot-jobspy` to public under the package's settings. The Droplet pulls with no login, and the images hold no personal data (`check-images-clean.sh` proves it on every build).
 2. **Environment.** Create `production` under Settings, then Environments. Under "Deployment branches and tags" choose "Selected branches and tags" and add only `main`. A manual run from any other branch is then refused.
-3. **Secrets in `production`:** `POSTGRES_PASSWORD` (no `@ : / ? #` and no `'`, see the [Compose gotcha](../gotchas/production-compose-stack.md)), `JOBSPY_PROXIES` (may be empty), `TS_OAUTH_CLIENT_ID` and `TS_AUDIENCE`. **Variables:** `JOBSPY_SEARCH_TERM`, `JOBSPY_LOCATION` and `JOBSPY_RESULTS_WANTED`, all optional.
+3. **Secrets in `production`:** `POSTGRES_PASSWORD` (no `@ : / ? #`, no `'` and no `\`, see the [Compose gotcha](../gotchas/production-compose-stack.md)), `JOBSPY_PROXIES` (may be empty), `TS_OAUTH_CLIENT_ID` and `TS_AUDIENCE`. **Variables:** `JOBSPY_SEARCH_TERM`, `JOBSPY_LOCATION` and `JOBSPY_RESULTS_WANTED`, all optional.
 4. **Tailscale federated identity.** In the admin console, under Settings, Trust credentials, add a credential for GitHub Actions: issuer `https://token.actions.githubusercontent.com`, subject `repo:dandutra/job-hunting-copilot:environment:production`, scope `auth_keys` with tag `tag:ci`. Copy its client ID and audience into the two secrets above. The workflow's node is ephemeral and disappears after the run. `infra/tailscale.tf` already lets `tag:ci` reach `tag:server` and log in as `deploy`.
 5. **Push protection.** Settings, then Code security, then turn on "Push protection" for secret scanning.
 6. **Workflow permissions.** Settings, Actions, General: set the default token to read-only. Each job also states its own `permissions`.
@@ -54,7 +54,7 @@ These are settings on GitHub and Tailscale, so no file in the repo can enforce t
 GitHub cannot show a secret again after you save it, so the password manager holds a copy of every one. Change both together.
 
 - **A GitHub secret or variable** (`JOBSPY_PROXIES`, the search settings): update it in the `production` environment and in the password manager, then re-run the latest Deploy run, or push a code change. `deploy.sh` rewrites `.env` on every run, and Compose recreates each service whose environment changed.
-- **`POSTGRES_PASSWORD`:** the value in `.env` does not change the password inside an existing Postgres volume. First run `ALTER USER copilot PASSWORD '<new>'` through `docker compose -f deploy/compose.prod.yaml --env-file .env exec postgres psql -U copilot`, then update the GitHub secret and the password manager, then re-run the latest Deploy run. That run recreates `api`, and `deploy.sh` always recreates `web` after it, because nginx holds the old `api` address. If you restart `api` by hand, restart `web` after it.
+- **`POSTGRES_PASSWORD`:** the value in `.env` does not change the password inside an existing Postgres volume. First run `ALTER USER copilot PASSWORD '<new>'` through `docker compose -f deploy/compose.prod.yaml --env-file .env exec postgres psql -U copilot`, then update the GitHub secret and the password manager, then re-run the latest Deploy run. That run recreates `api`, and `deploy.sh` always restarts `web` after it, because nginx holds the old `api` address. If you restart `api` by hand, restart `web` after it.
 - **The Tailscale trust credential:** make a new one, update `TS_OAUTH_CLIENT_ID` and `TS_AUDIENCE` and the password manager, then delete the old credential.
 
 ## Check it
