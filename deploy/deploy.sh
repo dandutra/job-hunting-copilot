@@ -59,7 +59,7 @@ for image in copilot-api copilot-web copilot-jobspy; do
   mapfile -t tags < <(printf '%s\n' "$listing" | sort -r | cut -d'|' -f2)
   others=0
   for tag in "${tags[@]}"; do
-    [ -n "$tag" ] && [ "$tag" != "<none>" ] || continue
+    case "$tag" in "" | "<none>") continue ;; esac
     if [ "$tag" = "$sha" ]; then kept=$((kept + 1)); continue; fi
     others=$((others + 1))
     if [ "$others" -le 2 ]; then kept=$((kept + 1)); continue; fi
