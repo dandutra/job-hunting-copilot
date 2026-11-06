@@ -15,6 +15,9 @@ generated:
 - The Origin check compares hostnames, not ports, because nginx passes `$host`, which has no port. It works only while nginx keeps `proxy_set_header Host $host`. If nginx stops forwarding the browser's host, every browser `POST` gets a 403.
 - nginx must also keep forwarding `Tailscale-User-Login`. Without it every request gets a 401.
 - `AuthModule` throws at boot when `ALLOWED_TAILSCALE_LOGIN` is empty or blank. Compose uses `:?`, so a deploy without it fails before the container starts. Tests set a login in `apps/api/test/test-env.ts`.
+- In local dev the Vite proxy adds `Tailscale-User-Login` from the root `.env`, standing in for Serve. Set `ALLOWED_TAILSCALE_LOGIN` there to any value, or the API won't start.
+- `write-openapi.ts` builds `AppModule`, so it sets a placeholder login when none is set. CI has none.
+- The login comparison is exact and case-sensitive. Copy it from the Tailscale admin console as Serve sends it.
 - The log keeps the rejected login, method and path. It never keeps the body.
 - Swagger's `/docs` routes bypass the guard because Swagger registers them on the HTTP adapter. They are served only outside production.
 - Open: Tailscale's docs don't say whether Serve overwrites a forged `Tailscale-User-Login`. The live check from a tagged device is still to run, and a 200 there means stop and report on #37.

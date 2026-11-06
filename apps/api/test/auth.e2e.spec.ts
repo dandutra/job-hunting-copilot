@@ -1,6 +1,13 @@
-import { Controller, Get, Post, INestApplication } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  INestApplication,
+  Logger,
+  Post,
+} from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
+import { AppModule } from "../src/app.module";
 import { AuthModule } from "../src/auth/auth.module";
 import { HealthController } from "../src/health.controller";
 
@@ -95,10 +102,6 @@ describe("Tailnet identity guard", () => {
 
   it("logs the rejected login but not the body", async () => {
     const logs: string[] = [];
-    const spy = jest
-      .spyOn(console, "warn")
-      .mockImplementation((m: string) => void logs.push(String(m)));
-    const { Logger } = await import("@nestjs/common");
     const warn = jest
       .spyOn(Logger.prototype, "warn")
       .mockImplementation((m: unknown) => void logs.push(String(m)));
@@ -106,7 +109,6 @@ describe("Tailnet identity guard", () => {
       .post("/things")
       .set("Tailscale-User-Login", "eve@example.com")
       .send({ secret: "hunter2" });
-    spy.mockRestore();
     warn.mockRestore();
     expect(logs.join("\n")).toContain("eve@example.com");
     expect(logs.join("\n")).not.toContain("hunter2");
@@ -114,6 +116,18 @@ describe("Tailnet identity guard", () => {
 });
 
 describe("boot", () => {
+  it("wires the guard into the real AppModule", async () => {
+    const original = process.env.ALLOWED_TAILSCALE_LOGIN;
+    process.env.ALLOWED_TAILSCALE_LOGIN = "";
+    try {
+      await expect(
+        Test.createTestingModule({ imports: [AppModule] }).compile(),
+      ).rejects.toThrow(/ALLOWED_TAILSCALE_LOGIN/);
+    } finally {
+      process.env.ALLOWED_TAILSCALE_LOGIN = original;
+    }
+  });
+
   it.each(["", "   ", undefined])(
     "refuses to start with ALLOWED_TAILSCALE_LOGIN=%j",
     async (value) => {
