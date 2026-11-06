@@ -33,7 +33,8 @@ Glossary: [glossary.md](glossary.md)
 - [Master profile is a versioned YAML file](decisions/master-profile-is-a-versioned-yaml-file.md): one gitignored YAML file in our own schema with permanent Entry IDs; Postgres stores an immutable version of each import.
 - [Tiers are calibrated on blind Labels](decisions/tiers-are-calibrated-on-blind-labels.md): only Labels from the Label queue, with the Tier hidden and Postings picked across every Tier, count toward tuning and the pass marks.
 - [Resumes render with Typst and docx](decisions/resumes-render-with-typst-and-docx.md): one typed model feeds the Typst CLI for PDF and the `docx` package for DOCX, with no Chromium or LibreOffice; no real ATS has tested the output yet.
-- [Tailoring is gated by the API](decisions/tailoring-is-gated-by-the-api.md): the `/tailor` skill writes only reworded text and Entry choices, the API's Trace check gates every stored draft, and the Claim review never sees the Posting.
+- [Tailoring is gated by the API](decisions/tailoring-is-gated-by-the-api.md): the `/tailor` skill writes only reworded text and Entry choices, the API's Trace check gates every stored draft, and the Claim review never sees the Posting; a draft the user edits, even in a rendered file, is a new draft that is checked again.
+- [Resumes follow Canadian conventions](decisions/resumes-follow-canadian-conventions.md): one rendered page, a bulleted Highlights of Qualifications, plain-language bullets in action, how, result form, an order set by the Posting's main theme, and the Workday form outputs.
 - [Only boards close a Posting](decisions/only-boards-close-a-posting.md): a Posting is Closed only on a Watched company board's evidence; any other Posting goes Stale after 30 days with no report and no board listing it, and both leave the feed without touching an Application.
 - [Postings stay inside the Search area](decisions/postings-stay-inside-the-search-area.md): every adapter drops rows outside Toronto, the GTA and remote-Canada before matching, so out-of-area jobs are never stored and a job that moves out of the area closes.
 
@@ -47,6 +48,8 @@ Glossary: [glossary.md](glossary.md)
 - [Master profile schema package](gotchas/master-profile-schema-package.md): validation runs in two passes, `fitSummary` drops more than the ticket lists, and the source-only package cannot yet be imported by the CommonJS API.
 - [API contract pipeline](gotchas/api-contract-pipeline.md): `pnpm generate` rewrites both specs and the generated types, `pnpm check` fails on drift, and the spec script needs ts-node, not tsx.
 - [Ingest scheduler](gotchas/ingest-scheduler.md): the lock needs its own connection and an error listener, the drain runs in `onModuleDestroy`, `minIntervalMs` paces each adapter from `last_attempt_at`, a 404 board alerts once a day, a window advances only after a poll with no blocked or fault error, `/scrape` has no paging, and only a complete board listing closes a Sighting, after a 24-hour grace and never from an empty listing.
+
+- [Workday resume parsing](gotchas/workday-resume-parsing.md): Workday read the "(CPP)" in a program name as the college, never fills Skills from a resume, hyphenated line breaks extract joined, and every autofilled field needs a manual check.
 
 ## Runbooks
 
