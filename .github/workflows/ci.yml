@@ -104,4 +104,16 @@ jobs:
       - run: terraform validate
         env:
           TF_VAR_backups_bucket_name: ci-validate
-      - run: shellcheck first-boot.sh
+
+  shellcheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Pinned because the runner image's shellcheck lags the one on the Mac and flags different lines.
+      - run: >-
+          docker run --rm -v "$PWD:/mnt:ro" -w /mnt
+          koalaman/shellcheck@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
+          deploy/*.sh infra/*.sh
