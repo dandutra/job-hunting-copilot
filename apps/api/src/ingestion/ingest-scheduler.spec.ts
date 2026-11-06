@@ -39,6 +39,10 @@ function draft(id: number, over: Partial<SightingDraft> = {}): SightingDraft {
   };
 }
 
+// Most tests have no complete board, so the fake fills the field in.
+type FakeResult = Omit<AdapterResult, "completeBoards"> &
+  Partial<Pick<AdapterResult, "completeBoards">>;
+
 class FakeAdapter extends JobSourceAdapter {
   windows: PollWindow[] = [];
   seenStop: boolean[] = [];
@@ -49,7 +53,7 @@ class FakeAdapter extends JobSourceAdapter {
 
   constructor(
     readonly name: string,
-    public result: AdapterResult | Error = { drafts: [], errors: [] },
+    public result: FakeResult | Error = { drafts: [], errors: [] },
     override readonly minIntervalMs: number = HOUR,
   ) {
     super();
@@ -72,7 +76,7 @@ class FakeAdapter extends JobSourceAdapter {
     await this.gate;
     this.seenStop.push(window.shouldStop());
     if (this.result instanceof Error) throw this.result;
-    return this.result;
+    return { completeBoards: [], ...this.result };
   }
 }
 
@@ -460,6 +464,104 @@ describe("IngestScheduler", () => {
       await s.tick(hoursAfter(1));
 
       expect(alerts).toHaveLength(2);
+    });
+  });
+
+  describe("closing board Sightings", () => {
+    const boardDraft = (companyId: number, n: number): SightingDraft =>
+      draft(n, {
+        jobSource: "greenhouse",
+        listingKey: `greenhouse:acme:${n}`,
+        url: `https://boards.greenhouse.io/acme/jobs/${n}`,
+        watchedCompanyId: companyId,
+      });
+    const listing = (companyId: number, ns: number[], complete = true) => ({
+      drafts: ns.map((n) => boardDraft(companyId, n)),
+      errors: [],
+      completeBoards: complete ? [companyId] : [],
+    });
+    const closedAt = async (n: number) =>
+      (
+        await prisma.sighting.findFirstOrThrow({
+          where: { listingKey: `greenhouse:acme:${n}` },
+        })
+      ).closedAt;
+    let acme: { id: number };
+    beforeEach(async () => {
+      acme = await prisma.company.create({
+        data: { name: "Acme", ats: "greenhouse", boardSlug: "acme" },
+      });
+    });
+
+    it("closes a listing missing for 24 hours and keeps one missing for less", async () => {
+      const a = new FakeAdapter("boards", listing(acme.id, [1, 2]));
+      const s = scheduler([a]);
+      await s.tick(T0);
+
+      a.result = listing(acme.id, [2]);
+      await s.tick(hoursAfter(23));
+      expect(await closedAt(1)).toBeNull();
+
+      await s.tick(hoursAfter(25));
+      expect(await closedAt(1)).toEqual(hoursAfter(25));
+      expect(await closedAt(2)).toBeNull();
+    });
+
+    it("never closes anything on an empty listing, and logs a fault", async () => {
+      const a = new FakeAdapter("boards", listing(acme.id, [1]));
+      const s = scheduler([a]);
+      await s.tick(T0);
+
+      a.result = listing(acme.id, []);
+      await s.tick(hoursAfter(30));
+
+      expect(await closedAt(1)).toBeNull();
+      expect(finished[1][0].errors).toEqual([
+        expect.objectContaining({ kind: "fault" }),
+      ]);
+    });
+
+    it("closes nothing for a board missing from completeBoards", async () => {
+      const a = new FakeAdapter("boards", listing(acme.id, [1, 2]));
+      const s = scheduler([a]);
+      await s.tick(T0);
+
+      a.result = listing(acme.id, [2], false);
+      await s.tick(hoursAfter(30));
+
+      expect(await closedAt(1)).toBeNull();
+    });
+
+    it("does not close another board's Sightings", async () => {
+      const other = await prisma.company.create({
+        data: { name: "Other", ats: "greenhouse", boardSlug: "other" },
+      });
+      const a = new FakeAdapter("boards", {
+        drafts: [boardDraft(acme.id, 1), boardDraft(other.id, 2)],
+        errors: [],
+        completeBoards: [acme.id, other.id],
+      });
+      const s = scheduler([a]);
+      await s.tick(T0);
+
+      a.result = listing(acme.id, [1]);
+      await s.tick(hoursAfter(30));
+
+      expect(await closedAt(2)).toBeNull();
+    });
+
+    it("reopens a listing that reappears", async () => {
+      const a = new FakeAdapter("boards", listing(acme.id, [1, 2]));
+      const s = scheduler([a]);
+      await s.tick(T0);
+      a.result = listing(acme.id, [2]);
+      await s.tick(hoursAfter(25));
+      expect(await closedAt(1)).not.toBeNull();
+
+      a.result = listing(acme.id, [1, 2]);
+      await s.tick(hoursAfter(50));
+
+      expect(await closedAt(1)).toBeNull();
     });
   });
 

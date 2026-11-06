@@ -69,6 +69,8 @@ model Sighting {
   watchedCompanyId Int?            @map("watched_company_id")
   firstSeenAt      DateTime        @map("first_seen_at")
   lastSeenAt       DateTime        @map("last_seen_at")
+  // Set when a complete board listing stops showing this Sighting; the matcher clears it on a new report.
+  closedAt         DateTime?       @map("closed_at")
   mergeLog         MergeLogEntry[]
 
   // No unique key: a repost after 30 quiet days reuses the key on a new Posting.
@@ -77,6 +79,7 @@ model Sighting {
   @@index([directKey])
   @@index([postingId])
   @@index([lastSeenAt])
+  @@index([watchedCompanyId])
   @@map("sighting")
 }
 

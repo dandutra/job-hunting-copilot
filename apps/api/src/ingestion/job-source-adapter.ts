@@ -31,6 +31,8 @@ export interface AdapterResult {
   errors: AdapterError[];
   // Board adapters list every board they tried; other adapters leave it out.
   boards?: BoardReport[];
+  // Watched company ids whose board was listed in full: every row fetched, no error. Only these can close a Sighting.
+  completeBoards: number[];
 }
 
 // Every Job source enters through this seam; matching only sees the drafts.

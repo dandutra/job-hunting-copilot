@@ -308,6 +308,8 @@ export class SightingMatcher {
         directKey: directKey ?? existing.directKey,
         watchedCompanyId: draft.watchedCompanyId ?? existing.watchedCompanyId,
         lastSeenAt: now,
+        // Seen again inside the key window, so the listing is back.
+        closedAt: null,
       },
     });
   }
