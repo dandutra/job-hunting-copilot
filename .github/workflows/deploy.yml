@@ -102,10 +102,15 @@ jobs:
         run: |
           [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "TARGET_SHA is not a full commit SHA" >&2; exit 1; }
         shell: bash
+      # Full history of main, so the next step can refuse a SHA that main never held, such as a fork PR's head.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
           persist-credentials: false
+      - name: Check out the SHA, which must be on main
+        run: |
+          git merge-base --is-ancestor "$TARGET_SHA" HEAD || { echo "$TARGET_SHA is not on main" >&2; exit 1; }
+          git checkout --quiet --detach "$TARGET_SHA"
       - uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}

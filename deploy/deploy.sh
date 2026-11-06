@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Runs on the Droplet as `deploy`, started by .github/workflows/deploy.yml over Tailscale SSH.
 # stdin carries the KEY=value lines for .env, so no secret reaches an argument list or the process environment.
-# Usage: deploy.sh <commit sha>   (from the directory that holds deploy/compose.prod.yaml)
+# Usage: deploy.sh <commit sha>, run from the directory that holds deploy/compose.prod.yaml.
 set -euo pipefail
 
 sha="${1:-}"
@@ -10,12 +9,11 @@ sha="${1:-}"
 compose_file=deploy/compose.prod.yaml
 [ -f "$compose_file" ] || { echo "run from the directory that holds $compose_file" >&2; exit 2; }
 
-# A value may hold any character except a newline, which the line check below rejects.
 required=(POSTGRES_PASSWORD)
 declare -A seen=()
 umask 077
-tmp=$(mktemp .env.XXXXXX)
-trap 'rm -f "$tmp"' EXIT
+env_tmp=$(mktemp .env.XXXXXX)
+trap 'rm -f "$env_tmp"' EXIT
 
 while IFS= read -r line || [ -n "$line" ]; do
   [ -n "$line" ] || continue
@@ -24,33 +22,42 @@ while IFS= read -r line || [ -n "$line" ]; do
     exit 2
   fi
   key="${BASH_REMATCH[1]}"
+  value="${BASH_REMATCH[2]}"
   [ "$key" != IMAGE_TAG ] || { echo "FAIL: IMAGE_TAG comes from the argument, not stdin" >&2; exit 2; }
-  seen[$key]=1
-  printf '%s\n' "$line" >>"$tmp"
+  # Compose reads a single-quoted value literally; unquoted it expands $, strips quotes and cuts at " #".
+  [[ "$value" != *"'"* ]] || { echo "FAIL: the value of $key holds a single quote" >&2; exit 2; }
+  [ -z "$value" ] || seen[$key]=1
+  printf "%s='%s'\n" "$key" "$value" >>"$env_tmp"
 done
 for key in "${required[@]}"; do
-  [ -n "${seen[$key]:-}" ] || { echo "FAIL: stdin lacks $key" >&2; exit 2; }
+  [ -n "${seen[$key]:-}" ] || { echo "FAIL: stdin lacks a value for $key" >&2; exit 2; }
 done
-printf 'IMAGE_TAG=%s\n' "$sha" >>"$tmp"
-chmod 600 "$tmp"
-mv "$tmp" .env
+printf "IMAGE_TAG='%s'\n" "$sha" >>"$env_tmp"
+chmod 600 "$env_tmp"
+
+# .env moves into place only once the images exist, so a bad SHA leaves the running stack's .env alone.
+docker compose -f "$compose_file" --env-file "$env_tmp" pull --quiet
+mv "$env_tmp" .env
 
 compose=(docker compose -f "$compose_file" --env-file .env)
-
-"${compose[@]}" pull --quiet
-# The 6-minute ingest drain is inside this call; the wait covers it and the other services' start.
-if ! "${compose[@]}" up -d --wait --wait-timeout 600 --remove-orphans; then
+fail() {
   echo "FAIL: the stack did not become healthy at $sha" >&2
   "${compose[@]}" ps >&2 || true
   exit 1
-fi
+}
+# The ingest drain of up to 6 minutes happens before the wait starts; the job's 15-minute timeout covers both.
+"${compose[@]}" up -d --wait --wait-timeout 300 --remove-orphans || fail
+# nginx resolves api once at start, and a same-SHA run that recreates api leaves web unchanged.
+"${compose[@]}" up -d --wait --wait-timeout 120 --no-deps --force-recreate web || fail
 
-# Keeps the deployed SHA plus the two newest others per image. An image in use refuses removal.
+# Keeps the deployed SHA plus the two newest others. An image in use refuses removal.
 pruned=0 kept=0
 for image in copilot-api copilot-web copilot-jobspy; do
-  mapfile -t tags < <(docker image ls "ghcr.io/dandutra/$image" --format '{{.CreatedAt}}|{{.Tag}}' | sort -r | cut -d'|' -f2)
+  listing=$(docker image ls "ghcr.io/dandutra/$image" --format '{{.CreatedAt}}|{{.Tag}}')
+  mapfile -t tags < <(printf '%s\n' "$listing" | sort -r | cut -d'|' -f2)
   others=0
   for tag in "${tags[@]}"; do
+    [ -n "$tag" ] || continue
     if [ "$tag" = "$sha" ]; then kept=$((kept + 1)); continue; fi
     others=$((others + 1))
     if [ "$others" -le 2 ]; then kept=$((kept + 1)); continue; fi

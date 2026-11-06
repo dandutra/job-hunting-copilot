@@ -3,7 +3,7 @@ type: gotcha
 title: Production Compose stack
 description: Details of the production images and deploy/compose.prod.yaml that look wrong but are needed, such as the migrate restart policy, the file-based ingest health check and the nginx upstream lookup.
 tags: [deploy, ops]
-sources: ["#34"]
+sources: ["#34", "#36"]
 generated:
   by: claude-sonnet-5-5
   at: 2026-11-02T17:00:00-05:00
@@ -21,3 +21,5 @@ generated:
 The images are public. `deploy/check-images-clean.sh` fails the `smoke` job if any image holds a `data/` folder or a `.env` file outside `node_modules` and Python's `site-packages`, or if it can't list an image's files. `.dockerignore` is the first guard and this script is the second, because a `COPY` of a wider path would slip past the first.
 
 `POSTGRES_PASSWORD` goes into `DATABASE_URL`, so it must not contain `@ : / ? #`.
+
+On the Droplet the stack runs from `~/copilot` with the Compose file in `deploy/`. Compose looks for `.env` next to the Compose file, so every command there needs `--env-file .env` or it fails on the missing `IMAGE_TAG`. In an env file, Compose expands `$` in an unquoted value, strips quotes and cuts the value at ` #`. `deploy/deploy.sh` writes every value single-quoted, which Compose reads literally. The cost is that no value may contain `'`. The deploy steps are in the [deploy runbook](../runbooks/deploy.md).
