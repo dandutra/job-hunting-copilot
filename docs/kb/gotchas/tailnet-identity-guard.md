@@ -20,4 +20,4 @@ generated:
 - The login comparison is exact and case-sensitive. Copy it from the Tailscale admin console as Serve sends it.
 - The log keeps the rejected login, method and path. It never keeps the body.
 - Swagger's `/docs` routes bypass the guard because Swagger registers them on the HTTP adapter. They are served only outside production.
-- Open: Tailscale's docs don't say whether Serve overwrites a forged `Tailscale-User-Login`. Run the live check from the Droplet, a `tag:server` device, against `GET /api/me` with your login forged in the header. A 200 there means stop and report on #37. `/me` returns the allowed login and exists so a guarded route is always there to check.
+- Tailscale's docs don't say whether Serve overwrites a forged `Tailscale-User-Login`. A live check on 2026-11-06 sent the user's login as a forged header from the Droplet, a `tag:server` device, to `GET /api/me`, and got a 401. So Serve does not pass a forged identity through from a tagged device. Repeat the check after a Tailscale major upgrade or a change to the Serve setup. `/me` returns the allowed login and exists so a guarded route is always there to check.
