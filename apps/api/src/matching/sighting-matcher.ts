@@ -260,6 +260,8 @@ export class SightingMatcher {
   }
 
   private async absorb(tx: Tx, fromId: number, intoId: number) {
+    // Same lock as the tailoring writes, taken before any row moves, so the two can't deadlock.
+    await tx.$queryRaw`SELECT id FROM posting WHERE id IN (${fromId}, ${intoId}) ORDER BY id FOR UPDATE`;
     await tx.sighting.updateMany({
       where: { postingId: fromId },
       data: { postingId: intoId },

@@ -91,7 +91,9 @@ async function lockPosting(tx: Prisma.TransactionClient, postingId: number) {
     unknown[]
   >`SELECT id FROM posting WHERE id = ${postingId} FOR UPDATE`;
   if (rows.length === 0)
-    throw new ConflictException("The Posting was merged; retry");
+    throw new ConflictException(
+      "The Posting was merged into another; find the surviving Posting and retry",
+    );
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
