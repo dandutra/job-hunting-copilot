@@ -260,6 +260,8 @@ export class SightingMatcher {
   }
 
   private async absorb(tx: Tx, fromId: number, intoId: number) {
+    // Same lock as the tailoring writes, taken before any row moves, so the two can't deadlock.
+    await tx.$queryRaw`SELECT id FROM posting WHERE id IN (${fromId}, ${intoId}) ORDER BY id FOR UPDATE`;
     await tx.sighting.updateMany({
       where: { postingId: fromId },
       data: { postingId: intoId },
@@ -268,6 +270,29 @@ export class SightingMatcher {
       where: { postingId: fromId },
       data: { postingId: intoId },
     });
+    await tx.tailoredResume.updateMany({
+      where: { postingId: fromId },
+      data: { postingId: intoId },
+    });
+    // A Posting has at most one open draft and one approved resume, so the newest of each wins.
+    const newestFirst = {
+      draft: [{ createdAt: "desc" }, { id: "desc" }],
+      approved: [
+        { approvedAt: { sort: "desc", nulls: "last" } },
+        { id: "desc" },
+      ],
+    } satisfies Record<string, Prisma.TailoredResumeOrderByWithRelationInput[]>;
+    for (const [status, orderBy] of Object.entries(newestFirst)) {
+      const newest = await tx.tailoredResume.findFirst({
+        where: { postingId: intoId, status },
+        orderBy,
+      });
+      if (newest)
+        await tx.tailoredResume.updateMany({
+          where: { postingId: intoId, status, id: { not: newest.id } },
+          data: { status: "superseded" },
+        });
+    }
     await tx.posting.delete({ where: { id: fromId } });
   }
 

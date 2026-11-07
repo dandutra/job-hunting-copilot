@@ -89,6 +89,290 @@
           "MasterProfile"
         ]
       }
+    },
+    "/postings/{id}/tailoring-input": {
+      "get": {
+        "operationId": "TailoringController_input",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TailoringInputDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": "No Master profile version is stored."
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
+    },
+    "/postings/{id}/tailored-resumes": {
+      "post": {
+        "operationId": "TailoringController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeStatusDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceRejectionDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
+    },
+    "/tailored-resumes/{id}": {
+      "get": {
+        "operationId": "TailoringController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TailoredResumeDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
+    },
+    "/tailored-resumes/{id}/review": {
+      "post": {
+        "operationId": "TailoringController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeStatusDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
+    },
+    "/tailored-resumes/{id}/approve": {
+      "post": {
+        "operationId": "TailoringController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeStatusDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": ""
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceRejectionDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
+    },
+    "/tailored-resumes/{id}/reject": {
+      "post": {
+        "operationId": "TailoringController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeStatusDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
     }
   },
   "info": {
@@ -197,6 +481,854 @@
         },
         "required": [
           "errors"
+        ]
+      },
+      "InputPostingDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "description": "The Posting's description as stored."
+          },
+          "ats": {
+            "type": "string",
+            "nullable": true
+          },
+          "thin": {
+            "type": "boolean",
+            "description": "True when the description is only a snippet or missing."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "company",
+          "location",
+          "text",
+          "ats",
+          "thin"
+        ]
+      },
+      "InputExperienceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "employer": {
+            "type": "string"
+          },
+          "titles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "employment",
+              "volunteer"
+            ]
+          },
+          "fixed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "employer",
+          "titles",
+          "start",
+          "location",
+          "type",
+          "fixed"
+        ]
+      },
+      "InputFactDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ownership": {
+            "type": "string"
+          },
+          "ownership_note": {
+            "type": "string"
+          },
+          "use": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "related": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "parent",
+          "text",
+          "tags",
+          "ownership",
+          "use",
+          "related"
+        ]
+      },
+      "InputProjectDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "links"
+        ]
+      },
+      "InputEducationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "school": {
+            "type": "string"
+          },
+          "program": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "school",
+          "program",
+          "start"
+        ]
+      },
+      "InputSkillDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "aliases",
+          "evidence"
+        ]
+      },
+      "InputDoNotClaimDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ]
+      },
+      "RejectLineDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string",
+            "description": "A line location such as \"summary\" or \"experiences[0].bullets[1]\"."
+          },
+          "doNotClaimId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line"
+        ]
+      },
+      "RejectNoteDto": {
+        "type": "object",
+        "properties": {
+          "resumeId": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectLineDto"
+            }
+          }
+        },
+        "required": [
+          "resumeId",
+          "note",
+          "lines"
+        ]
+      },
+      "TailoringInputDto": {
+        "type": "object",
+        "properties": {
+          "posting": {
+            "$ref": "#/components/schemas/InputPostingDto"
+          },
+          "profileVersion": {
+            "type": "string",
+            "description": "The latest Master profile version ID."
+          },
+          "experiences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputExperienceDto"
+            }
+          },
+          "facts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputFactDto"
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputProjectDto"
+            }
+          },
+          "education": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputEducationDto"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputSkillDto"
+            }
+          },
+          "doNotClaims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputDoNotClaimDto"
+            }
+          },
+          "rejectNotes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectNoteDto"
+            }
+          }
+        },
+        "required": [
+          "posting",
+          "profileVersion",
+          "experiences",
+          "facts",
+          "projects",
+          "education",
+          "skills",
+          "doNotClaims",
+          "rejectNotes"
+        ]
+      },
+      "LineDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "cites": {
+            "description": "Entry IDs the line cites.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "text",
+          "cites"
+        ]
+      },
+      "DraftSectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Experience or Project ID."
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "bullets"
+        ]
+      },
+      "SkillLineDto": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "description": "The Skill's name or one of its aliases."
+          }
+        },
+        "required": [
+          "skillId",
+          "text"
+        ]
+      },
+      "SubmitDraftDto": {
+        "type": "object",
+        "properties": {
+          "profileVersion": {
+            "type": "string",
+            "description": "The Master profile version the draft was written against."
+          },
+          "summary": {
+            "$ref": "#/components/schemas/LineDto"
+          },
+          "experiences": {
+            "description": "List every fixed Experience with no bullets.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftSectionDto"
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftSectionDto"
+            }
+          },
+          "educationIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillLineDto"
+            }
+          },
+          "coverLetter": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineDto"
+            }
+          },
+          "postingText": {
+            "type": "string",
+            "description": "Pasted Posting text for a Thin Posting. Stored, never returned with the draft."
+          }
+        },
+        "required": [
+          "profileVersion",
+          "summary",
+          "experiences",
+          "projects",
+          "educationIds",
+          "skills"
+        ]
+      },
+      "ResumeStatusDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved",
+              "superseded",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ]
+      },
+      "TraceFailureDto": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "description": "1 to 5 are the Trace check rules, 6 is a stale profile version, shape is a malformed draft."
+          },
+          "location": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "location",
+          "detail"
+        ]
+      },
+      "TraceRejectionDto": {
+        "type": "object",
+        "properties": {
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceFailureDto"
+            }
+          }
+        },
+        "required": [
+          "failures"
+        ]
+      },
+      "ContactViewDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "city",
+          "email",
+          "links"
+        ]
+      },
+      "CitedEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "description": "A Fact's text, or the name of any other Entry."
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ]
+      },
+      "LineViewDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string",
+            "description": "The line's location in the draft."
+          },
+          "text": {
+            "type": "string"
+          },
+          "cites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CitedEntryDto"
+            }
+          }
+        },
+        "required": [
+          "line",
+          "text",
+          "cites"
+        ]
+      },
+      "ExperienceViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "employer": {
+            "type": "string"
+          },
+          "titles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "fixed": {
+            "type": "boolean"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineViewDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "employer",
+          "titles",
+          "start",
+          "location",
+          "fixed",
+          "bullets"
+        ]
+      },
+      "ProjectViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repo": {
+            "type": "string"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineViewDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "links",
+          "bullets"
+        ]
+      },
+      "EducationViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "school": {
+            "type": "string"
+          },
+          "program": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "school",
+          "program",
+          "start"
+        ]
+      },
+      "SkillViewDto": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "skillId",
+          "text"
+        ]
+      },
+      "CoverLetterViewDto": {
+        "type": "object",
+        "properties": {
+          "greeting": {
+            "type": "string"
+          },
+          "paragraphs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineViewDto"
+            }
+          },
+          "signOff": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "greeting",
+          "paragraphs",
+          "signOff"
+        ]
+      },
+      "VerdictDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "do-not-claim",
+              "overstatement"
+            ]
+          },
+          "doNotClaimId": {
+            "type": "string",
+            "description": "Required for do-not-claim."
+          },
+          "note": {
+            "type": "string",
+            "description": "Required for overstatement."
+          }
+        },
+        "required": [
+          "line",
+          "status"
+        ]
+      },
+      "TailoredResumeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "postingId": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved",
+              "superseded",
+              "rejected"
+            ]
+          },
+          "profileVersion": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ContactViewDto"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/LineViewDto"
+          },
+          "experiences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExperienceViewDto"
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectViewDto"
+            }
+          },
+          "education": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EducationViewDto"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillViewDto"
+            }
+          },
+          "coverLetter": {
+            "$ref": "#/components/schemas/CoverLetterViewDto"
+          },
+          "verdicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerdictDto"
+            }
+          },
+          "rejectNote": {
+            "type": "string"
+          },
+          "rejectLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectLineDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "postingId",
+          "status",
+          "profileVersion",
+          "createdAt",
+          "approvedAt",
+          "contact",
+          "summary",
+          "experiences",
+          "projects",
+          "education",
+          "skills"
+        ]
+      },
+      "ReviewDto": {
+        "type": "object",
+        "properties": {
+          "verdicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerdictDto"
+            }
+          }
+        },
+        "required": [
+          "verdicts"
+        ]
+      },
+      "RejectDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectLineDto"
+            }
+          }
+        },
+        "required": [
+          "note"
         ]
       }
     }

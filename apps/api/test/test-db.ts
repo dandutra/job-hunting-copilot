@@ -8,12 +8,13 @@ export function testDatabaseUrl(): string {
   return url.toString();
 }
 
-// Postings reference Companies without cascade, so they go first.
+// Tailored resumes and Postings reference their parents without cascade, so they go first.
 export async function resetTestDb(prisma: PrismaService): Promise<void> {
+  await prisma.tailoredResume.deleteMany();
   await prisma.ingestCursor.deleteMany();
-  await prisma.masterProfileVersion.deleteMany();
   await prisma.posting.deleteMany();
   await prisma.company.deleteMany();
+  await prisma.masterProfileVersion.deleteMany();
 }
 
 export async function openTestDb(): Promise<PrismaService> {

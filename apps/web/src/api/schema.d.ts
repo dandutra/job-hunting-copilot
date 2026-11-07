@@ -52,6 +52,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/postings/{id}/tailoring-input": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TailoringController_input"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/postings/{id}/tailored-resumes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TailoringController_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tailored-resumes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TailoringController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tailored-resumes/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TailoringController_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tailored-resumes/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TailoringController_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tailored-resumes/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TailoringController_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -87,6 +183,212 @@ export interface components {
         };
         RejectedProfileDto: {
             errors: components["schemas"]["ProfileErrorDto"][];
+        };
+        InputPostingDto: {
+            id: number;
+            title: string;
+            company: string;
+            location: string;
+            /** @description The Posting's description as stored. */
+            text: string;
+            ats: string | null;
+            /** @description True when the description is only a snippet or missing. */
+            thin: boolean;
+        };
+        InputExperienceDto: {
+            id: string;
+            employer: string;
+            titles: string[];
+            start: string;
+            end?: string;
+            location: string;
+            /** @enum {string} */
+            type: "employment" | "volunteer";
+            fixed: boolean;
+        };
+        InputFactDto: {
+            id: string;
+            parent: string;
+            text: string;
+            tags: string[];
+            ownership: string;
+            ownership_note?: string;
+            use: string[];
+            related: string[];
+        };
+        InputProjectDto: {
+            id: string;
+            name: string;
+            links: string[];
+            repo?: string;
+        };
+        InputEducationDto: {
+            id: string;
+            school: string;
+            program: string;
+            start: string;
+            end?: string;
+        };
+        InputSkillDto: {
+            id: string;
+            name: string;
+            aliases: string[];
+            evidence: string[];
+        };
+        InputDoNotClaimDto: {
+            id: string;
+            text: string;
+        };
+        RejectLineDto: {
+            /** @description A line location such as "summary" or "experiences[0].bullets[1]". */
+            line: string;
+            doNotClaimId?: string;
+        };
+        RejectNoteDto: {
+            resumeId: number;
+            note: string;
+            lines: components["schemas"]["RejectLineDto"][];
+        };
+        TailoringInputDto: {
+            posting: components["schemas"]["InputPostingDto"];
+            /** @description The latest Master profile version ID. */
+            profileVersion: string;
+            experiences: components["schemas"]["InputExperienceDto"][];
+            facts: components["schemas"]["InputFactDto"][];
+            projects: components["schemas"]["InputProjectDto"][];
+            education: components["schemas"]["InputEducationDto"][];
+            skills: components["schemas"]["InputSkillDto"][];
+            doNotClaims: components["schemas"]["InputDoNotClaimDto"][];
+            rejectNotes: components["schemas"]["RejectNoteDto"][];
+        };
+        LineDto: {
+            text: string;
+            /** @description Entry IDs the line cites. */
+            cites: string[];
+        };
+        DraftSectionDto: {
+            /** @description Experience or Project ID. */
+            id: string;
+            bullets: components["schemas"]["LineDto"][];
+        };
+        SkillLineDto: {
+            skillId: string;
+            /** @description The Skill's name or one of its aliases. */
+            text: string;
+        };
+        SubmitDraftDto: {
+            /** @description The Master profile version the draft was written against. */
+            profileVersion: string;
+            summary: components["schemas"]["LineDto"];
+            /** @description List every fixed Experience with no bullets. */
+            experiences: components["schemas"]["DraftSectionDto"][];
+            projects: components["schemas"]["DraftSectionDto"][];
+            educationIds: string[];
+            skills: components["schemas"]["SkillLineDto"][];
+            coverLetter?: components["schemas"]["LineDto"][];
+            /** @description Pasted Posting text for a Thin Posting. Stored, never returned with the draft. */
+            postingText?: string;
+        };
+        ResumeStatusDto: {
+            id: number;
+            /** @enum {string} */
+            status: "draft" | "approved" | "superseded" | "rejected";
+        };
+        TraceFailureDto: {
+            /** @description 1 to 5 are the Trace check rules, 6 is a stale profile version, shape is a malformed draft. */
+            rule: string;
+            location: string;
+            detail: string;
+        };
+        TraceRejectionDto: {
+            failures: components["schemas"]["TraceFailureDto"][];
+        };
+        ContactViewDto: {
+            name: string;
+            city: string;
+            email: string;
+            links: string[];
+        };
+        CitedEntryDto: {
+            id: string;
+            /** @description A Fact's text, or the name of any other Entry. */
+            text: string;
+        };
+        LineViewDto: {
+            /** @description The line's location in the draft. */
+            line: string;
+            text: string;
+            cites: components["schemas"]["CitedEntryDto"][];
+        };
+        ExperienceViewDto: {
+            id: string;
+            employer: string;
+            titles: string[];
+            start: string;
+            end?: string;
+            location: string;
+            fixed: boolean;
+            bullets: components["schemas"]["LineViewDto"][];
+        };
+        ProjectViewDto: {
+            id: string;
+            name: string;
+            links: string[];
+            repo?: string;
+            bullets: components["schemas"]["LineViewDto"][];
+        };
+        EducationViewDto: {
+            id: string;
+            school: string;
+            program: string;
+            start: string;
+            end?: string;
+        };
+        SkillViewDto: {
+            skillId: string;
+            text: string;
+        };
+        CoverLetterViewDto: {
+            greeting: string;
+            paragraphs: components["schemas"]["LineViewDto"][];
+            signOff: string;
+        };
+        VerdictDto: {
+            line: string;
+            /** @enum {string} */
+            status: "pass" | "do-not-claim" | "overstatement";
+            /** @description Required for do-not-claim. */
+            doNotClaimId?: string;
+            /** @description Required for overstatement. */
+            note?: string;
+        };
+        TailoredResumeDto: {
+            id: number;
+            postingId: number;
+            /** @enum {string} */
+            status: "draft" | "approved" | "superseded" | "rejected";
+            profileVersion: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            approvedAt: string | null;
+            contact: components["schemas"]["ContactViewDto"];
+            summary: components["schemas"]["LineViewDto"];
+            experiences: components["schemas"]["ExperienceViewDto"][];
+            projects: components["schemas"]["ProjectViewDto"][];
+            education: components["schemas"]["EducationViewDto"][];
+            skills: components["schemas"]["SkillViewDto"][];
+            coverLetter?: components["schemas"]["CoverLetterViewDto"];
+            verdicts?: components["schemas"]["VerdictDto"][];
+            rejectNote?: string;
+            rejectLines?: components["schemas"]["RejectLineDto"][];
+        };
+        ReviewDto: {
+            verdicts: components["schemas"]["VerdictDto"][];
+        };
+        RejectDto: {
+            note: string;
+            lines?: components["schemas"]["RejectLineDto"][];
         };
     };
     responses: never;
@@ -171,6 +473,269 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TailoringController_input: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringInputDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No Master profile version is stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TailoringController_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitDraftDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeStatusDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraceRejectionDto"];
+                };
+            };
+        };
+    };
+    TailoringController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoredResumeDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TailoringController_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeStatusDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TailoringController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeStatusDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraceRejectionDto"];
+                };
+            };
+        };
+    };
+    TailoringController_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeStatusDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
