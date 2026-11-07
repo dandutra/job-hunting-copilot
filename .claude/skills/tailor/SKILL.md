@@ -28,7 +28,14 @@ Each shell call starts fresh, so run every command from the repo root.
 
 4. If `--cover-letter` is absent and the Posting text mentions a cover letter, stop before writing and tell the user. They may re-run with the flag.
 
-5. Before writing, tell the user the Posting's main theme you inferred, and ask them to correct it if it is wrong. In the same message, ask whether the profile's contact details are current and whether any Do-not-claim about a contact field is out of date. The API fills the contact header from the profile, so a stale value needs a profile fix and `pnpm profile:import`, not a draft change.
+5. Analyze the Posting's theme, and wait for the user to confirm it before writing. The theme sets the order of every section and decides which lines are weak, so never skip this step or guess it. Tell the user:
+   - The stack: full-stack, back end, front end, DevOps, cloud or operations, with the Posting lines that show it.
+   - Any second angle the Posting stresses, such as AI-assisted development, with its lines.
+   - The Experiences, Projects and Facts that would lead, and why.
+   - Each hard requirement, met or not, with its Facts. Step 7 handles the unmet ones.
+   - Any Fact that looks like evidence but is not, such as a product with a similar name, or a tool the Posting gives only as an example.
+
+   In the same message, ask whether the profile's contact details are current and whether any Do-not-claim about a contact field is out of date. The API fills the contact header from the profile, so a stale value needs a profile fix and `pnpm profile:import`, not a draft change.
 
 6. Read `rejectNotes`. Each gives a `resumeId`, a note, and the locations of the rejected lines, but not their text. Fetch each rejected draft to see the wording:
 
@@ -60,7 +67,8 @@ Write only what needs rewording, in the draft shape below. The API fills employe
 - **Skills.** Each `skills[]` line is a Skill's `id` and its exact `name` or one alias.
 - **Entries.** List every `fixed: true` Experience in `experiences`, each under its own ID with `bullets: []`. Leaving one out fails the Trace check. Choose other Experiences and Projects by the Posting's theme. Put education IDs in `educationIds`.
 - **Cover letter.** With `--cover-letter`, add `coverLetter`: paragraphs only, each citing Entries. The API builds the greeting and sign-off.
-- **One page, always.** The rendered resume is one page, with no exceptions. Write to fit: 4 or 5 Highlights unless the page has room for a sixth, at most 5 bullets for the main Experience and 3 for any other, at most 2 Projects with 2 or 3 bullets each, and each bullet under about 200 characters. When the content does not fit, cut the weakest lines for the Posting's theme. Never let a draft run to a second page.
+- **One page, always.** The rendered resume is one page, with no exceptions. Write to fit: 4 or 5 Highlights unless the page has room for a sixth, at most 5 bullets for the main Experience and 3 for any other, at most 2 Projects with 2 or 3 bullets each, and each bullet under about 200 characters. When the content does not fit, leave out the weakest lines. Never let a draft run to a second page.
+- **Weakest line.** Use the stack from step 5. A line unrelated to that stack is weak, and goes first. When every line relates to the stack, keep work experience over projects, and projects over education. The user reviews every line left out.
 - **Program names.** Do not reproduce a bracketed acronym from a program name (`docs/kb/gotchas/workday-resume-parsing.md`). Avoid a compound that could break at a line end; reword it.
 
 Draft shape (`profileVersion` is the input's):
@@ -108,7 +116,7 @@ After the draft is stored, print for the user, citing Facts:
 
 ## Check the page
 
-The resume must be one page. Never call a draft one page from an estimate, because two estimates were wrong. Count pages in a rendered file, and when none exists yet, say the page count is unchecked. If the render runs over, fix it in this order: 10 pt body, tighter spacing, Skills on fewer lines, a one-line contact row. If it still runs over, ask the user which lines to cut, and submit the shorter draft.
+The resume must be one page. Never call a draft one page from an estimate, because two estimates were wrong. Count pages in a rendered file, and when none exists yet, say the page count is unchecked. If the render runs over, fix it in this order: 10 pt body, tighter spacing, Skills on fewer lines, a one-line contact row. If it still runs over, propose cuts by the weakest-line rule, and submit the shorter draft once the user accepts them.
 
 ## Report
 

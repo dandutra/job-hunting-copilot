@@ -18,6 +18,7 @@ contact:
   name: Sam Sample
   city: Exampleton
   email: sam@example.com
+  phone: 555-555-0123
 experiences:
   - id: E1
     employer: Northwind Example Inc.
@@ -71,6 +72,9 @@ skills:
 do_not_claims:
   - id: X1
     text: Never claim to have led the team.
+  - id: X2
+    text: ${SENTINEL} retired rule.
+    retired: true
 `;
 }
 
@@ -486,7 +490,10 @@ describe("tailoring", () => {
     expect(res.body.education[0]).toMatchObject({
       school: "Example University",
     });
-    expect(res.body.contact).toMatchObject({ name: "Sam Sample" });
+    expect(res.body.contact).toMatchObject({
+      name: "Sam Sample",
+      phone: "555-555-0123",
+    });
     expect(res.body.coverLetter).toMatchObject({
       greeting: "Dear Acme Example hiring team,",
       signOff: "Sincerely,\nSam Sample",

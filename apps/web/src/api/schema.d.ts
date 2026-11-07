@@ -308,6 +308,8 @@ export interface components {
             name: string;
             city: string;
             email: string;
+            /** @example 416-555-0100 */
+            phone?: string;
             links: string[];
         };
         CitedEntryDto: {

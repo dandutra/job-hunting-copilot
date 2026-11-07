@@ -81,6 +81,7 @@ export const SkillSchema = z.strictObject({
 export const DoNotClaimSchema = z.strictObject({
   id: idOf("X"),
   text,
+  retired: z.boolean().default(false),
 });
 
 export const ProfileSchema = z.strictObject({
@@ -89,6 +90,11 @@ export const ProfileSchema = z.strictObject({
     name: text,
     city: text,
     email: z.email(),
+    // The form the Canadian career-centre samples use.
+    phone: z
+      .string()
+      .regex(/^\d{3}-\d{3}-\d{4}$/, "must be written as 416-555-0100")
+      .optional(),
     links: z.array(link).default([]),
   }),
   rules: z.array(text).default([]),

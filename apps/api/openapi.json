@@ -990,6 +990,10 @@
           "email": {
             "type": "string"
           },
+          "phone": {
+            "type": "string",
+            "example": "416-555-0100"
+          },
           "links": {
             "type": "array",
             "items": {

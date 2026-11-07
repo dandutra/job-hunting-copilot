@@ -226,6 +226,28 @@ describe("validateProfile", () => {
     expect(errors).toContainEqual(expect.objectContaining({ id: "E1" }));
   });
 
+  it("accepts a retired Do-not-claim", () => {
+    const raw = validRaw();
+    (raw.do_not_claims as Record<string, unknown>[])[0].retired = true;
+    const result = validateProfile(yamlOf(raw));
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts a phone number written as 416-555-0100", () => {
+    const raw = validRaw();
+    (raw.contact as Record<string, unknown>).phone = "416-555-0100";
+    const result = validateProfile(yamlOf(raw));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.profile.contact.phone).toBe("416-555-0100");
+  });
+
+  it("rejects a phone number in any other form", () => {
+    const errors = errorsFor((raw) => {
+      (raw.contact as Record<string, unknown>).phone = "+1 (416) 555 0100";
+    });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
   it("rejects a link that is not http or https", () => {
     const errors = errorsFor((raw) => {
       (raw.projects as Record<string, unknown>[])[0].links = [

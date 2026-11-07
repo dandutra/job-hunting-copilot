@@ -21,9 +21,9 @@ function entryStates(profile: Profile): EntryStates {
     ...profile.projects,
     ...profile.education,
     ...profile.skills,
+    ...profile.do_not_claims,
   ])
     states.set(entry.id, entry.retired);
-  for (const entry of profile.do_not_claims) states.set(entry.id, false);
   return states;
 }
 

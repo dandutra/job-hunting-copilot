@@ -14,6 +14,7 @@ function profileWith(mutate: (raw: Raw) => void) {
 const SECRETS = [
   "SECRET-CONTACT-EMAIL@example.com",
   "SECRET-CONTACT-NAME",
+  "555-555-0199",
   "SECRET-CITY",
   "SECRET-EMPLOYER",
   "SECRET-SOURCE",
@@ -33,6 +34,7 @@ describe("fitSummary", () => {
       name: "SECRET-CONTACT-NAME",
       city: "SECRET-CITY",
       email: "SECRET-CONTACT-EMAIL@example.com",
+      phone: "555-555-0199",
       links: [],
     };
     raw.rules = ["SECRET-RULE"];

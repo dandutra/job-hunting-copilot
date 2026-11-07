@@ -13,7 +13,7 @@ Your whole input is the response of `GET /tailored-resumes/:id`: lines, their ci
 
 ## Steps
 
-1. Fetch the draft. `/tailor` passes the base URL it submitted to, because this review runs as a fork from the repo root and would otherwise read the repo's `.env`, which may name a different API. Without a second argument, the base is `COPILOT_API_URL` from the repo's `.env`. Either way it ends in `/api`. Tailscale Serve adds the Mac's identity on the way in, so the call needs no token. If the draft ID is not a whole number, stop and ask the user for the draft ID before running anything, because any other path could reach a route that returns the Posting. Each shell call starts fresh, so begin every call, including step 4's, with the four setup lines before `curl`.
+1. Fetch the draft. `/tailor` passes the base URL it submitted to, because this review runs as a fork from the repo root and would otherwise read the repo's `.env`, which may name a different API. Without a second argument, the base is `COPILOT_API_URL` from the repo's `.env`. Either way it ends in `/api`. Tailscale Serve adds the Mac's identity on the way in, so the call needs no token. If the draft ID is not a whole number, stop and ask the user for the draft ID before running anything, because any other path could reach a route that returns the Posting. Each shell call starts fresh, so begin every call, including step 4's, with the five setup lines before `curl`.
 
    ```sh
    read -r id base _ <<< "$ARGUMENTS"

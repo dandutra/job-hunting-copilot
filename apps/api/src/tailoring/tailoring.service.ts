@@ -99,6 +99,12 @@ async function lockPosting(tx: Prisma.TransactionClient, postingId: number) {
     );
 }
 
+function liveDoNotClaims(profile: Profile) {
+  return profile.do_not_claims
+    .filter((x) => !x.retired)
+    .map(({ id, text }) => ({ id, text }));
+}
+
 // Drafts stored before #59 hold the summary as one line, not a list of Highlights.
 function upgradeDraft(value: unknown): unknown {
   if (!isRecord(value) || !isRecord(value.summary)) return value;
@@ -150,7 +156,7 @@ export class TailoringService {
       skills: profile.skills
         .filter((s) => !s.retired)
         .map((s) => omit(s, "retired")),
-      doNotClaims: profile.do_not_claims,
+      doNotClaims: liveDoNotClaims(profile),
       rejectNotes: rejected.map((r) => ({
         resumeId: r.id,
         note: r.rejectNote ?? "",
@@ -210,7 +216,7 @@ export class TailoringService {
         errors: [{ line: "(body)", message: "verdicts must be a list" }],
       });
     const known = new Set(linesOf(draft).map((l) => l.location));
-    const doNotClaims = new Set(profile.do_not_claims.map((x) => x.id));
+    const doNotClaims = new Set(liveDoNotClaims(profile).map((x) => x.id));
     const seen = new Set<string>();
     const errors: { line: string; message: string }[] = [];
     verdicts.forEach((v: VerdictDto, i) => {
@@ -290,7 +296,7 @@ export class TailoringService {
       errors.push({ line: "(body)", message: "lines must be a list" });
     else {
       const known = new Set(linesOf(draft).map((l) => l.location));
-      const doNotClaims = new Set(profile.do_not_claims.map((x) => x.id));
+      const doNotClaims = new Set(liveDoNotClaims(profile).map((x) => x.id));
       (lines as RejectLineDto[]).forEach((l, i) => {
         const where = typeof l?.line === "string" ? l.line : `lines[${i}]`;
         if (typeof l?.line !== "string" || !known.has(l.line))
@@ -421,7 +427,7 @@ export class TailoringService {
       projects,
       education,
       skills: draft.skills,
-      doNotClaims: profile.do_not_claims.map(({ id, text }) => ({ id, text })),
+      doNotClaims: liveDoNotClaims(profile),
       ...(draft.coverLetter
         ? {
             coverLetter: {

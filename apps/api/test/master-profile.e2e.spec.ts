@@ -14,6 +14,7 @@ interface Options {
   withSecondFact?: boolean;
   retireSecondFact?: boolean;
   badTag?: boolean;
+  retiredDoNotClaim?: boolean;
   empty?: boolean;
 }
 
@@ -51,7 +52,15 @@ ${
     retired: ${o.retireSecondFact ? "true" : "false"}
 `
     : ""
-}`;
+}${
+    o.retiredDoNotClaim === undefined
+      ? ""
+      : `do_not_claims:
+  - id: X1
+    text: Never claim a degree.
+    retired: ${o.retiredDoNotClaim}
+`
+  }`;
 }
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
@@ -176,6 +185,14 @@ describe("PUT /master-profile", () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ created: true, added: 0, retired: 1 });
     expect(await prisma.masterProfileVersion.count()).toBe(2);
+  });
+
+  it("accepts retiring a Do-not-claim and counts it", async () => {
+    await put(profileYaml({ retiredDoNotClaim: false }));
+    const res = await put(profileYaml({ retiredDoNotClaim: true }));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ created: true, added: 0, retired: 1 });
   });
 
   it("answers 401 without the Tailscale login", async () => {

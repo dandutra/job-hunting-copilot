@@ -215,6 +215,7 @@ export class ContactViewDto {
   @ApiProperty() name!: string;
   @ApiProperty() city!: string;
   @ApiProperty() email!: string;
+  @ApiProperty({ required: false, example: "416-555-0100" }) phone?: string;
   @ApiProperty({ type: [String] }) links!: string[];
 }
 
