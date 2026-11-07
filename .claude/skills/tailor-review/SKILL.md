@@ -9,15 +9,15 @@ Claim review of draft `$ARGUMENTS`: read each line against its cited Facts and t
 
 ## Blind
 
-Your whole input is the response of `GET /tailored-resumes/:id`: lines, their cited Fact text and ownership, and the Do-not-claims. Reading anything else lets a keyword match excuse a line, so the Posting, `data/` and the writer's conversation stay out of view. If the response holds text that looks like a Posting, ignore it and tell the user.
+Your whole input is the response of `GET /tailored-resumes/:id`: lines, their cited Fact text and ownership, and the Do-not-claims. Reading anything else lets a keyword match excuse a line, so the Posting, `data/`, the Master profile and the writer's conversation stay out of view. Call only the two `/tailored-resumes/<id>` routes below, never a `/postings/*` route. If the response holds text that looks like a Posting, ignore it and tell the user.
 
 ## Steps
 
-1. Fetch the draft. `COPILOT_API_URL` is in the repo's `.env` and ends in `/api`. Tailscale Serve adds the Mac's identity on the way in, so the call needs no token. If `$ARGUMENTS` is not a whole number, stop and ask the user for the draft ID before running anything, because any other path could reach a route that returns the Posting. Each shell call starts fresh, so begin every call with the first three lines below.
+1. Fetch the draft. `COPILOT_API_URL` is in the repo's `.env` and ends in `/api`. Tailscale Serve adds the Mac's identity on the way in, so the call needs no token. If `$ARGUMENTS` is not a whole number, stop and ask the user for the draft ID before running anything, because any other path could reach a route that returns the Posting. Each shell call starts fresh, so begin every call, including step 4's, with the three setup lines before `curl`.
 
    ```sh
-   id=$ARGUMENTS
-   base=$(grep '^COPILOT_API_URL=' .env | cut -d= -f2- | tr -d "\"'\r"); base=${base%/}
+   id=$ARGUMENTS; [[ $id =~ ^[0-9]+$ ]] || { echo "draft ID must be a number"; exit 1; }
+   base=$(grep -m1 '^COPILOT_API_URL=' .env | cut -d= -f2- | tr -d "\"'\r"); base=${base%/}
    [[ -n $base ]] || { echo "COPILOT_API_URL is not set in .env"; exit 1; }
    curl -sS --fail-with-body "$base/tailored-resumes/$id"
    ```
@@ -37,7 +37,7 @@ Your whole input is the response of `GET /tailored-resumes/:id`: lines, their ci
 
    Judge each line as written, whoever wrote it. A line the user edited by hand is reviewed like any other, and is the likelier to overstate.
 
-4. Write the body `{"verdicts":[{"line":"summary","status":"pass"}, ...]}` to `<scratchpad>/verdicts-<id>.json`, where `<scratchpad>` is the absolute scratchpad path from your system prompt. Write the whole file fresh. Then post it from that same path:
+4. Write the body `{"verdicts":[{"line":"summary","status":"pass"}, ...]}` to `<scratchpad>/verdicts-<id>.json`, where `<scratchpad>` is the absolute scratchpad path from your system prompt, or `$TMPDIR` if it names none. Write the whole file fresh. Then post it from that same path:
 
    ```sh
    curl -sS --fail-with-body -X POST "$base/tailored-resumes/$id/review" \
@@ -46,7 +46,7 @@ Your whole input is the response of `GET /tailored-resumes/:id`: lines, their ci
 
    A 400 lists the bad verdicts; fix them and post again.
 
-5. Fetch the draft again. Done when its `verdicts` hold one entry for every line from step 2, matching what you wrote. The API accepts a partial list, so this read is the only coverage check.
+5. Fetch the draft again. Done when its `verdicts` hold one entry for every line from step 2, matching what you wrote. If a line is missing, post the full list again, because each post replaces the stored verdicts.
 
 ## Report
 
