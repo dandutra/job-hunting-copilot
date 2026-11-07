@@ -473,6 +473,34 @@ describe("tailoring", () => {
     expect(JSON.stringify(row.draft)).not.toContain("Pasted");
   });
 
+  it("returns the profile's Do-not-claims and each cited Fact's ownership, for the Claim review", async () => {
+    const v1 = await importProfile(profileYaml());
+    const { body } = await submit(
+      goodDraft(v1, {
+        summary: line("Shipped as part of a team.", ["F2"]),
+      }),
+    );
+    const res = await authed(
+      request(app.getHttpServer()).get(`/tailored-resumes/${body.id}`),
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.doNotClaims).toEqual([
+      { id: "X1", text: "Never claim to have led the team." },
+    ]);
+    expect(res.body.summary.cites).toEqual([
+      {
+        id: "F2",
+        text: "Shipped weekly with a team of five.",
+        ownership: "team",
+      },
+    ]);
+    expect(res.body.experiences[0].bullets[0].cites[0]).toMatchObject({
+      id: "F1",
+      ownership: "solo",
+    });
+  });
+
   it("answers 401 without the Tailscale login", async () => {
     const res = await request(app.getHttpServer()).get(
       `/postings/${postingId}/tailoring-input`,

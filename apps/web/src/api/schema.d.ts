@@ -313,6 +313,12 @@ export interface components {
             id: string;
             /** @description A Fact's text, or the name of any other Entry. */
             text: string;
+            /**
+             * @description Set when the cited Entry is a Fact.
+             * @enum {string}
+             */
+            ownership?: "solo" | "paired" | "team" | "maintained";
+            ownershipNote?: string;
         };
         LineViewDto: {
             /** @description The line's location in the draft. */
@@ -378,6 +384,8 @@ export interface components {
             projects: components["schemas"]["ProjectViewDto"][];
             education: components["schemas"]["EducationViewDto"][];
             skills: components["schemas"]["SkillViewDto"][];
+            /** @description Every Do-not-claim in the draft's profile version. */
+            doNotClaims: components["schemas"]["InputDoNotClaimDto"][];
             coverLetter?: components["schemas"]["CoverLetterViewDto"];
             verdicts?: components["schemas"]["VerdictDto"][];
             rejectNote?: string;

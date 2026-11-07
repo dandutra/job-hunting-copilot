@@ -3,7 +3,7 @@ type: gotcha
 title: Tailoring API
 description: How the draft endpoints store, supersede, approve and reject Tailored resumes, and what rule 6 does on approve.
 tags: [tailoring, api, privacy]
-sources: ["#57", "#82"]
+sources: ["#57", "#58", "#82"]
 generated:
   by: claude-sonnet-5-5
   at: 2026-11-07T11:30:00-05:00
@@ -19,3 +19,5 @@ generated:
 - The greeting and sign-off are built on read from the company name and the profile's contact name, not stored. The draft's section order sets the render order.
 - `tailored_resume.posting_id` is `ON DELETE RESTRICT`. A Posting merge (`SightingMatcher.absorb`) moves the absorbed Posting's drafts to the survivor, keeps the newest open draft and the newest approved one, and supersedes the rest. Any other path that deletes a Posting must move or delete its drafts first, and `resetTestDb` deletes drafts before Postings and versions.
 - Submit and approve take a `FOR UPDATE` lock on the Posting row, so two concurrent submits can't both leave an open draft. A lock that finds no row means a merge deleted the Posting after the read, and the call answers 409 so the caller retries against the survivor. `absorb` locks both Postings in id order before it moves anything, so it and a draft write queue on the same lock instead of deadlocking. Review and reject write only where the status is still `draft`, and answer 409 otherwise.
+- `GET /tailored-resumes/:id` is the whole input of `/tailor-review`. Besides the lines it returns `doNotClaims` (every one in the draft's profile version) and, on each cite that is a Fact, `ownership` and `ownershipNote`. #57 shipped without them, so the review could not name a Do-not-claim or catch solo work claimed on a `team` Fact. They are not secrets, and the Posting stays out of the response.
+- `/tailor-review` reads `COPILOT_API_URL` from the `.env` in its working directory and sends no Tailscale header. A run from a directory with another `.env` talks to whatever server that file names, which is how the planted-fault test ran it against a throwaway API.

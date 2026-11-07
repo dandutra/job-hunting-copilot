@@ -159,6 +159,13 @@ export class CitedEntryDto {
     description: "A Fact's text, or the name of any other Entry.",
   })
   text!: string;
+  @ApiProperty({
+    required: false,
+    enum: ["solo", "paired", "team", "maintained"],
+    description: "Set when the cited Entry is a Fact.",
+  })
+  ownership?: string;
+  @ApiProperty({ required: false }) ownershipNote?: string;
 }
 
 export class LineViewDto {
@@ -247,6 +254,11 @@ export class TailoredResumeDto {
   @ApiProperty({ type: [ProjectViewDto] }) projects!: ProjectViewDto[];
   @ApiProperty({ type: [EducationViewDto] }) education!: EducationViewDto[];
   @ApiProperty({ type: [SkillViewDto] }) skills!: SkillViewDto[];
+  @ApiProperty({
+    type: [InputDoNotClaimDto],
+    description: "Every Do-not-claim in the draft's profile version.",
+  })
+  doNotClaims!: InputDoNotClaimDto[];
   @ApiProperty({ type: CoverLetterViewDto, required: false })
   coverLetter?: CoverLetterViewDto;
   @ApiProperty({ type: [VerdictDto], required: false }) verdicts?: VerdictDto[];
