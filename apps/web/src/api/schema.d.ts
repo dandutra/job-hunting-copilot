@@ -240,7 +240,7 @@ export interface components {
             text: string;
         };
         RejectLineDto: {
-            /** @description A line location such as "summary" or "experiences[0].bullets[1]". */
+            /** @description A line location such as "summary[0]" or "experiences[0].bullets[1]". */
             line: string;
             doNotClaimId?: string;
         };
@@ -279,7 +279,8 @@ export interface components {
         SubmitDraftDto: {
             /** @description The Master profile version the draft was written against. */
             profileVersion: string;
-            summary: components["schemas"]["LineDto"];
+            /** @description One line per Highlight of Qualifications. */
+            summary: components["schemas"]["LineDto"][];
             /** @description List every fixed Experience with no bullets. */
             experiences: components["schemas"]["DraftSectionDto"][];
             projects: components["schemas"]["DraftSectionDto"][];
@@ -307,6 +308,8 @@ export interface components {
             name: string;
             city: string;
             email: string;
+            /** @example 416-555-0100 */
+            phone?: string;
             links: string[];
         };
         CitedEntryDto: {
@@ -379,7 +382,7 @@ export interface components {
             /** Format: date-time */
             approvedAt: string | null;
             contact: components["schemas"]["ContactViewDto"];
-            summary: components["schemas"]["LineViewDto"];
+            summary: components["schemas"]["LineViewDto"][];
             experiences: components["schemas"]["ExperienceViewDto"][];
             projects: components["schemas"]["ProjectViewDto"][];
             education: components["schemas"]["EducationViewDto"][];

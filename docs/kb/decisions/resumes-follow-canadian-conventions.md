@@ -11,7 +11,7 @@ generated:
 
 The first hand-tailored resume took 5 drafts. The first 3 used resume conventions the model recalled, and the user rejected them. These rules come from the two research notes, and the user confirmed them on that resume.
 
-**One page, checked by rendering.** Canadian career centres allow one or two pages, and the only tech-specific source says one. The user requires one page. Two estimates were wrong, by 7 lines and then by 2, so the page count comes from the rendered file. Overflow is fixed in this order: 10 pt body, tighter spacing, Skills on fewer lines, a one-line contact row. Content is cut only after that, and the user chooses what goes.
+**One page, checked by rendering.** Canadian career centres allow one or two pages, and the only tech-specific source says one. The user requires one page on every resume, with no exceptions. Two estimates were wrong, by 7 lines and then by 2, so the page count comes from the rendered file. Overflow is fixed in this order: 10 pt body, tighter spacing, Skills on fewer lines, a one-line contact row. Content is cut only after that, and the user chooses what goes.
 
 **A bulleted Highlights of Qualifications, not a prose profile.** It has 4 to 6 bullets, and each one names where the skill came from. U of T, Seneca, Waterloo and York teach this format. A prose profile written as "I" sentences was rejected because it didn't read like a resume.
 

@@ -3,7 +3,7 @@ type: gotcha
 title: Master profile schema package
 description: How packages/master-profile validates, what it reports before it stops, and what fitSummary leaves out.
 tags: [tailoring, privacy]
-sources: ["#26", "#82", "#27"]
+sources: ["#26", "#82", "#27", "#59"]
 generated:
   by: claude-sonnet-5-5
   at: 2026-11-04T08:40:00-05:00
@@ -23,3 +23,5 @@ generated:
 - A bullet may cite only Facts. Citing an Experience, Project, Education or Skill from a bullet fails rule 3. The summary and the cover letter may cite any live Entry.
 - A fixed Experience must be listed in the draft with no bullets. Any bullet under it counts as rewording (rule 5), and leaving it out counts as dropping it.
 - `related` holds Fact IDs, so for rule 3 a Fact from another Entry is allowed when its `related` names a Fact under the bullet's own Entry.
+- A Do-not-claim retires with `retired: true`, like any other Entry. The import refuses an ID that disappears, so deleting one fails. A retired Do-not-claim leaves the Tailoring input, the draft view, and the IDs a verdict or reject line may name.
+- `contact.phone` is optional and must be written as `416-555-0100`, the form the Canadian career-centre samples use.
