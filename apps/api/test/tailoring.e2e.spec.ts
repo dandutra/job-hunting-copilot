@@ -53,6 +53,7 @@ facts:
     text: Shipped weekly with a team of five.
     tags: [general]
     ownership: team
+    ownership_note: Wrote the release script.
     sources: [user]
     retired: ${o.retireF2 ? "true" : "false"}
   - id: F3
@@ -493,10 +494,12 @@ describe("tailoring", () => {
         id: "F2",
         text: "Shipped weekly with a team of five.",
         ownership: "team",
+        ownershipNote: "Wrote the release script.",
       },
     ]);
-    expect(res.body.experiences[0].bullets[0].cites[0]).toMatchObject({
+    expect(res.body.experiences[0].bullets[0].cites[0]).toEqual({
       id: "F1",
+      text: expect.any(String),
       ownership: "solo",
     });
   });
