@@ -120,7 +120,7 @@ describe("importProfile", () => {
     });
     expect(unauthorized.ok).toBe(false);
     expect(unauthorized.output).toContain("401");
-    expect(unauthorized.output).toContain("Tailscale");
+    expect(unauthorized.output).toContain("ALLOWED_TAILSCALE_LOGIN");
 
     const down = await importProfile({
       path: fileWith("a: 1\n"),

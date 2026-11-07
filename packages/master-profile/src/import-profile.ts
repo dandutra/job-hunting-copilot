@@ -37,7 +37,7 @@ export async function importProfile(
       signal: AbortSignal.timeout(30_000),
     });
   } catch (error) {
-    if ((error as Error).name === "TimeoutError")
+    if (error instanceof Error && error.name === "TimeoutError")
       return fail(
         `${base} did not answer within 30 seconds; it may have stored the version, and re-running is safe`,
       );
@@ -61,7 +61,7 @@ export async function importProfile(
     );
   if (res.status === 401)
     return fail(
-      `${base} answered 401; nothing stored. Only Tailscale Serve adds the login header, so use the tailnet address.`,
+      `${base} answered 401; nothing stored. Either the request missed Tailscale Serve, which adds the login header, or this Mac's Tailscale login is not ALLOWED_TAILSCALE_LOGIN. The API log names the rejected login.`,
     );
   if (!res.ok) return fail(`The API answered ${res.status}; nothing stored`);
 
