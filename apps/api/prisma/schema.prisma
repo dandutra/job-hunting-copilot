@@ -31,19 +31,20 @@ model CompanyAlias {
 }
 
 model Posting {
-  id              Int             @id @default(autoincrement())
-  companyId       Int             @map("company_id")
-  company         Company         @relation(fields: [companyId], references: [id])
+  id              Int              @id @default(autoincrement())
+  companyId       Int              @map("company_id")
+  company         Company          @relation(fields: [companyId], references: [id])
   title           String
   location        String
   description     String
   // full, snippet or none
-  descriptionKind String          @map("description_kind")
+  descriptionKind String           @map("description_kind")
   // The earliest Sighting's reportedAt.
-  postedAt        DateTime        @map("posted_at")
-  createdAt       DateTime        @default(now()) @map("created_at")
+  postedAt        DateTime         @map("posted_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
   sightings       Sighting[]
   mergeLog        MergeLogEntry[]
+  tailoredResumes TailoredResume[]
 
   @@index([companyId])
   @@map("posting")
@@ -113,9 +114,34 @@ model IngestCursor {
 
 // Never updated or deleted: data/ is gitignored, so these rows are the profile's only history.
 model MasterProfileVersion {
-  id        String   @id
-  rawYaml   String   @map("raw_yaml")
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String           @id
+  rawYaml         String           @map("raw_yaml")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  tailoredResumes TailoredResume[]
 
   @@map("master_profile_version")
+}
+
+// The draft JSON is never updated after the insert; only status and the review fields change.
+model TailoredResume {
+  id               Int                  @id @default(autoincrement())
+  postingId        Int                  @map("posting_id")
+  posting          Posting              @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  profileVersionId String               @map("profile_version_id")
+  profileVersion   MasterProfileVersion @relation(fields: [profileVersionId], references: [id])
+  // draft, approved, superseded or rejected
+  status           String
+  // The lines and their Entry IDs, without the pasted Posting text.
+  draft            Json
+  postingText      String?              @map("posting_text")
+  // One verdict per line: pass, a Do-not-claim ID or an overstatement note.
+  verdicts         Json?
+  rejectNote       String?              @map("reject_note")
+  // Faulty lines with an optional Do-not-claim ID each.
+  rejectLines      Json?                @map("reject_lines")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  approvedAt       DateTime?            @map("approved_at")
+
+  @@index([postingId, status])
+  @@map("tailored_resume")
 }
