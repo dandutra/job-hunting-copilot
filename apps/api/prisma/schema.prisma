@@ -126,18 +126,16 @@ model MasterProfileVersion {
 model TailoredResume {
   id               Int                  @id @default(autoincrement())
   postingId        Int                  @map("posting_id")
-  posting          Posting              @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  // Restrict: a merge must move drafts, never delete them with the absorbed Posting.
+  posting          Posting              @relation(fields: [postingId], references: [id], onDelete: Restrict)
   profileVersionId String               @map("profile_version_id")
   profileVersion   MasterProfileVersion @relation(fields: [profileVersionId], references: [id])
-  // draft, approved, superseded or rejected
   status           String
-  // The lines and their Entry IDs, without the pasted Posting text.
+  // Without the pasted Posting text, so the Claim review can read the draft as is.
   draft            Json
   postingText      String?              @map("posting_text")
-  // One verdict per line: pass, a Do-not-claim ID or an overstatement note.
   verdicts         Json?
   rejectNote       String?              @map("reject_note")
-  // Faulty lines with an optional Do-not-claim ID each.
   rejectLines      Json?                @map("reject_lines")
   createdAt        DateTime             @default(now()) @map("created_at")
   approvedAt       DateTime?            @map("approved_at")

@@ -5,7 +5,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { MasterProfileModule } from "../src/master-profile/master-profile.module";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { TailoringModule } from "../src/tailoring/tailoring.module";
-import { openTestDb } from "./test-db";
+import { openTestDb, resetTestDb } from "./test-db";
 
 const LOGIN = "tester@example.com";
 const SENTINEL = "zq-sentinel-5512";
@@ -111,17 +111,13 @@ describe("tailoring", () => {
   });
 
   afterAll(async () => {
-    await prisma.posting.deleteMany();
-    await prisma.company.deleteMany();
-    await prisma.masterProfileVersion.deleteMany();
+    await resetTestDb(prisma);
     await app.close();
     await prisma.$disconnect();
   });
 
   beforeEach(async () => {
-    await prisma.posting.deleteMany();
-    await prisma.company.deleteMany();
-    await prisma.masterProfileVersion.deleteMany();
+    await resetTestDb(prisma);
     const company = await prisma.company.create({
       data: { name: "Acme Example", ats: "greenhouse", boardSlug: "acme" },
     });

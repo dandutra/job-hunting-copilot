@@ -33,6 +33,16 @@ type Failure = Omit<TraceFailure, "rule"> & { rule: TraceFailure["rule"] | 6 };
 type StoredDraft = Omit<TailoredDraft, "postingText">;
 type Loaded = { id: string; profile: Profile };
 
+const staleVersion = (
+  detail = "is not the latest Master profile version",
+): Failure => ({
+  rule: 6,
+  location: "profileVersion",
+  detail,
+});
+
+const NOT_OPEN = "The draft is no longer open";
+
 const VERDICT_STATUSES = ["pass", "do-not-claim", "overstatement"];
 
 // Locations match the Trace check's, so a failure and a verdict name a line the same way.
@@ -72,6 +82,11 @@ function omit<T extends object, K extends keyof T>(
   const copy = { ...value };
   for (const key of keys) delete copy[key];
   return copy;
+}
+
+// Serializes submits and approves per Posting, so it never holds two open drafts or two approved resumes.
+async function lockPosting(tx: Prisma.TransactionClient, postingId: number) {
+  await tx.$queryRaw`SELECT id FROM posting WHERE id = ${postingId} FOR UPDATE`;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -133,11 +148,7 @@ export class TailoringService {
     const latest = await this.latest();
     if (!latest)
       throw this.rejection([
-        {
-          rule: 6,
-          location: "profileVersion",
-          detail: "no Master profile version is stored",
-        },
+        staleVersion("no Master profile version is stored"),
       ]);
 
     const { profileVersion, ...rest } = isRecord(body)
@@ -146,12 +157,7 @@ export class TailoringService {
     const failures: Failure[] = [];
     const result = traceCheck(latest.profile, isRecord(body) ? rest : body);
     if (!result.ok) failures.push(...result.failures);
-    if (profileVersion !== latest.id)
-      failures.push({
-        rule: 6,
-        location: "profileVersion",
-        detail: "is not the latest Master profile version",
-      });
+    if (profileVersion !== latest.id) failures.push(staleVersion());
     if (failures.length > 0) {
       this.logger.warn(
         `Rejected a draft for Posting ${postingId}: ${failures.length} failing lines`,
@@ -161,6 +167,7 @@ export class TailoringService {
 
     const { postingText, ...draft } = TailoredDraftSchema.parse(rest);
     const created = await this.prisma.$transaction(async (tx) => {
+      await lockPosting(tx, postingId);
       await tx.tailoredResume.updateMany({
         where: { postingId, status: "draft" },
         data: { status: "superseded" },
@@ -215,11 +222,12 @@ export class TailoringService {
       ...(v.status === "do-not-claim" ? { doNotClaimId: v.doNotClaimId } : {}),
       ...(v.status === "overstatement" ? { note: v.note } : {}),
     }));
-    await this.prisma.tailoredResume.update({
-      where: { id: row.id },
+    const moved = await this.prisma.tailoredResume.updateMany({
+      where: { id: row.id, status: "draft" },
       data: { verdicts: stored },
     });
-    return { id: row.id, status: row.status };
+    if (moved.count === 0) throw new ConflictException(NOT_OPEN);
+    return { id: row.id, status: "draft" };
   }
 
   async approve(id: number): Promise<ResumeStatusDto> {
@@ -231,11 +239,7 @@ export class TailoringService {
       if (!result.ok) failures.push(...result.failures);
     }
     if (!latest || row.profileVersionId !== latest.id)
-      failures.push({
-        rule: 6,
-        location: "profileVersion",
-        detail: "is not the latest Master profile version",
-      });
+      failures.push(staleVersion());
     if (failures.length > 0) {
       this.logger.warn(
         `Draft ${id} no longer passes: ${failures.length} failing lines`,
@@ -243,6 +247,7 @@ export class TailoringService {
       throw this.rejection(failures);
     }
     await this.prisma.$transaction(async (tx) => {
+      await lockPosting(tx, row.postingId);
       await tx.tailoredResume.updateMany({
         where: { postingId: row.postingId, status: "approved" },
         data: { status: "superseded" },
@@ -252,8 +257,7 @@ export class TailoringService {
         data: { status: "approved", approvedAt: new Date() },
       });
       // A concurrent approve or reject won; the throw rolls the supersede back.
-      if (moved.count === 0)
-        throw new ConflictException("The draft is no longer open");
+      if (moved.count === 0) throw new ConflictException(NOT_OPEN);
     });
     this.logger.log(`Approved draft ${id} for Posting ${row.postingId}`);
     return { id, status: "approved" };
@@ -298,8 +302,7 @@ export class TailoringService {
         })),
       },
     });
-    if (moved.count === 0)
-      throw new ConflictException("The draft is no longer open");
+    if (moved.count === 0) throw new ConflictException(NOT_OPEN);
     this.logger.log(`Rejected draft ${id}`);
     return { id, status: "rejected" };
   }
@@ -318,7 +321,7 @@ export class TailoringService {
       row.profileVersion.id,
       row.profileVersion.rawYaml,
     );
-    const draft = TailoredDraftSchema.parse(row.draft) as StoredDraft;
+    const draft = this.storedDraft(row.id, row.draft);
     const labels = entryLabels(profile);
     const view = (location: string, line: Line) => ({
       line: location,
@@ -431,9 +434,19 @@ export class TailoringService {
       throw new ConflictException(`The draft is ${row.status}`);
     return {
       row,
-      draft: TailoredDraftSchema.parse(row.draft) as StoredDraft,
+      draft: this.storedDraft(row.id, row.draft),
       profile: this.parse(row.profileVersion.id, row.profileVersion.rawYaml),
     };
+  }
+
+  // safeParse, because a ZodError's message quotes the draft and Nest would log it.
+  private storedDraft(id: number, value: Prisma.JsonValue): StoredDraft {
+    const parsed = TailoredDraftSchema.safeParse(value);
+    if (!parsed.success) {
+      this.logger.error(`Stored draft ${id} no longer parses`);
+      throw new InternalServerErrorException();
+    }
+    return parsed.data;
   }
 
   private async latest(): Promise<Loaded | null> {

@@ -638,6 +638,58 @@ describe("SightingMatcher", () => {
       expect(absorbed[0].postingId).toBe(bridge.posting.id);
     });
 
+    it("moves Tailored resumes to the surviving Posting and keeps one open draft and one approved", async () => {
+      const a = await matcher.matchSighting(
+        draft({ listingKey: "linkedin:100" }),
+        { now: T0 },
+      );
+      const b = await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      await prisma.masterProfileVersion.create({
+        data: { id: "v1", rawYaml: "" },
+      });
+      const resume = (postingId: number, status: string, at: number) =>
+        prisma.tailoredResume.create({
+          data: {
+            postingId,
+            profileVersionId: "v1",
+            status,
+            draft: {},
+            createdAt: daysAfter(at),
+            approvedAt: status === "approved" ? daysAfter(at) : null,
+          },
+        });
+      const oldApproved = await resume(a.posting.id, "approved", 1);
+      const newApproved = await resume(b.posting.id, "approved", 2);
+      const oldDraft = await resume(b.posting.id, "draft", 3);
+      const newDraft = await resume(a.posting.id, "draft", 4);
+      const rejected = await resume(a.posting.id, "rejected", 0);
+
+      const bridge = await matcher.matchSighting(
+        draft({
+          jobSource: "jobspy-indeed",
+          listingKey: "linkedin:100",
+          directUrl: "https://boards.greenhouse.io/acme/jobs/1",
+        }),
+        { now: T0 },
+      );
+
+      const rows = await prisma.tailoredResume.findMany();
+      expect(rows.every((r) => r.postingId === bridge.posting.id)).toBe(true);
+      const status = new Map(rows.map((r) => [r.id, r.status]));
+      expect(status).toEqual(
+        new Map([
+          [oldApproved.id, "superseded"],
+          [newApproved.id, "approved"],
+          [oldDraft.id, "superseded"],
+          [newDraft.id, "draft"],
+          [rejected.id, "rejected"],
+        ]),
+      );
+    });
+
     it("never merges Postings whose Sightings hold different listings of one board", async () => {
       await matcher.matchSighting(
         draft({ directUrl: "https://boards.greenhouse.io/acme/jobs/1" }),

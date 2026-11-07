@@ -268,6 +268,25 @@ export class SightingMatcher {
       where: { postingId: fromId },
       data: { postingId: intoId },
     });
+    await tx.tailoredResume.updateMany({
+      where: { postingId: fromId },
+      data: { postingId: intoId },
+    });
+    // A Posting has at most one open draft and one approved resume, so the newest of each wins.
+    for (const [status, field] of [
+      ["draft", "createdAt"],
+      ["approved", "approvedAt"],
+    ] as const) {
+      const newest = await tx.tailoredResume.findFirst({
+        where: { postingId: intoId, status },
+        orderBy: [{ [field]: "desc" }, { id: "desc" }],
+      });
+      if (newest)
+        await tx.tailoredResume.updateMany({
+          where: { postingId: intoId, status, id: { not: newest.id } },
+          data: { status: "superseded" },
+        });
+    }
     await tx.posting.delete({ where: { id: fromId } });
   }
 
