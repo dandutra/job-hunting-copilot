@@ -190,6 +190,9 @@ importers:
       '@prisma/client':
         specifier: 7.10.1
         version: 7.10.1(prisma@7.10.1(@types/node@26.6.6)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3)
+      master-profile:
+        specifier: workspace:*
+        version: link:../../packages/master-profile
       pg:
         specifier: ^8.23.1
         version: 8.23.1

@@ -110,3 +110,13 @@ model IngestCursor {
 
   @@map("ingest_cursor")
 }
+
+// Immutable: a row is never updated or deleted. The id is the SHA-256 of rawYaml.
+// data/ is gitignored, so these rows are the Master profile's only history.
+model MasterProfileVersion {
+  id        String   @id
+  rawYaml   String   @map("raw_yaml")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("master_profile_version")
+}

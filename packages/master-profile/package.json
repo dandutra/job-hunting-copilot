@@ -1,15 +1,17 @@
 {
   "name": "master-profile",
   "private": true,
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
     "format": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sample:check": "tsx src/cli.ts sample/master-profile.yaml",
     "profile:check": "tsx src/cli.ts ../../data/master-profile.yaml",
-    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm test && pnpm sample:check"
+    "check": "pnpm build && pnpm lint && pnpm format && pnpm typecheck && pnpm test && pnpm sample:check",
+    "profile:import": "tsx src/import-cli.ts ../../data/master-profile.yaml"
   },
   "dependencies": {
     "yaml": "^2.9.1",
@@ -24,5 +26,6 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
     "vitest": "^5.1.0"
-  }
+  },
+  "types": "dist/index.d.ts"
 }

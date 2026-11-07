@@ -6,10 +6,13 @@ RUN npm install -g pnpm@12.16.1
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json apps/api/
+COPY packages/master-profile/package.json packages/master-profile/
 RUN pnpm install --frozen-lockfile --filter api...
+COPY packages/master-profile packages/master-profile
 COPY apps/api apps/api
 # Prisma 7 reads DATABASE_URL in its config even though generate never connects.
 RUN DATABASE_URL=postgresql://build:build@localhost/build pnpm --dir apps/api exec prisma generate \
+ && pnpm --dir packages/master-profile build \
  && pnpm --dir apps/api build \
  && CI=true pnpm prune --prod
 
@@ -18,6 +21,9 @@ ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo/apps/api
 COPY --from=build --chown=node:node /repo/node_modules /repo/node_modules
+COPY --from=build --chown=node:node /repo/packages/master-profile/node_modules /repo/packages/master-profile/node_modules
+COPY --from=build --chown=node:node /repo/packages/master-profile/dist /repo/packages/master-profile/dist
+COPY --from=build --chown=node:node /repo/packages/master-profile/package.json /repo/packages/master-profile/package.json
 COPY --from=build --chown=node:node /repo/apps/api/node_modules node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist dist
 COPY --from=build --chown=node:node /repo/apps/api/prisma prisma
