@@ -45,6 +45,50 @@
           "Me"
         ]
       }
+    },
+    "/master-profile": {
+      "put": {
+        "operationId": "MasterProfileController_import",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectedProfileDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MasterProfile"
+        ]
+      }
     }
   },
   "info": {
@@ -79,6 +123,80 @@
         },
         "required": [
           "login"
+        ]
+      },
+      "ImportProfileDto": {
+        "type": "object",
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "description": "The raw text of data/master-profile.yaml."
+          }
+        },
+        "required": [
+          "yaml"
+        ]
+      },
+      "ImportResultDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "SHA-256 of the raw file."
+          },
+          "created": {
+            "type": "boolean",
+            "description": "False when this exact file was already stored."
+          },
+          "read": {
+            "type": "number",
+            "description": "Entries in the file."
+          },
+          "added": {
+            "type": "number",
+            "description": "Entries the previous latest version lacked."
+          },
+          "retired": {
+            "type": "number",
+            "description": "Entries newly retired since the previous latest version."
+          }
+        },
+        "required": [
+          "version",
+          "created",
+          "read",
+          "added",
+          "retired"
+        ]
+      },
+      "ProfileErrorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Entry ID, or \"(file)\"."
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "message"
+        ]
+      },
+      "RejectedProfileDto": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileErrorDto"
+            }
+          }
+        },
+        "required": [
+          "errors"
         ]
       }
     }

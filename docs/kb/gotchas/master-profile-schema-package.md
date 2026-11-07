@@ -3,7 +3,7 @@ type: gotcha
 title: Master profile schema package
 description: How packages/master-profile validates, what it reports before it stops, and what fitSummary leaves out.
 tags: [tailoring, privacy]
-sources: ["#26", "#82"]
+sources: ["#26", "#82", "#27"]
 generated:
   by: claude-sonnet-5-5
   at: 2026-11-04T08:40:00-05:00
@@ -14,7 +14,7 @@ generated:
 - Validation runs in two passes. The schema pass reports bad shapes, tags and empty evidence. The cross-check pass (duplicate IDs, unknown or Do-not-claim references, retired citations, unlisted sources) runs only when the schema pass is clean, so fixing a tag can reveal a duplicate ID.
 - A `parent` must be an Experience, Project or Education. `related` and Skill `evidence` must be Facts. A retired Entry may cite retired Entries, but a live one may not.
 - `fitSummary` also leaves out retired Skills, Skill aliases, `rules` and `ownership_note`, beyond the fields the ticket names.
-- `main` points at `src/index.ts`, so the package is source-only. The API compiles to CommonJS, so it needs a build step or a bundler setting before it can import this package. #57 must add one before it can call `traceCheck`.
+- The package builds to CommonJS in `dist/` (`pnpm --filter master-profile build`), because the API compiles to CommonJS and cannot import TypeScript source. `main` and `types` point at `dist/`, so a fresh clone must build it before the API typechecks or tests. Root `pnpm generate` and `pnpm check` do that, and the API Dockerfile builds it. The API imports `validateProfile`; #57 can import `traceCheck` the same way.
 - `pnpm profile:check` exits 1 on a missing `data/master-profile.yaml`. That is the expected result on a fresh clone.
 - TypeScript stays on 6 here too. `pnpm add -D typescript` installs 7.
 - `traceCheck(profile, draft)` takes a `TailoredDraft` and returns a pass or every failing line with its rule (1 to 5). Rule 6 (latest profile version) stays with the caller.

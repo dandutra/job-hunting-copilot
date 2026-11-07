@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/master-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["MasterProfileController_import"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -47,6 +63,30 @@ export interface components {
         MeDto: {
             /** @example dandutra@github */
             login: string;
+        };
+        ImportProfileDto: {
+            /** @description The raw text of data/master-profile.yaml. */
+            yaml: string;
+        };
+        ImportResultDto: {
+            /** @description SHA-256 of the raw file. */
+            version: string;
+            /** @description False when this exact file was already stored. */
+            created: boolean;
+            /** @description Entries in the file. */
+            read: number;
+            /** @description Entries the previous latest version lacked. */
+            added: number;
+            /** @description Entries newly retired since the previous latest version. */
+            retired: number;
+        };
+        ProfileErrorDto: {
+            /** @description Entry ID, or "(file)". */
+            id: string;
+            message: string;
+        };
+        RejectedProfileDto: {
+            errors: components["schemas"]["ProfileErrorDto"][];
         };
     };
     responses: never;
@@ -91,6 +131,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MasterProfileController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResultDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectedProfileDto"];
                 };
             };
             401: {

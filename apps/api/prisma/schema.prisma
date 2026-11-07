@@ -110,3 +110,12 @@ model IngestCursor {
 
   @@map("ingest_cursor")
 }
+
+// Never updated or deleted: data/ is gitignored, so these rows are the profile's only history.
+model MasterProfileVersion {
+  id        String   @id
+  rawYaml   String   @map("raw_yaml")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("master_profile_version")
+}
