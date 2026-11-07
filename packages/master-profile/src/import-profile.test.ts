@@ -120,6 +120,7 @@ describe("importProfile", () => {
     });
     expect(unauthorized.ok).toBe(false);
     expect(unauthorized.output).toContain("401");
+    expect(unauthorized.output).toContain("Tailscale");
 
     const down = await importProfile({
       path: fileWith("a: 1\n"),
@@ -160,5 +161,17 @@ describe("importProfile", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.output).toContain("not JSON");
+  });
+
+  it("says a timeout is a timeout", async () => {
+    const result = await importProfile({
+      path: fileWith("a: 1\n"),
+      apiUrl: "http://api.test",
+      fetchFn: vi.fn(async () => {
+        throw new DOMException("timed out", "TimeoutError");
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("did not answer within 30 seconds");
   });
 });

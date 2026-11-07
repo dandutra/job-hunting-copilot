@@ -36,7 +36,11 @@ export async function importProfile(
       body: JSON.stringify({ yaml: readFileSync(path, "utf8") }),
       signal: AbortSignal.timeout(30_000),
     });
-  } catch {
+  } catch (error) {
+    if ((error as Error).name === "TimeoutError")
+      return fail(
+        `${base} did not answer within 30 seconds; it may have stored the version, and re-running is safe`,
+      );
     return fail(`Could not reach ${base}; is Tailscale up?`);
   }
 
@@ -53,7 +57,11 @@ export async function importProfile(
   // Serve and nginx route only /api/ to the API; anything else is the static UI.
   if (res.status === 404 || res.status === 405)
     return fail(
-      `${base} answered ${res.status}; nothing stored. Does COPILOT_API_URL end in /api?`,
+      `${base} answered ${res.status}; nothing stored. Check that COPILOT_API_URL ends in /api and the API is current.`,
+    );
+  if (res.status === 401)
+    return fail(
+      `${base} answered 401; nothing stored. Only Tailscale Serve adds the login header, so use the tailnet address.`,
     );
   if (!res.ok) return fail(`The API answered ${res.status}; nothing stored`);
 
