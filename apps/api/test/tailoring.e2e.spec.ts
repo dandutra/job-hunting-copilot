@@ -73,7 +73,7 @@ do_not_claims:
   - id: X1
     text: Never claim to have led the team.
   - id: X2
-    text: ${SENTINEL} retired rule.
+    text: Never mention the old team name.
     retired: true
 `;
 }
@@ -325,6 +325,22 @@ describe("tailoring", () => {
         doNotClaimId: "X1",
       },
     ]);
+  });
+
+  it("refuses a verdict or reject line that names a retired Do-not-claim", async () => {
+    const v1 = await importProfile(profileYaml());
+    const { body } = await submit(goodDraft(v1));
+    const review = await act(body.id, "review", {
+      verdicts: [
+        { line: "summary[0]", status: "do-not-claim", doNotClaimId: "X2" },
+      ],
+    });
+    expect(review.status).toBe(400);
+    const reject = await act(body.id, "reject", {
+      note: "Old rule.",
+      lines: [{ line: "summary[0]", doNotClaimId: "X2" }],
+    });
+    expect(reject.status).toBe(400);
   });
 
   it("reads and approves a draft stored before the summary became lines", async () => {

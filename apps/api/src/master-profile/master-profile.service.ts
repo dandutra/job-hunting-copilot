@@ -12,7 +12,6 @@ import { ImportResultDto } from "./master-profile.dto";
 
 type EntryStates = Map<string, boolean>;
 
-// Do-not-claims have no retired flag, so they count as live.
 function entryStates(profile: Profile): EntryStates {
   const states: EntryStates = new Map();
   for (const entry of [
