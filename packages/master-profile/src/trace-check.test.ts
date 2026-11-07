@@ -30,7 +30,10 @@ function draftWith(
     ],
     projects: [],
     educationIds: ["D1"],
-    summary: { text: "A developer.", cites: ["F1"] },
+    summary: [
+      { text: "A developer.", cites: ["F1"] },
+      { text: "Ships weekly.", cites: ["F1"] },
+    ],
     skills: [{ skillId: "S1", text: "TypeScript" }],
     coverLetter: [{ text: "I built reports.", cites: ["F1"] }],
   };
@@ -56,7 +59,7 @@ describe("traceCheck", () => {
       (raw.facts as object[]).push(fact("F2", "E1", { retired: true }));
     });
     const d = draftWith((d) => {
-      d.summary.cites = [];
+      d.summary[1].cites = [];
       d.experiences[0].bullets = [
         { text: "a", cites: ["F99"] },
         { text: "b", cites: ["F2"] },
@@ -66,7 +69,7 @@ describe("traceCheck", () => {
     expect(r).toMatchObject({ ok: false });
     if (r.ok) return;
     expect(r.failures.map((f) => [f.rule, f.location])).toEqual([
-      [1, "summary"],
+      [1, "summary[1]"],
       [1, "experiences[0].bullets[0]"],
       [1, "experiences[0].bullets[1]"],
     ]);
@@ -182,7 +185,7 @@ describe("traceCheck", () => {
       (raw.experiences as { fixed?: boolean }[])[0].fixed = true;
     });
     const d = draftWith((d) => {
-      d.summary.cites = [];
+      d.summary[0].cites = [];
       d.skills = [{ skillId: "S1", text: "Nope" }];
     });
     expect(rulesOf(profile, d)).toEqual([1, 4, 5]);
@@ -194,7 +197,8 @@ describe("traceCheck", () => {
       {},
       null,
       "SECRET-STRING",
-      { ...draftWith(), summary: { text: "x" } },
+      { ...draftWith(), summary: { text: "x", cites: ["F1"] } },
+      { ...draftWith(), summary: [] },
       { ...draftWith(), experiences: [{ id: "E1" }] },
       { ...draftWith(), "SECRET-KEY": 1 },
       { ...draftWith(), educationIds: [42] },
@@ -209,7 +213,7 @@ describe("traceCheck", () => {
 
   it("never puts draft text in a failure", () => {
     const d = draftWith((d) => {
-      d.summary = { text: "SECRET-LINE", cites: [] };
+      d.summary = [{ text: "SECRET-LINE", cites: [] }];
       d.skills = [
         { skillId: "S1", text: "SECRET-SKILL" },
         { skillId: "SECRET-SKILL-ID", text: "x" },

@@ -79,7 +79,7 @@ const line = (text: string, cites: string[]) => ({ text, cites });
 function goodDraft(profileVersion: string, over: Record<string, unknown> = {}) {
   return {
     profileVersion,
-    summary: line("A developer who builds reports.", ["F1"]),
+    summary: [line("A developer who builds reports.", ["F1"])],
     experiences: [
       { id: "E1", bullets: [line("Built a nightly report.", ["F1"])] },
       { id: "E2", bullets: [] },
@@ -183,7 +183,7 @@ describe("tailoring", () => {
     const v1 = await importProfile(profileYaml());
     const res = await submit(
       goodDraft(v1, {
-        summary: line("Uncited.", []),
+        summary: [line("Fine.", ["F1"]), line("Uncited.", [])],
         projects: [{ id: "P1", bullets: [line("Wrong owner.", ["F2"])] }],
         skills: [{ skillId: "S1", text: "Typescript" }],
         experiences: [{ id: "E1", bullets: [line("Fine.", ["F1"])] }],
@@ -196,7 +196,7 @@ describe("tailoring", () => {
     );
     expect(found).toEqual(
       expect.arrayContaining([
-        "1@summary",
+        "1@summary[1]",
         "3@projects[0].bullets[0]",
         "4@skills[0]",
         "5@experiences",
@@ -285,7 +285,7 @@ describe("tailoring", () => {
     const { body } = await submit(goodDraft(v1));
     const bad = await act(body.id, "review", {
       verdicts: [
-        { line: "summary", status: "do-not-claim", doNotClaimId: "X9" },
+        { line: "summary[0]", status: "do-not-claim", doNotClaimId: "X9" },
         { line: "nowhere", status: "pass" },
         { line: "coverLetter[0]", status: "overstatement" },
       ],
@@ -295,7 +295,7 @@ describe("tailoring", () => {
 
     const ok = await act(body.id, "review", {
       verdicts: [
-        { line: "summary", status: "pass" },
+        { line: "summary[0]", status: "pass" },
         {
           line: "coverLetter[0]",
           status: "overstatement",
@@ -313,7 +313,7 @@ describe("tailoring", () => {
       request(app.getHttpServer()).get(`/tailored-resumes/${body.id}`),
     );
     expect(got.body.verdicts).toEqual([
-      { line: "summary", status: "pass" },
+      { line: "summary[0]", status: "pass" },
       { line: "coverLetter[0]", status: "overstatement", note: "Too strong." },
       {
         line: "projects[0].bullets[0]",
@@ -323,13 +323,40 @@ describe("tailoring", () => {
     ]);
   });
 
+  it("reads and approves a draft stored before the summary became lines", async () => {
+    const v1 = await importProfile(profileYaml());
+    const { body } = await submit(goodDraft(v1));
+    const row = await prisma.tailoredResume.findUniqueOrThrow({
+      where: { id: body.id },
+    });
+    const legacy = {
+      ...(row.draft as Record<string, unknown>),
+      summary: line("One old summary.", ["F1"]),
+    };
+    await prisma.tailoredResume.update({
+      where: { id: body.id },
+      data: { draft: legacy },
+    });
+
+    const got = await authed(
+      request(app.getHttpServer()).get(`/tailored-resumes/${body.id}`),
+    );
+    expect(got.status).toBe(200);
+    expect(got.body.summary).toHaveLength(1);
+    expect(got.body.summary[0]).toMatchObject({
+      line: "summary[0]",
+      text: "One old summary.",
+    });
+    expect((await act(body.id, "approve")).status).toBe(200);
+  });
+
   it("rejects a draft with a note and shows the note in the next tailoring input", async () => {
     const v1 = await importProfile(profileYaml());
     const { body } = await submit(goodDraft(v1));
     const res = await act(body.id, "reject", {
       note: "Too generic.",
       lines: [
-        { line: "summary", doNotClaimId: "X1" },
+        { line: "summary[0]", doNotClaimId: "X1" },
         { line: "coverLetter[0]" },
       ],
     });
@@ -346,7 +373,7 @@ describe("tailoring", () => {
         resumeId: body.id,
         note: "Too generic.",
         lines: [
-          { line: "summary", doNotClaimId: "X1" },
+          { line: "summary[0]", doNotClaimId: "X1" },
           { line: "coverLetter[0]" },
         ],
       },
@@ -478,7 +505,7 @@ describe("tailoring", () => {
     const v1 = await importProfile(profileYaml());
     const { body } = await submit(
       goodDraft(v1, {
-        summary: line("Shipped as part of a team.", ["F2"]),
+        summary: [line("Shipped as part of a team.", ["F2"])],
       }),
     );
     const res = await authed(
@@ -489,7 +516,8 @@ describe("tailoring", () => {
     expect(res.body.doNotClaims).toEqual([
       { id: "X1", text: "Never claim to have led the team." },
     ]);
-    expect(res.body.summary.cites).toEqual([
+    expect(res.body.summary[0].line).toBe("summary[0]");
+    expect(res.body.summary[0].cites).toEqual([
       {
         id: "F2",
         text: "Shipped weekly with a team of five.",
@@ -524,7 +552,7 @@ describe("tailoring", () => {
     const v1 = await importProfile(profileYaml());
     const ok = await submit(goodDraft(v1, { postingText: POSTING_SENTINEL }));
     await submit(
-      goodDraft(v1, { summary: line(`${SENTINEL} uncited`, [SENTINEL]) }),
+      goodDraft(v1, { summary: [line(`${SENTINEL} uncited`, [SENTINEL])] }),
     );
     await act(ok.body.id, "approve");
     await act(ok.body.id, "reject", { note: SENTINEL });

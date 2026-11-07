@@ -40,6 +40,12 @@ Each shell call starts fresh, so run every command from the repo root.
 
    Do not repeat the claim, wording or framing of a rejected line.
 
+7. List the Posting's hard requirements (the "must have", "you'll need" items) that the profile does not plainly meet. For each one, look for Facts related to it.
+   - No related Fact: leave the requirement out. Write nothing about it, and never make a line up to cover it.
+   - A related Fact: draft the strongest line that Fact supports, and never claim the requirement itself. Show these stretch lines to the user before submitting, each with its requirement and its Facts, and submit only the ones they accept.
+
+   Example: the Posting asks for "Java or a functional programming language", and a Fact says the candidate wrote an app in Go. Go is related, but it is not a functional language. A stretch line may feature the Go work. It never calls Go functional and never mentions Java.
+
 ## Writing
 
 Write only what needs rewording, in the draft shape below. The API fills employer, titles, dates, education and contact, and every `fixed: true` Experience.
@@ -48,12 +54,13 @@ Write only what needs rewording, in the draft shape below. The API fills employe
 - **Claim only what a cited Fact states.** No number, scope, ownership or tool beyond it. Respect each Fact's `ownership` (`team` is never "led" or "built alone"). State a result only when a Fact does. Never write a Do-not-claim, even when a Fact seems to support it.
 - **Posting wording.** Use it only when it matches a Skill's name or alias, or a cited Fact supports it. Never add hidden text or keyword lists.
 - **Plain words.** Write for a hiring manager who may not know the tools. Plain words in the summary and bullets. Tool names go in Skills and in the "how" part of a bullet, where the reader would know them. Flag any proper noun the reader cannot decode (an internal project name) to the user before submitting.
-- **Summary.** `summary` is one line object. Its text is the Highlights of Qualifications: 4 to 6 bullets, one per line of text, each naming where the skill came from, with no "I". Its `cites` hold the Facts behind all of them.
+- **Summary.** `summary` is the Highlights of Qualifications: a list of 4 to 6 lines, one per Highlight. Each names where the skill came from, has no "I", and cites only the Facts behind that Highlight.
 - **Bullets.** Action, then how, then result, no "I". Canadian spelling. Dates are the API's.
 - **Order.** The Posting's main theme leads the highlights and each entry's bullets. Every Skill listed has a bullet that shows it.
 - **Skills.** Each `skills[]` line is a Skill's `id` and its exact `name` or one alias.
 - **Entries.** List every `fixed: true` Experience in `experiences`, each under its own ID with `bullets: []`. Leaving one out fails the Trace check. Choose other Experiences and Projects by the Posting's theme. Put education IDs in `educationIds`.
 - **Cover letter.** With `--cover-letter`, add `coverLetter`: paragraphs only, each citing Entries. The API builds the greeting and sign-off.
+- **One page, always.** The rendered resume is one page, with no exceptions. Write to fit: 4 or 5 Highlights unless the page has room for a sixth, at most 5 bullets for the main Experience and 3 for any other, at most 2 Projects with 2 or 3 bullets each, and each bullet under about 200 characters. When the content does not fit, cut the weakest lines for the Posting's theme. Never let a draft run to a second page.
 - **Program names.** Do not reproduce a bracketed acronym from a program name (`docs/kb/gotchas/workday-resume-parsing.md`). Avoid a compound that could break at a line end; reword it.
 
 Draft shape (`profileVersion` is the input's):
@@ -61,7 +68,7 @@ Draft shape (`profileVersion` is the input's):
 ```json
 {
   "profileVersion": "<hash>",
-  "summary": {"text": "...", "cites": ["F1"]},
+  "summary": [{"text": "...", "cites": ["F1"]}, {"text": "...", "cites": ["F4"]}],
   "experiences": [{"id": "E1", "bullets": [{"text": "...", "cites": ["F2"]}]}],
   "projects": [{"id": "P1", "bullets": []}],
   "educationIds": ["ED1"],
@@ -86,7 +93,7 @@ The request sends no `Origin` and needs no token. A 201 returns the draft ID. On
 
 ## Claim review
 
-Run `/tailor-review <draft ID>` on the new draft. It runs blind to the Posting. If lines are flagged, rewrite those lines (and nothing else) from the verdict notes, submit a new draft, and review it. After 2 rewrite rounds with lines still flagged, stop and show the user the draft and the verdicts.
+Run `/tailor-review <draft ID> <base>` on the new draft, with the same `base` the submit used. The review runs as a fork from the repo root, so without `<base>` it reads the repo's `.env` and may reach a different API. It runs blind to the Posting. If lines are flagged, rewrite those lines (and nothing else) from the verdict notes, submit a new draft, and review it. After 2 rewrite rounds with lines still flagged, stop and show the user the draft and the verdicts.
 
 ## User changes
 
@@ -101,8 +108,8 @@ After the draft is stored, print for the user, citing Facts:
 
 ## Check the page
 
-Never call a draft one page from an estimate: two estimates were wrong. Count pages in a rendered file, if the user has one, and say when none exists. If the render runs over, fix it in this order: 10 pt body, tighter spacing, Skills on fewer lines, a one-line contact row. Only then ask the user what to cut.
+The resume must be one page. Never call a draft one page from an estimate, because two estimates were wrong. Count pages in a rendered file, and when none exists yet, say the page count is unchecked. If the render runs over, fix it in this order: 10 pt body, tighter spacing, Skills on fewer lines, a one-line contact row. If it still runs over, ask the user which lines to cut, and submit the shorter draft.
 
 ## Report
 
-Print the draft ID and status, then three numbers: Trace check failures per submit, Claim review flags per round, rewrite rounds used. End with what the user must still do: read the draft beside its cited Facts and approve it in the app.
+Print the draft ID and status, the stretch lines the user accepted, then three numbers: Trace check failures per submit, Claim review flags per round, rewrite rounds used. End with what the user must still do: read the draft beside its cited Facts and approve it in the app.

@@ -52,7 +52,7 @@ Glossary: [glossary.md](glossary.md)
 - [Tailnet identity guard](gotchas/tailnet-identity-guard.md): the global guard 401s without the user's `Tailscale-User-Login`, 403s a state-changing request whose `Origin` host differs from `Host`, exempts only `@Public()` routes, and depends on nginx forwarding both headers.
 - [Tailoring API](gotchas/tailoring-api.md): rule 6 runs on submit and approve against the latest profile version, a submit supersedes only open drafts, verdicts and reject lines name lines by location, `postingText` is stored but never returned, the GET carries the Do-not-claims and Fact ownership for `/tailor-review`, and a review post replaces all verdicts and accepts a partial list.
 - [Workday resume parsing](gotchas/workday-resume-parsing.md): Workday read the "(CPP)" in a program name as the college, never fills Skills from a resume, hyphenated line breaks extract joined, and every autofilled field needs a manual check.
-- [The /tailor skill](gotchas/tailor-skill.md): `fetch-input.sh` stops on a profile hash mismatch with exit 3, and the whole Highlights block rides in the one `summary` line.
+- [The /tailor skill](gotchas/tailor-skill.md): `fetch-input.sh` stops on a profile hash mismatch with exit 3, `summary` is one line per Highlight, and `/tailor` passes its API base to the forked review.
 
 ## Runbooks
 

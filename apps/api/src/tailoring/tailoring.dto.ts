@@ -22,7 +22,11 @@ export class SubmitDraftDto {
     description: "The Master profile version the draft was written against.",
   })
   profileVersion!: string;
-  @ApiProperty({ type: LineDto }) summary!: LineDto;
+  @ApiProperty({
+    type: [LineDto],
+    description: "One line per Highlight of Qualifications.",
+  })
+  summary!: LineDto[];
   @ApiProperty({
     type: [DraftSectionDto],
     description: "List every fixed Experience with no bullets.",
@@ -126,7 +130,7 @@ export class InputDoNotClaimDto {
 export class RejectLineDto {
   @ApiProperty({
     description:
-      'A line location such as "summary" or "experiences[0].bullets[1]".',
+      'A line location such as "summary[0]" or "experiences[0].bullets[1]".',
   })
   line!: string;
   @ApiProperty({ required: false }) doNotClaimId?: string;
@@ -249,7 +253,7 @@ export class TailoredResumeDto {
   @ApiProperty() createdAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) approvedAt!: Date | null;
   @ApiProperty({ type: ContactViewDto }) contact!: ContactViewDto;
-  @ApiProperty({ type: LineViewDto }) summary!: LineViewDto;
+  @ApiProperty({ type: [LineViewDto] }) summary!: LineViewDto[];
   @ApiProperty({ type: [ExperienceViewDto] }) experiences!: ExperienceViewDto[];
   @ApiProperty({ type: [ProjectViewDto] }) projects!: ProjectViewDto[];
   @ApiProperty({ type: [EducationViewDto] }) education!: EducationViewDto[];

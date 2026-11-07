@@ -47,7 +47,10 @@ const VERDICT_STATUSES = ["pass", "do-not-claim", "overstatement"];
 
 // Locations match the Trace check's, so a failure and a verdict name a line the same way.
 function linesOf(draft: StoredDraft): { location: string; line: Line }[] {
-  const out = [{ location: "summary", line: draft.summary }];
+  const out = draft.summary.map((line, i) => ({
+    location: `summary[${i}]`,
+    line,
+  }));
   for (const [key, sections] of [
     ["experiences", draft.experiences],
     ["projects", draft.projects],
@@ -94,6 +97,12 @@ async function lockPosting(tx: Prisma.TransactionClient, postingId: number) {
     throw new ConflictException(
       "The Posting was merged into another; find the surviving Posting and retry",
     );
+}
+
+// Drafts stored before #59 hold the summary as one line, not a list of Highlights.
+function upgradeDraft(value: unknown): unknown {
+  if (!isRecord(value) || !isRecord(value.summary)) return value;
+  return { ...value, summary: [value.summary] };
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -242,7 +251,7 @@ export class TailoringService {
     const latest = await this.latest();
     const failures: Failure[] = [];
     if (latest) {
-      const result = traceCheck(latest.profile, row.draft);
+      const result = traceCheck(latest.profile, upgradeDraft(row.draft));
       if (!result.ok) failures.push(...result.failures);
     }
     if (!latest || row.profileVersionId !== latest.id)
@@ -407,7 +416,7 @@ export class TailoringService {
       createdAt: row.createdAt,
       approvedAt: row.approvedAt,
       contact,
-      summary: view("summary", draft.summary),
+      summary: draft.summary.map((l, i) => view(`summary[${i}]`, l)),
       experiences,
       projects,
       education,
@@ -464,7 +473,7 @@ export class TailoringService {
 
   // safeParse, because a ZodError's message quotes the draft and Nest would log it.
   private storedDraft(id: number, value: Prisma.JsonValue): StoredDraft {
-    const parsed = TailoredDraftSchema.safeParse(value);
+    const parsed = TailoredDraftSchema.safeParse(upgradeDraft(value));
     if (!parsed.success) {
       this.logger.error(`Stored draft ${id} no longer parses`);
       throw new InternalServerErrorException();

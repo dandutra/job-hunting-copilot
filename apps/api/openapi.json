@@ -713,7 +713,7 @@
         "properties": {
           "line": {
             "type": "string",
-            "description": "A line location such as \"summary\" or \"experiences[0].bullets[1]\"."
+            "description": "A line location such as \"summary[0]\" or \"experiences[0].bullets[1]\"."
           },
           "doNotClaimId": {
             "type": "string"
@@ -872,7 +872,11 @@
             "description": "The Master profile version the draft was written against."
           },
           "summary": {
-            "$ref": "#/components/schemas/LineDto"
+            "description": "One line per Highlight of Qualifications.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineDto"
+            }
           },
           "experiences": {
             "description": "List every fixed Experience with no bullets.",
@@ -1253,7 +1257,10 @@
             "$ref": "#/components/schemas/ContactViewDto"
           },
           "summary": {
-            "$ref": "#/components/schemas/LineViewDto"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineViewDto"
+            }
           },
           "experiences": {
             "type": "array",

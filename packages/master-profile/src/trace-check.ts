@@ -18,7 +18,8 @@ export const TailoredDraftSchema = z.strictObject({
   experiences: z.array(DraftSectionSchema),
   projects: z.array(DraftSectionSchema),
   educationIds: z.array(z.string()),
-  summary: LineSchema,
+  // One line per Highlight, so each one carries its own cites and verdict.
+  summary: z.array(LineSchema).min(1),
   skills: z.array(SkillLineSchema),
   coverLetter: z.array(LineSchema).optional(),
   postingText: z.string().optional(),
@@ -127,7 +128,9 @@ export function traceCheck(profile: Profile, input: unknown): TraceResult {
     });
   };
 
-  checkLine(draft.summary, "summary", "resume");
+  draft.summary.forEach((line, i) =>
+    checkLine(line, `summary[${i}]`, "resume"),
+  );
   checkSections(draft.experiences, "experiences");
   checkSections(draft.projects, "projects");
 
