@@ -330,10 +330,25 @@ export class TailoringService {
     );
     const draft = this.storedDraft(row.id, row.draft);
     const labels = entryLabels(profile);
+    const facts = new Map(profile.facts.map((f) => [f.id, f]));
     const view = (location: string, line: Line) => ({
       line: location,
       text: line.text,
-      cites: line.cites.map((c) => ({ id: c, text: labels.get(c) ?? "" })),
+      cites: line.cites.map((c) => {
+        const fact = facts.get(c);
+        return {
+          id: c,
+          text: labels.get(c) ?? "",
+          ...(fact
+            ? {
+                ownership: fact.ownership,
+                ...(fact.ownership_note
+                  ? { ownershipNote: fact.ownership_note }
+                  : {}),
+              }
+            : {}),
+        };
+      }),
     });
     const bullets = (key: string, section: DraftSection, i: number) =>
       section.bullets.map((b, j) => view(`${key}[${i}].bullets[${j}]`, b));
@@ -397,6 +412,7 @@ export class TailoringService {
       projects,
       education,
       skills: draft.skills,
+      doNotClaims: profile.do_not_claims.map(({ id, text }) => ({ id, text })),
       ...(draft.coverLetter
         ? {
             coverLetter: {

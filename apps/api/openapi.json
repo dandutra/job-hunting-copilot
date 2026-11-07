@@ -1009,6 +1009,19 @@
           "text": {
             "type": "string",
             "description": "A Fact's text, or the name of any other Entry."
+          },
+          "ownership": {
+            "type": "string",
+            "enum": [
+              "solo",
+              "paired",
+              "team",
+              "maintained"
+            ],
+            "description": "Set when the cited Entry is a Fact."
+          },
+          "ownershipNote": {
+            "type": "string"
           }
         },
         "required": [
@@ -1266,6 +1279,13 @@
               "$ref": "#/components/schemas/SkillViewDto"
             }
           },
+          "doNotClaims": {
+            "description": "Every Do-not-claim in the draft's profile version.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputDoNotClaimDto"
+            }
+          },
           "coverLetter": {
             "$ref": "#/components/schemas/CoverLetterViewDto"
           },
@@ -1297,7 +1317,8 @@
           "experiences",
           "projects",
           "education",
-          "skills"
+          "skills",
+          "doNotClaims"
         ]
       },
       "ReviewDto": {
