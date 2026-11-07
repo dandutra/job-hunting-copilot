@@ -131,4 +131,34 @@ describe("importProfile", () => {
     expect(down.ok).toBe(false);
     expect(down.output).toContain("http://api.test");
   });
+
+  it("hints at the /api prefix when the address is not the API", async () => {
+    const result = await importProfile({
+      path: fileWith("a: 1\n"),
+      apiUrl: "https://copilot.example.ts.net",
+      fetchFn: reply(405, {}),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("/api");
+  });
+
+  it("shows the API's message for a 400 without an errors list", async () => {
+    const result = await importProfile({
+      path: fileWith("a: 1\n"),
+      apiUrl: "http://api.test",
+      fetchFn: reply(400, { message: "Unexpected token in JSON" }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("Unexpected token in JSON");
+  });
+
+  it("fails cleanly when a 200 is not JSON", async () => {
+    const result = await importProfile({
+      path: fileWith("a: 1\n"),
+      apiUrl: "http://api.test",
+      fetchFn: vi.fn(async () => new Response("<html>", { status: 200 })),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("not JSON");
+  });
 });

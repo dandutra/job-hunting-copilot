@@ -12,7 +12,7 @@ import { ImportResultDto } from "./master-profile.dto";
 
 type EntryStates = Map<string, boolean>;
 
-// Entry ID to retired. Do-not-claims have no retired flag and never retire.
+// Do-not-claims have no retired flag, so they count as live.
 function entryStates(profile: Profile): EntryStates {
   const states: EntryStates = new Map();
   for (const entry of [
@@ -45,20 +45,21 @@ export class MasterProfileService {
 
     const version = createHash("sha256").update(yaml).digest("hex");
     const previous = await this.latestStates();
-    const base = {
+    const counts = {
       version,
       read: states.size,
       added: [...states.keys()].filter((id) => !previous.has(id)).length,
       retired: [...states].filter(([id, r]) => r && previous.get(id) === false)
         .length,
     };
+    const alreadyStored = { ...counts, created: false, added: 0, retired: 0 };
 
     if (
       await this.prisma.masterProfileVersion.findUnique({
         where: { id: version },
       })
     )
-      return { ...base, created: false, added: 0, retired: 0 };
+      return alreadyStored;
 
     const missing = [...previous.keys()].filter((id) => !states.has(id));
     if (missing.length)
@@ -79,11 +80,11 @@ export class MasterProfileService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
       )
-        return { ...base, created: false, added: 0, retired: 0 };
+        return alreadyStored;
       throw error;
     }
     this.logger.log(`Stored Master profile version ${version.slice(0, 12)}`);
-    return { ...base, created: true };
+    return { ...counts, created: true };
   }
 
   private async latestStates(): Promise<EntryStates> {

@@ -9,7 +9,7 @@ generated:
   at: 2026-11-07T10:30:00-05:00
 ---
 
-`pnpm profile:import` sends `data/master-profile.yaml` to `PUT /master-profile` at `COPILOT_API_URL` (a tailnet address, set in `.env`). The Mac's Tailscale identity authorises it, so there is no token. The API validates the body itself with `validateProfile`; the CLI does not.
+`pnpm profile:import` sends `data/master-profile.yaml` to `PUT /master-profile` at `COPILOT_API_URL`, set in `.env`. Through Tailscale Serve the value must end in `/api`, because nginx proxies only `/api/` to the API and answers a PUT anywhere else with 405. The Mac's Tailscale identity authorises it, so there is no token. The API validates the body itself with `validateProfile`; the CLI does not.
 
 - The body is JSON, `{ "yaml": "<file text>" }`. The version ID is the SHA-256 of that exact string, so a trailing newline or a re-saved file makes a new version. The default Express limit of 100 KB applies; the real file is about 38 KB.
 - The API rejects a file with 0 Entries (a Do-not-claim counts as an Entry). The ticket only asked this of the CLI, but an empty version would become the latest one.

@@ -34,6 +34,7 @@ export async function importProfile(
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ yaml: readFileSync(path, "utf8") }),
+      signal: AbortSignal.timeout(30_000),
     });
   } catch {
     return fail(`Could not reach ${base}; is Tailscale up?`);
@@ -42,13 +43,28 @@ export async function importProfile(
   if (res.status === 400) {
     const body = (await res.json().catch(() => ({}))) as {
       errors?: { id: string; message: string }[];
+      message?: unknown;
     };
-    const lines = (body.errors ?? []).map((e) => `  ${e.id}: ${e.message}`);
+    const lines = body.errors
+      ? body.errors.map((e) => `  ${e.id}: ${e.message}`)
+      : [`  ${String(body.message ?? "no reason given")}`];
     return fail([`${path} was rejected:`, ...lines].join("\n"));
   }
+  // Serve and nginx route only /api/ to the API; anything else is the static UI.
+  if (res.status === 404 || res.status === 405)
+    return fail(
+      `${base} answered ${res.status}; nothing stored. Does COPILOT_API_URL end in /api?`,
+    );
   if (!res.ok) return fail(`The API answered ${res.status}; nothing stored`);
 
-  const body = (await res.json()) as ImportReply;
+  let body: ImportReply;
+  try {
+    body = (await res.json()) as ImportReply;
+  } catch {
+    return fail(
+      `${base} answered 200 but not JSON; is COPILOT_API_URL the API?`,
+    );
+  }
   if (body.read === 0) return fail(`${path} has 0 Entries`);
   const counts = `${body.read} Entries read, ${body.added} added, ${body.retired} retired`;
   return {
