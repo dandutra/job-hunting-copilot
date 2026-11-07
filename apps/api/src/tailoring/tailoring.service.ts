@@ -85,8 +85,13 @@ function omit<T extends object, K extends keyof T>(
 }
 
 // Serializes submits and approves per Posting, so it never holds two open drafts or two approved resumes.
+// 0 rows means a merge deleted the Posting after our read, and the drafts now live on the survivor.
 async function lockPosting(tx: Prisma.TransactionClient, postingId: number) {
-  await tx.$queryRaw`SELECT id FROM posting WHERE id = ${postingId} FOR UPDATE`;
+  const rows = await tx.$queryRaw<
+    unknown[]
+  >`SELECT id FROM posting WHERE id = ${postingId} FOR UPDATE`;
+  if (rows.length === 0)
+    throw new ConflictException("The Posting was merged; retry");
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>

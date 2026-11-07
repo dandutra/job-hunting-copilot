@@ -273,13 +273,17 @@ export class SightingMatcher {
       data: { postingId: intoId },
     });
     // A Posting has at most one open draft and one approved resume, so the newest of each wins.
-    for (const [status, field] of [
-      ["draft", "createdAt"],
-      ["approved", "approvedAt"],
-    ] as const) {
+    const newestFirst = {
+      draft: [{ createdAt: "desc" }, { id: "desc" }],
+      approved: [
+        { approvedAt: { sort: "desc", nulls: "last" } },
+        { id: "desc" },
+      ],
+    } satisfies Record<string, Prisma.TailoredResumeOrderByWithRelationInput[]>;
+    for (const [status, orderBy] of Object.entries(newestFirst)) {
       const newest = await tx.tailoredResume.findFirst({
         where: { postingId: intoId, status },
-        orderBy: [{ [field]: "desc" }, { id: "desc" }],
+        orderBy,
       });
       if (newest)
         await tx.tailoredResume.updateMany({
