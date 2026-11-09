@@ -49,10 +49,11 @@ encrypted_bytes=$(wc -c <"$workdir/dump.age" | tr -d ' ')
 [ "$encrypted_bytes" -gt 0 ] || { echo "FAIL: the encrypted dump is empty" >&2; exit 1; }
 
 key="dumps/$(date -u +%Y%m%dT%H%M%SZ)-${label}.dump.age"
-# The signature covers the payload hash, and curl does not compute it for an upload.
+# The signature covers the payload hash, and curl does not compute it for an upload. B2 refuses a put into a locked bucket without Content-MD5.
 curl --fail --silent --show-error --max-time 600 --retry 2 \
   --aws-sigv4 "aws:amz:${BACKUP_S3_REGION}:s3" --user "${BACKUP_KEY_ID}:${BACKUP_KEY}" \
   -H "x-amz-content-sha256: $(sha256_of "$workdir/dump.age")" \
+  -H "Content-MD5: $(openssl dgst -md5 -binary "$workdir/dump.age" | base64)" \
   -T "$workdir/dump.age" "${BACKUP_S3_ENDPOINT%/}/${BACKUP_BUCKET}/${key}" >/dev/null \
   || { echo "FAIL: the upload to ${BACKUP_BUCKET} failed" >&2; exit 1; }
 uploaded=1
