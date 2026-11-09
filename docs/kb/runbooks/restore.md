@@ -13,9 +13,9 @@ Postgres is the only state. Master profile versions, the merge log, Tailored res
 
 ## What runs
 
-- `deploy/backup.sh` runs `pg_dump -Fc` inside the `copilot-postgres-1` container, encrypts the dump with the `age` public key, uploads `dumps/<UTC time>-<label>.dump.age` to the backups bucket with `curl --aws-sigv4`, then pings healthchecks.io. It exits non-zero and prints `dump_bytes`, `encrypted_bytes`, `uploaded` and `pinged` if the dump is empty or the upload fails, and it pings only after an upload. A failed ping only warns, because the dump is safe.
+- `deploy/backup.sh` runs `pg_dump -Fc` inside the `copilot-postgres-1` container, encrypts the dump with the `age` public key, uploads `dumps/<UTC time>-<label>.dump.age` to the backups bucket with `curl --aws-sigv4`, then pings healthchecks.io when the label is `nightly`. It exits non-zero and prints `dump_bytes`, `encrypted_bytes`, `uploaded` and `pinged` if the dump is empty or the upload fails, and it pings only after an upload. A failed ping only warns, because the dump is safe.
 - A systemd timer (`copilot-backup.timer`, from `infra/cloud-init.yaml`) runs it nightly at 03:30 Toronto time with the label `nightly`.
-- `deploy/deploy.sh` runs it with the label `pre-deploy` before the migration. A failed dump stops the deploy. The first deploy has no Postgres volume yet, so it skips the dump.
+- `deploy/deploy.sh` runs it with the label `pre-deploy` before the migration. A failed dump stops the deploy. A pre-deploy run never pings, so daily deploys can't keep the check green while the timer is broken. The first deploy has no Postgres volume yet, so it skips the dump.
 - The Droplet holds the public key and a B2 key with `listBuckets`, `listFiles` and `writeFiles` only. It can't read, delete or lift the Object Lock, so a stolen server can't read old dumps or wipe them. The private key lives on the Mac and in the password manager.
 
 ## One-time setup
@@ -38,7 +38,7 @@ deploy/restore-drill.sh
 
 It lists the bucket, picks the newest dump, decrypts it with `RESTORE_AGE_IDENTITY_FILE`, restores it into a throwaway `postgres:17` container and prints a row count per table in `DRILL_TABLES` (default `master_profile_version`, `merge_log_entry`, `tailored_resume`). It exits non-zero if the bucket holds no dump, `pg_restore` fails, a table is missing or all counts add up to 0. Add the Labels and Applications tables to the default list in the script when they exist.
 
-Note the result on #38. Rerun the drill before 2027-01-01, and again after any change to the schema, the keys or the bucket.
+Rerun the drill after any change to the schema, the keys or the bucket.
 
 The result is not checked against production. A restored count below what the app shows is expected, because the dump is up to a day old.
 

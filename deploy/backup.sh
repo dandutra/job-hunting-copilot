@@ -57,8 +57,11 @@ curl --fail --silent --show-error --max-time 600 --retry 2 \
   || { echo "FAIL: the upload to ${BACKUP_BUCKET} failed" >&2; exit 1; }
 uploaded=1
 
+# Only the nightly run pings, so frequent deploys can't hide a timer that stopped running.
+if [ "$label" != nightly ]; then
+  echo "ping skipped: only nightly runs ping"
 # A dump that landed stays valid if the ping fails, so this only warns; the missed ping is what raises the alarm.
-if curl --fail --silent --show-error --max-time 10 --retry 3 "$BACKUP_HEALTHCHECK_URL" >/dev/null; then
+elif curl --fail --silent --show-error --max-time 10 --retry 3 "$BACKUP_HEALTHCHECK_URL" >/dev/null; then
   pinged=1
 else
   echo "WARN: the healthchecks.io ping failed" >&2

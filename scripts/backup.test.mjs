@@ -17,7 +17,8 @@ const s3Name = `backup-test-s3-${suffix}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sh = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
-const psql = (sql) => sh("docker", ["exec", pgName, "psql", "-U", "copilot", "-d", "copilot", "-v", "ON_ERROR_STOP=1", "-tAc", sql]);
+// Over TCP, because the image's init server answers on the socket and then restarts.
+const psql = (sql) => sh("docker", ["exec", pgName, "psql", "-h", "127.0.0.1", "-U", "copilot", "-d", "copilot", "-v", "ON_ERROR_STOP=1", "-tAc", sql]);
 
 let work, endpoint, recipient, identityFile, pings, pingServer, pingUrl, bucketN = 0;
 
@@ -113,11 +114,11 @@ test("dump, encrypt, upload, download, decrypt, restore and compare row counts",
   const bucket = newBucket();
   pings.length = 0;
 
-  const backup = await run("backup.sh", backupEnv(bucket), ["pre-deploy"]);
+  const backup = await run("backup.sh", backupEnv(bucket));
   assert.equal(backup.code, 0, backup.out);
   assert.match(backup.out, /uploaded=1 pinged=1/);
   assert.deepEqual(pings, ["/ping"]);
-  assert.match(listing(bucket), /dumps\/\d{8}T\d{6}Z-pre-deploy\.dump\.age/);
+  assert.match(listing(bucket), /dumps\/\d{8}T\d{6}Z-nightly\.dump\.age/);
 
   const drill = await run("restore-drill.sh", drillEnv(bucket));
   assert.equal(drill.code, 0, drill.out);
@@ -166,6 +167,16 @@ test("a failed upload exits non-zero and sends no ping", async () => {
   assert.match(r.out, /upload to .* failed/);
   assert.match(r.out, /uploaded=0 pinged=0/);
   assert.deepEqual(pings, []);
+});
+
+test("a pre-deploy run uploads but does not ping, so deploys can't stand in for the nightly timer", async () => {
+  const bucket = newBucket();
+  pings.length = 0;
+  const r = await run("backup.sh", backupEnv(bucket), ["pre-deploy"]);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /uploaded=1 pinged=0/);
+  assert.deepEqual(pings, []);
+  assert.match(listing(bucket), /dumps\/\d{8}T\d{6}Z-pre-deploy\.dump\.age/);
 });
 
 test("a failed ping warns but keeps the uploaded backup", async () => {

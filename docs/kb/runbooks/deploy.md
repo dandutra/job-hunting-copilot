@@ -15,7 +15,7 @@ Nothing here is manual on a normal day. A push to `main` that touches anything o
 
 1. `check` runs `pnpm check` against a throwaway Postgres.
 2. `build` builds the three images once with `docker compose build`, runs `deploy/check-images-clean.sh`, and pushes them to `ghcr.io/dandutra/copilot-*` tagged by the commit SHA. Only this job has `packages: write`.
-3. `deploy` runs in the `production` environment. It joins the tailnet as an ephemeral `tag:ci` node, sends `deploy/compose.prod.yaml` and `deploy/deploy.sh` over Tailscale SSH, and runs the script as `deploy`.
+3. `deploy` runs in the `production` environment. It joins the tailnet as an ephemeral `tag:ci` node, sends `deploy/compose.prod.yaml`, `deploy/deploy.sh` and `deploy/backup.sh` over Tailscale SSH, and runs the script as `deploy`.
 4. `deploy.sh` reads the `.env` lines from stdin and writes each value single-quoted, because Compose reads a quoted value literally and an unquoted one expands `$`. A value can't hold a `'` or a `\`. It pulls, moves the file into `~/copilot/.env` with mode 600, starts Postgres and runs `deploy/backup.sh pre-deploy` when a volume exists (a failed dump stops the deploy), runs `docker compose up -d --wait`, restarts `web`, then keeps the deployed SHA and the two newest other SHAs of each image.
 
 Pull requests run the `check`, `smoke` and `shellcheck` jobs in `ci.yml` and never push or deploy. `pull_request_target` is never used. A docs-only push deploys nothing, and a push with both docs and code deploys.

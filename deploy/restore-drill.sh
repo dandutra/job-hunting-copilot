@@ -57,8 +57,8 @@ echo "==> Restoring into a throwaway ${image} container"
 docker run -d --name "$container" -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=drill "$image" >/dev/null
 ready=0
 for _ in $(seq 1 60); do
-  # The image's init server restarts once, so a ready check can pass early; the SELECT proves the final server.
-  if docker exec "$container" psql -U postgres -d drill -tAc 'SELECT 1' >/dev/null 2>&1; then ready=1; break; fi
+  # The image's init server listens only on the socket and then restarts, so only a TCP answer proves the final server.
+  if docker exec "$container" psql -h 127.0.0.1 -U postgres -d drill -tAc 'SELECT 1' >/dev/null 2>&1; then ready=1; break; fi
   sleep 1
 done
 [ "$ready" -eq 1 ] || { echo "FAIL: the throwaway Postgres did not start" >&2; exit 1; }
