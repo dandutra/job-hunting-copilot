@@ -114,7 +114,7 @@ test("dump, encrypt, upload, download, decrypt, restore and compare row counts",
   const bucket = newBucket();
   pings.length = 0;
 
-  const backup = await run("backup.sh", backupEnv(bucket));
+  const backup = await run("backup.sh", backupEnv(bucket), ["nightly"]);
   assert.equal(backup.code, 0, backup.out);
   assert.match(backup.out, /uploaded=1 pinged=1/);
   assert.deepEqual(pings, ["/ping"]);
@@ -169,19 +169,21 @@ test("a failed upload exits non-zero and sends no ping", async () => {
   assert.deepEqual(pings, []);
 });
 
-test("a pre-deploy run uploads but does not ping, so deploys can't stand in for the nightly timer", async () => {
-  const bucket = newBucket();
-  pings.length = 0;
-  const r = await run("backup.sh", backupEnv(bucket), ["pre-deploy"]);
-  assert.equal(r.code, 0, r.out);
-  assert.match(r.out, /uploaded=1 pinged=0/);
-  assert.deepEqual(pings, []);
-  assert.match(listing(bucket), /dumps\/\d{8}T\d{6}Z-pre-deploy\.dump\.age/);
-});
+for (const args of [["pre-deploy"], []]) {
+  test(`a ${args[0] ?? "manual"} run uploads but does not ping, so it can't stand in for the nightly timer`, async () => {
+    const bucket = newBucket();
+    pings.length = 0;
+    const r = await run("backup.sh", backupEnv(bucket), args);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /uploaded=1 pinged=0/);
+    assert.deepEqual(pings, []);
+    assert.match(listing(bucket), new RegExp(`dumps/\\d{8}T\\d{6}Z-${args[0] ?? "manual"}\\.dump\\.age`));
+  });
+}
 
 test("a failed ping warns but keeps the uploaded backup", async () => {
   const bucket = newBucket();
-  const r = await run("backup.sh", backupEnv(bucket, { BACKUP_HEALTHCHECK_URL: "http://127.0.0.1:1/ping" }));
+  const r = await run("backup.sh", backupEnv(bucket, { BACKUP_HEALTHCHECK_URL: "http://127.0.0.1:1/ping" }), ["nightly"]);
   assert.equal(r.code, 0, r.out);
   assert.match(r.out, /WARN: the healthchecks.io ping failed/);
   assert.match(r.out, /uploaded=1 pinged=0/);

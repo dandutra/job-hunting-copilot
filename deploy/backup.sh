@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Dumps Postgres, encrypts the dump to the age public key, uploads it to the backups bucket, then pings healthchecks.io.
-# Usage: backup.sh [label], where the label (default "nightly") goes into the object name.
+# Dumps Postgres, encrypts the dump to the age public key and uploads it to the backups bucket.
+# Usage: backup.sh [label], where the label (default "manual") goes into the object name. Only "nightly" pings healthchecks.io.
 # Settings come from the environment, or from ./.env when that file exists (deploy.sh writes it).
 # It exits non-zero when the dump is empty or the upload fails, and it pings only after an upload.
 set -euo pipefail
 
-label="${1:-nightly}"
+label="${1:-manual}"
 [[ "$label" =~ ^[a-z][a-z0-9-]*$ ]] || { echo "usage: backup.sh [label of lowercase letters, digits and hyphens]" >&2; exit 2; }
 
 env_file="${BACKUP_ENV_FILE:-.env}"
@@ -59,7 +59,7 @@ uploaded=1
 
 # Only the nightly run pings, so frequent deploys can't hide a timer that stopped running.
 if [ "$label" != nightly ]; then
-  echo "ping skipped: only nightly runs ping"
+  echo "ping skipped: only nightly runs ping" >&2
 # A dump that landed stays valid if the ping fails, so this only warns; the missed ping is what raises the alarm.
 elif curl --fail --silent --show-error --max-time 10 --retry 3 "$BACKUP_HEALTHCHECK_URL" >/dev/null; then
   pinged=1
