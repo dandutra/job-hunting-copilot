@@ -20,7 +20,7 @@ Postgres is the only state. Master profile versions, the merge log, Tailored res
 
 ## One-time setup
 
-1. `age-keygen -o ~/.config/copilot/backup-age.txt` on the Mac. Copy the file to the password manager. The `Public key:` line is `BACKUP_AGE_RECIPIENT`.
+1. `mkdir -p -m 700 ~/.config/copilot && age-keygen -o ~/.config/copilot/backup-age.txt` on the Mac. `age-keygen` doesn't create the folder. Copy the file to the password manager. The `Public key:` line is `BACKUP_AGE_RECIPIENT`.
 2. In healthchecks.io, make a check with a 1-day period and a grace time of a few hours, and note its ping URL.
 3. In the `production` environment on GitHub, set the **variables** `BACKUP_AGE_RECIPIENT`, `BACKUP_S3_ENDPOINT` (`https://s3.<region>.backblazeb2.com`), `BACKUP_S3_REGION` (the `<region>` part) and `BACKUP_BUCKET`, and the **secrets** `BACKUP_KEY_ID` and `BACKUP_KEY` (from `terraform output`, see Rotating keys in [Provision the server](provision.md)) and `BACKUP_HEALTHCHECK_URL`. `deploy.sh` refuses to run without all seven, so set them before the next code push.
 4. In B2, make a second application key for the Mac, limited to the backups bucket, with `listBuckets`, `listFiles` and `readFiles`. Terraform doesn't manage it, because its secret would sit in state next to the write key. Keep it in the password manager.
