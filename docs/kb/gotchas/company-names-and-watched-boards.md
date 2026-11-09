@@ -13,7 +13,7 @@ generated:
 
 A name that normalizes to nothing (" Inc. ") is rejected, not stored.
 
-The seed makes a Company of every CSV row. A row becomes a Watched company only when `verified` is `yes` and its ATS is greenhouse, lever, ashby, smartrecruiters or workday. SuccessFactors, Dayforce, iCIMS and the other ATSes in the CSV have no public JSON board API, so those rows stay plain Companies even when verified.
+The seed makes a Company of every CSV row. A row becomes a Watched company only when `verified` is `yes` and its ATS is greenhouse, lever, ashby, smartrecruiters or workday. SuccessFactors, Dayforce, iCIMS and the other ATSes in the CSV have no public JSON board API, so those rows stay plain Companies even when verified. A Workday slug is `tenant.wdN/site`, taken from the row's URL by the seed, because the polling host needs the data centre.
 
 Some slugs in the CSV are copied from board URLs and arrive percent-encoded, such as Ashby's `PAR%20Technology`. The board adapters decode a slug before encoding it into the API URL (`slugPath`), so the API is called with `%20`, not `%2520`. The listing key keeps the slug as stored, which is also what `parseListingKey` reads from the job URL.
 

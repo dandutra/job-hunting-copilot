@@ -1,15 +1,15 @@
 company,sector,ats,slug,url,verified
-RBC,Bank,workday,rbc/RBCGLOBAL1,https://rbc.wd3.myworkdayjobs.com/RBCGLOBAL1,yes
-TD Bank,Bank,workday,td/TD_Bank_Careers,https://td.wd3.myworkdayjobs.com/TD_Bank_Careers,yes
-BMO,Bank,workday,bmo/External,https://bmo.wd3.myworkdayjobs.com/External,yes
-CIBC,Bank,workday,cibc/search,https://cibc.wd3.myworkdayjobs.com/search,yes
+RBC,Bank,workday,rbc.wd3/RBCGLOBAL1,https://rbc.wd3.myworkdayjobs.com/RBCGLOBAL1,yes
+TD Bank,Bank,workday,td.wd3/TD_Bank_Careers,https://td.wd3.myworkdayjobs.com/TD_Bank_Careers,yes
+BMO,Bank,workday,bmo.wd3/External,https://bmo.wd3.myworkdayjobs.com/External,yes
+CIBC,Bank,workday,cibc.wd3/search,https://cibc.wd3.myworkdayjobs.com/search,yes
 EQ Bank,Bank,lever,eqbank,https://jobs.lever.co/eqbank,yes
-Manulife,Insurer,workday,manulife/MFCJH_Jobs,https://manulife.wd3.myworkdayjobs.com/MFCJH_Jobs,yes
-Sun Life,Insurer,workday,sunlife/Experienced-Jobs,https://sunlife.wd3.myworkdayjobs.com/Experienced-Jobs,yes
-Aviva Canada,Insurer,workday,aviva/External,https://aviva.wd1.myworkdayjobs.com/External,yes
-OMERS,Pension fund,workday,omers/OMERS_External,https://omers.wd3.myworkdayjobs.com/OMERS_External,yes
-CAAT Pension Plan,Pension fund,workday,caatpension/Careers,https://caatpension.wd10.myworkdayjobs.com/Careers,yes
-Candescent,Fintech,workday,candescent/Hiring,https://candescent.wd501.myworkdayjobs.com/Hiring,yes
+Manulife,Insurer,workday,manulife.wd3/MFCJH_Jobs,https://manulife.wd3.myworkdayjobs.com/MFCJH_Jobs,yes
+Sun Life,Insurer,workday,sunlife.wd3/Experienced-Jobs,https://sunlife.wd3.myworkdayjobs.com/Experienced-Jobs,yes
+Aviva Canada,Insurer,workday,aviva.wd1/External,https://aviva.wd1.myworkdayjobs.com/External,yes
+OMERS,Pension fund,workday,omers.wd3/OMERS_External,https://omers.wd3.myworkdayjobs.com/OMERS_External,yes
+CAAT Pension Plan,Pension fund,workday,caatpension.wd10/Careers,https://caatpension.wd10.myworkdayjobs.com/Careers,yes
+Candescent,Fintech,workday,candescent.wd501/Hiring,https://candescent.wd501.myworkdayjobs.com/Hiring,yes
 PAR Technology,Restaurant tech,ashby,PAR%20Technology,https://jobs.ashbyhq.com/PAR%20Technology,yes
 Magnet Forensics,Security software,lever,magnetforensics,https://jobs.lever.co/magnetforensics,yes
 Mercury,Fintech,greenhouse,mercury,https://job-boards.greenhouse.io/mercury,yes
@@ -41,12 +41,12 @@ Sentry,Developer tools,ashby,sentry,https://jobs.ashbyhq.com/sentry,yes
 PagerDuty,Developer tools,greenhouse,pagerduty,https://job-boards.greenhouse.io/pagerduty,yes
 Tailscale,Networking,greenhouse,tailscale,https://job-boards.greenhouse.io/tailscale,yes
 Hopper,Travel tech,ashby,hopper,https://jobs.ashbyhq.com/hopper,yes
-Interac,Payments,workday,interac/Interac,https://interac.wd3.myworkdayjobs.com/Interac,yes
-TMX Group,Capital markets,workday,tmx/TMX_Careers,https://tmx.wd3.myworkdayjobs.com/TMX_Careers,yes
-Ontario Teachers' Pension Plan,Pension fund,workday,otppb/OntarioTeachers_Careers,https://otppb.wd3.myworkdayjobs.com/OntarioTeachers_Careers,yes
-CPP Investments,Pension fund,workday,cppib/CPPInvestments,https://cppib.wd10.myworkdayjobs.com/CPPInvestments,yes
-Thomson Reuters,Information services,workday,thomsonreuters/External_Career_Site,https://thomsonreuters.wd5.myworkdayjobs.com/External_Career_Site,yes
-TELUS Health,Health tech,workday,lifeworks/External,https://lifeworks.wd3.myworkdayjobs.com/External,yes
+Interac,Payments,workday,interac.wd3/Interac,https://interac.wd3.myworkdayjobs.com/Interac,yes
+TMX Group,Capital markets,workday,tmx.wd3/TMX_Careers,https://tmx.wd3.myworkdayjobs.com/TMX_Careers,yes
+Ontario Teachers' Pension Plan,Pension fund,workday,otppb.wd3/OntarioTeachers_Careers,https://otppb.wd3.myworkdayjobs.com/OntarioTeachers_Careers,yes
+CPP Investments,Pension fund,workday,cppib.wd10/CPPInvestments,https://cppib.wd10.myworkdayjobs.com/CPPInvestments,yes
+Thomson Reuters,Information services,workday,thomsonreuters.wd5/External_Career_Site,https://thomsonreuters.wd5.myworkdayjobs.com/External_Career_Site,yes
+TELUS Health,Health tech,workday,lifeworks.wd3/External,https://lifeworks.wd3.myworkdayjobs.com/External,yes
 Stripe,Payments,greenhouse,stripe,https://job-boards.greenhouse.io/stripe,yes
 Databricks,Data platform,greenhouse,databricks,https://job-boards.greenhouse.io/databricks,yes
 Snowflake,Data platform,ashby,snowflake,https://jobs.ashbyhq.com/snowflake,yes
@@ -58,9 +58,9 @@ Block,Payments,greenhouse,block,https://job-boards.greenhouse.io/block,yes
 Instacart,Big tech,greenhouse,instacart,https://job-boards.greenhouse.io/instacart,yes
 Coursera,Ed tech,greenhouse,coursera,https://job-boards.greenhouse.io/coursera,yes
 Spotify,Big tech,lever,spotify,https://jobs.lever.co/spotify,yes
-Nvidia,Semiconductors,workday,nvidia/NVIDIAExternalCareerSite,https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite,yes
-Salesforce,Big tech,workday,salesforce/External_Career_Site,https://salesforce.wd12.myworkdayjobs.com/External_Career_Site,yes
-Workday,Enterprise software,workday,workday/Workday,https://workday.wd5.myworkdayjobs.com/Workday,yes
+Nvidia,Semiconductors,workday,nvidia.wd5/NVIDIAExternalCareerSite,https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite,yes
+Salesforce,Big tech,workday,salesforce.wd12/External_Career_Site,https://salesforce.wd12.myworkdayjobs.com/External_Career_Site,yes
+Workday,Enterprise software,workday,workday.wd5/Workday,https://workday.wd5.myworkdayjobs.com/Workday,yes
 Ubisoft,Games,smartrecruiters,Ubisoft2,https://careers.smartrecruiters.com/Ubisoft2,yes
 Scotiabank,Bank,successfactors,jobs.scotiabank.com,https://jobs.scotiabank.com/,yes
 Canada Life,Insurer,successfactors,thegreatweP2,https://jobs.canadalife.com/,yes
@@ -90,7 +90,7 @@ TELUS,Telecom,successfactors,careers.telus.com,https://careers.telus.com/,yes
 Bell,Telecom,phenom,jobs.bell.ca,https://jobs.bell.ca/ca/en,no
 OpenText,Software,phenom,careers.opentext.com,https://careers.opentext.com/us/en,no
 Celestica,Electronics,successfactors,careers.celestica.com,https://careers.celestica.com/,yes
-Loblaw (Loblaw Digital),Retail,workday,myview/loblaw_careers,https://myview.wd3.myworkdayjobs.com/loblaw_careers,no
+Loblaw (Loblaw Digital),Retail,workday,myview.wd3/loblaw_careers,https://myview.wd3.myworkdayjobs.com/loblaw_careers,no
 Shopify,Commerce platform,ashby,,https://www.shopify.com/careers,no
 AMD,Semiconductors,icims,careers-amd.icims.com,https://careers.amd.com/careers-home/jobs,yes
 Microsoft,Big tech,eightfold,apply.careers.microsoft.com,https://apply.careers.microsoft.com/careers,yes
