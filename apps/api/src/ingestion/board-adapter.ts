@@ -209,10 +209,12 @@ export abstract class BoardAdapter extends JobSourceAdapter {
     }
 
     let outside = 0;
+    let unreadable = false;
     for (const raw of parsed.rows) {
       const row = this.readRow(raw, board.boardSlug);
       if (row === null) continue;
       if (typeof row === "string") {
+        unreadable = true;
         result.errors.push({
           kind: "bad-row",
           watchedCompanyId: board.id,
@@ -231,8 +233,13 @@ export abstract class BoardAdapter extends JobSourceAdapter {
         `${board.name}: dropped ${outside} of ${parsed.rows.length} rows outside the Search area`,
       );
     }
-    result.completeBoards.push(board.id);
-    return { watchedCompanyId: board.id, status: "ok" };
+    // A row we could not read may still be listed, so this read cannot close anything.
+    if (!unreadable) result.completeBoards.push(board.id);
+    return {
+      watchedCompanyId: board.id,
+      status: "ok",
+      rows: parsed.rows.length,
+    };
   }
 
   private toDraft(

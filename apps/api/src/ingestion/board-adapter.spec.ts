@@ -142,9 +142,9 @@ describe.each(CASES)("$ats adapter", (c) => {
     ]);
     expect(result.completeBoards).toEqual([1, 3]);
     expect(result.boards).toEqual([
-      { watchedCompanyId: 1, status: "ok" },
+      expect.objectContaining({ watchedCompanyId: 1, status: "ok" }),
       { watchedCompanyId: 2, status: "failed" },
-      { watchedCompanyId: 3, status: "ok" },
+      { watchedCompanyId: 3, status: "ok", rows: 0 },
     ]);
     expect(result.drafts.length).toBeGreaterThan(0);
   });
@@ -173,6 +173,41 @@ describe.each(CASES)("$ats adapter", (c) => {
     ]);
   });
 
+  it("keeps a board with an unreadable row out of completeBoards", async () => {
+    const rows: unknown = JSON.parse(c.body);
+    const list = Array.isArray(rows)
+      ? rows
+      : (rows as { jobs: unknown[] }).jobs;
+    list.push({ id: list.length ? (list[0] as { id: unknown }).id : 1 });
+    answers[c.expectedUrl("acme")] = {
+      status: 200,
+      body: JSON.stringify(rows),
+    };
+    const result = await adapter().poll(window());
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ kind: "bad-row", watchedCompanyId: 1 }),
+    );
+    expect(result.completeBoards).toEqual([3]);
+    expect(result.boards).toContainEqual({
+      watchedCompanyId: 1,
+      status: "ok",
+      rows: list.length,
+    });
+  });
+
+  it("reports how many rows the board listed before the Search area filter", async () => {
+    const result = await adapter().poll(window());
+    const parsed: unknown = JSON.parse(c.body);
+    const total = (
+      Array.isArray(parsed) ? parsed : (parsed as { jobs: unknown[] }).jobs
+    ).length;
+    expect(result.boards?.[0]).toEqual({
+      watchedCompanyId: 1,
+      status: "ok",
+      rows: total,
+    });
+  });
+
   it("builds keys equal to the key listing-key parses from the public URL", async () => {
     const result = await adapter().poll(window());
     for (const d of result.drafts.filter((d) => d.watchedCompanyId === 1)) {
@@ -181,7 +216,7 @@ describe.each(CASES)("$ats adapter", (c) => {
     }
   });
 
-  it("polls enabled boards one at a time, 1 s apart, with a plain User-Agent", async () => {
+  it("polls Watched boards one at a time, 1 s apart, with a plain User-Agent", async () => {
     await adapter().poll(window());
     expect(queries).toEqual([
       expect.objectContaining({
@@ -200,7 +235,7 @@ describe.each(CASES)("$ats adapter", (c) => {
     let n = 0;
     const result = await adapter().poll(window(() => n++ >= 1));
     expect(result.boards).toEqual([
-      { watchedCompanyId: 1, status: "ok" },
+      expect.objectContaining({ watchedCompanyId: 1, status: "ok" }),
       { watchedCompanyId: 2, status: "incomplete" },
       { watchedCompanyId: 3, status: "incomplete" },
     ]);
@@ -212,7 +247,6 @@ describe("source-specific rules", () => {
   const run = async (
     adapter: (p: never, h: HttpClient, s: () => Promise<void>) => BoardAdapter,
     ats: string,
-    url: string,
     body: string,
   ) => {
     const prisma = {
@@ -225,14 +259,12 @@ describe("source-specific rules", () => {
       { get: async () => ({ status: 200, body }) },
       async () => {},
     ).poll(window()) as Promise<import("./job-source-adapter").AdapterResult>;
-    void url;
   };
 
   it("greenhouse decodes the escaped description and splits locations on ;", async () => {
     const r = await run(
       (p, h, s) => new GreenhouseAdapter(p, h, s),
       "greenhouse",
-      "",
       fixture("greenhouse"),
     );
     expect(r.drafts[0].description).toBe("Build & ship APIs.\nNode");
@@ -243,7 +275,6 @@ describe("source-specific rules", () => {
     const r = await run(
       (p, h, s) => new LeverAdapter(p, h, s),
       "lever",
-      "",
       fixture("lever"),
     );
     expect(r.drafts[0].reportedAt).toEqual(new Date(1760000000000));
@@ -253,7 +284,6 @@ describe("source-specific rules", () => {
     const r = await run(
       (p, h, s) => new AshbyAdapter(p, h, s),
       "ashby",
-      "",
       fixture("ashby"),
     );
     expect(r.drafts.map((d) => d.title)).not.toContain("Hidden Role");

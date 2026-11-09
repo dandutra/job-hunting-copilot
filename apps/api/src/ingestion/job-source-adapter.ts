@@ -16,7 +16,7 @@ export interface AdapterError {
   message: string;
   // Set by board adapters: the Company whose board raised it (a Watched company).
   watchedCompanyId?: number;
-  // The HTTP status behind a "blocked" error, when there is one. A 404 board alerts once a day.
+  // The HTTP status behind a board error, when there is one. A 404 board alerts once a day.
   httpStatus?: number;
 }
 
@@ -24,6 +24,8 @@ export interface AdapterError {
 export interface BoardReport {
   watchedCompanyId: number;
   status: "ok" | "failed" | "incomplete";
+  // Rows the board listed before the Search area filter, so an all-out-of-area board is not mistaken for an empty page.
+  rows?: number;
 }
 
 export interface AdapterResult {
