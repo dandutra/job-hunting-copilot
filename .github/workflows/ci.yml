@@ -107,6 +107,7 @@ jobs:
       - run: terraform validate
         env:
           TF_VAR_backups_bucket_name: ci-validate
+          TF_VAR_alert_email: ci@example.invalid
 
   shellcheck:
     runs-on: ubuntu-24.04

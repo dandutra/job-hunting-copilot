@@ -3,7 +3,7 @@ type: runbook
 title: Deploy, roll back and rotate secrets
 description: How a push to main reaches the Droplet, how to deploy an earlier commit, the one-time GitHub and Tailscale setup, and how to rotate a secret.
 tags: [deploy, ops, ci]
-sources: ["#36"]
+sources: ["#36", "#39"]
 generated:
   by: claude-opus-5-5
   at: 2026-11-06T15:00:00-05:00
@@ -44,7 +44,7 @@ These are settings on GitHub and Tailscale, so no file in the repo can enforce t
 
 1. **Packages.** `copilot-api`, `copilot-web` and `copilot-jobspy` must be public, because the Droplet pulls with no login. On the first deploy on 2026-11-06 they were already public after the first push. If one is private, the deploy fails at `pull`. Change it under the package's settings, then re-run the failed job. The images hold no personal data (`check-images-clean.sh` proves it on every build).
 2. **Environment.** Create `production` under Settings, then Environments. Under "Deployment branches and tags" choose "Selected branches and tags" and add only `main`. A manual run from any other branch is then refused.
-3. **Secrets in `production`:** `POSTGRES_PASSWORD` (no `@ : / ? #`, no `'` and no `\`, see the [Compose gotcha](../gotchas/production-compose-stack.md)), `ALLOWED_TAILSCALE_LOGIN` (your login exactly as the Tailscale admin console shows it, kept a secret so the email stays out of the logs), `JOBSPY_PROXIES` (may be empty), `TS_OAUTH_CLIENT_ID` and `TS_AUDIENCE`. **Variables:** `JOBSPY_SEARCH_TERM`, `JOBSPY_LOCATION` and `JOBSPY_RESULTS_WANTED`, all optional. The backup settings (four variables, three secrets) are listed in [Back up, run the restore drill and restore](restore.md), and `deploy.sh` stops without them.
+3. **Secrets in `production`:** `POSTGRES_PASSWORD` (no `@ : / ? #`, no `'` and no `\`, see the [Compose gotcha](../gotchas/production-compose-stack.md)), `ALLOWED_TAILSCALE_LOGIN` (your login exactly as the Tailscale admin console shows it, kept a secret so the email stays out of the logs), `JOBSPY_PROXIES` (may be empty), `HEARTBEAT_URL` (the ping URL of the polls check, below; may be empty), `TS_OAUTH_CLIENT_ID` and `TS_AUDIENCE`. **Variables:** `JOBSPY_SEARCH_TERM`, `JOBSPY_LOCATION` and `JOBSPY_RESULTS_WANTED`, all optional. The backup settings (four variables, three secrets) are listed in [Back up, run the restore drill and restore](restore.md), and `deploy.sh` stops without them.
 4. **Tailscale federated identity.** In the admin console, under Settings, Trust credentials, choose "+ Credential" and the type that asks for an issuer and a subject. The OAuth type makes a client secret and never asks for either. Set the issuer to `https://token.actions.githubusercontent.com`. Set the scope to Keys, then Auth Keys, with write access and tag `tag:ci`. Copy its client ID and audience into the two secrets above.
 
    The subject must be the exact string GitHub sends, which carries the numeric owner and repo IDs: `repo:dandutra@125486331/job-hunting-copilot@1438922250:environment:production`. The plain `repo:dandutra/job-hunting-copilot:...` form fails the deploy's Tailscale step with `token exchange failed with status 403`. After a failed run, the credential's edit page shows the subject it received from the issuer, and that is the value to paste. The workflow's node is ephemeral and disappears after the run. `infra/tailscale.tf` already lets `tag:ci` reach `tag:server` and log in as `deploy`.
@@ -58,6 +58,16 @@ GitHub cannot show a secret again after you save it, so the password manager hol
 - **A GitHub secret or variable** (`JOBSPY_PROXIES`, the search settings): update it in the `production` environment and in the password manager, then re-run the latest Deploy run, or push a code change. `deploy.sh` rewrites `.env` on every run, and Compose recreates each service whose environment changed.
 - **`POSTGRES_PASSWORD`:** the value in `.env` does not change the password inside an existing Postgres volume. First run `ALTER USER copilot PASSWORD '<new>'` through `docker compose -f deploy/compose.prod.yaml --env-file .env exec postgres psql -U copilot`, then update the GitHub secret and the password manager, then re-run the latest Deploy run. That run recreates `api`, and `deploy.sh` always restarts `web` after it, because nginx holds the old `api` address. If you restart `api` by hand, restart `web` after it.
 - **The Tailscale trust credential:** make a new one, update `TS_OAUTH_CLIENT_ID` and `TS_AUDIENCE` and the password manager, then delete the old credential.
+
+## What each alert means
+
+The app has no public address, so it reports in and silence raises the alarm.
+
+- **healthchecks.io "polls" check.** Create it by hand with a period of 1 hour and a grace of 30 minutes, which covers a deploy's drain. Put its ping URL in the `HEARTBEAT_URL` secret. `ingest` pings after every poll unless each adapter that ran failed. A poll where every adapter was skipped as not yet due still pings, because the first poll after a restart is like that. An email means 90 minutes with no such poll: `ingest` is stopped or hung, or every Job source that ran kept failing. Check `docker compose -f deploy/compose.prod.yaml --env-file .env logs --tail=100 ingest` on the Droplet. A failing ping is logged as `Heartbeat failed` and never stops a poll, so a ping error in the log with no email means healthchecks.io is the problem.
+- **healthchecks.io "backups" check.** Create it by hand with a period of 1 day and a grace of a few hours, and put its ping URL in the `BACKUP_HEALTHCHECK_URL` secret. Only the nightly run of `deploy/backup.sh` pings it. An email means no backup landed that night: check `systemctl status copilot-backup` on the Droplet, then the [restore runbook](restore.md).
+- **DigitalOcean disk alert.** `infra/monitoring.tf` emails `TF_VAR_alert_email`, which must be the verified email of a member of the DigitalOcean team, when disk use stays above 80% for 5 minutes. Run `docker system df` on the Droplet. Old images and the 10 MB x 3 container logs are the usual cause, then the Postgres volume.
+
+An empty `HEARTBEAT_URL` logs a warning at boot and sends nothing, so local development needs no check.
 
 ## Check it
 
