@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { MatchingModule } from "../matching/matching.module";
+import { PrismaService } from "../prisma/prisma.service";
 import { PrismaModule } from "../prisma/prisma.module";
 import { AlertHook, LogAlertHook } from "./alert-hook";
 import {
@@ -8,6 +9,9 @@ import {
   INGEST_OPTIONS,
 } from "./ingest-scheduler";
 import { JOB_SOURCE_ADAPTERS, JobSourceAdapter } from "./job-source-adapter";
+import { AshbyAdapter } from "./ashby/ashby-adapter";
+import { GreenhouseAdapter } from "./greenhouse/greenhouse-adapter";
+import { LeverAdapter } from "./lever/lever-adapter";
 import { JobspyAdapter, jobspyConfigFromEnv } from "./jobspy/jobspy-adapter";
 import { LogPollHooks, PollHooks } from "./poll-hooks";
 
@@ -27,11 +31,18 @@ const JOBSPY_SITES = ["linkedin", "indeed"] as const;
     },
     {
       provide: JOB_SOURCE_ADAPTERS,
-      inject: [AlertHook],
-      useFactory: (alerts: AlertHook): JobSourceAdapter[] =>
-        JOBSPY_SITES.map(
+      inject: [AlertHook, PrismaService],
+      useFactory: (
+        alerts: AlertHook,
+        prisma: PrismaService,
+      ): JobSourceAdapter[] => [
+        ...JOBSPY_SITES.map(
           (site) => new JobspyAdapter(jobspyConfigFromEnv(site), alerts),
         ),
+        new GreenhouseAdapter(prisma),
+        new LeverAdapter(prisma),
+        new AshbyAdapter(prisma),
+      ],
     },
   ],
 })

@@ -1,0 +1,44 @@
+{
+  "jobs": [
+    {
+      "id": "6c4d2a1f-1111-4b3c-9d4e-aaaaaaaaaaaa",
+      "title": "Full Stack Developer",
+      "publishedAt": "2026-10-22T14:00:00.000+00:00",
+      "location": "Toronto, Canada",
+      "secondaryLocations": [{ "location": "Vancouver, Canada" }],
+      "isRemote": false,
+      "isListed": true,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/6c4d2a1f-1111-4b3c-9d4e-aaaaaaaaaaaa",
+      "descriptionPlain": "Build the product."
+    },
+    {
+      "id": "6c4d2a1f-2222-4b3c-9d4e-bbbbbbbbbbbb",
+      "title": "Remote SRE",
+      "publishedAt": "2026-10-23T14:00:00.000+00:00",
+      "location": "Canada",
+      "secondaryLocations": [],
+      "isRemote": true,
+      "isListed": true,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/6c4d2a1f-2222-4b3c-9d4e-bbbbbbbbbbbb",
+      "descriptionPlain": "Keep it up."
+    },
+    {
+      "id": "6c4d2a1f-3333-4b3c-9d4e-cccccccccccc",
+      "title": "Hidden Role",
+      "publishedAt": "2026-10-23T14:00:00.000+00:00",
+      "location": "Toronto, Canada",
+      "isRemote": false,
+      "isListed": false,
+      "descriptionPlain": "Not public."
+    },
+    {
+      "id": "6c4d2a1f-4444-4b3c-9d4e-dddddddddddd",
+      "title": "Account Executive",
+      "publishedAt": "2026-10-23T14:00:00.000+00:00",
+      "location": "London, UK",
+      "isRemote": false,
+      "isListed": true,
+      "descriptionPlain": "Sell."
+    }
+  ]
+}

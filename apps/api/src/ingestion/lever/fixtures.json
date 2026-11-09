@@ -1,0 +1,28 @@
+[
+  {
+    "id": "5b3c1f0e-1111-4a2b-8c3d-aaaaaaaaaaaa",
+    "text": "Platform Engineer",
+    "createdAt": 1760000000000,
+    "hostedUrl": "https://jobs.lever.co/acme/5b3c1f0e-1111-4a2b-8c3d-aaaaaaaaaaaa",
+    "categories": {
+      "location": "Toronto",
+      "allLocations": ["Toronto", "Remote, Canada"]
+    },
+    "descriptionPlain": "Run the platform."
+  },
+  {
+    "id": "5b3c1f0e-2222-4a2b-8c3d-bbbbbbbbbbbb",
+    "text": "Designer",
+    "createdAt": 1760000000000,
+    "hostedUrl": "https://jobs.lever.co/acme/5b3c1f0e-2222-4a2b-8c3d-bbbbbbbbbbbb",
+    "categories": { "location": "Berlin" },
+    "descriptionPlain": "Design things."
+  },
+  {
+    "id": "5b3c1f0e-3333-4a2b-8c3d-cccccccccccc",
+    "text": "Support Engineer",
+    "createdAt": 1760000000000,
+    "categories": { "location": "Mississauga, ON" },
+    "descriptionPlain": "Help users."
+  }
+]

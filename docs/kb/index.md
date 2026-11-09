@@ -54,6 +54,12 @@ Glossary: [glossary.md](glossary.md)
 - [Workday resume parsing](gotchas/workday-resume-parsing.md): Workday read the "(CPP)" in a program name as the college, never fills Skills from a resume, hyphenated line breaks extract joined, and every autofilled field needs a manual check.
 - [The /tailor skill](gotchas/tailor-skill.md): `fetch-input.sh` stops on a profile hash mismatch with exit 3, `summary` is one line per Highlight, and `/tailor` passes its API base to the forked review.
 
+## Job sources
+
+- [Greenhouse board API](job-sources/greenhouse.md): `boards-api.greenhouse.io`, escaped HTML descriptions, `first_published`, no documented rate limit.
+- [Lever postings API](job-sources/lever.md): `api.lever.co`, `createdAt` in epoch ms, EU boards not reached.
+- [Ashby job board API](job-sources/ashby.md): `api.ashbyhq.com`, `publishedAt` resets on republish, `isListed` and `isRemote` rules.
+
 ## Runbooks
 
 - [Provision the server](runbooks/provision.md): build, check, rebuild and recover the Droplet, firewall, Tailscale policy and backups bucket with Terraform from the Mac.
