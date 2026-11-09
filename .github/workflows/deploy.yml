@@ -56,6 +56,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      # scripts/backup.test.mjs needs age; Docker is already on the runner.
+      - run: sudo apt-get install -y --no-install-recommends age
       - run: pnpm install --frozen-lockfile
       - run: pnpm --dir apps/api exec prisma generate
       - run: pnpm check
@@ -120,7 +122,7 @@ jobs:
           ping: copilot
       - name: Send the Compose file and deploy.sh
         run: |
-          tar -c deploy/compose.prod.yaml deploy/deploy.sh \
+          tar -c deploy/compose.prod.yaml deploy/deploy.sh deploy/backup.sh \
             | tailscale ssh deploy@copilot 'mkdir -p ~/copilot && tar -x -C ~/copilot'
       - name: Deploy
         env:
@@ -130,6 +132,13 @@ jobs:
           JOBSPY_SEARCH_TERM: ${{ vars.JOBSPY_SEARCH_TERM }}
           JOBSPY_LOCATION: ${{ vars.JOBSPY_LOCATION }}
           JOBSPY_RESULTS_WANTED: ${{ vars.JOBSPY_RESULTS_WANTED }}
+          BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+          BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ vars.BACKUP_S3_REGION }}
+          BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+          BACKUP_KEY_ID: ${{ secrets.BACKUP_KEY_ID }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
+          BACKUP_HEALTHCHECK_URL: ${{ secrets.BACKUP_HEALTHCHECK_URL }}
         # The values go over stdin, so none reaches a command line on either machine.
         run: |
           printf '%s\n' \
@@ -139,4 +148,11 @@ jobs:
             "JOBSPY_SEARCH_TERM=${JOBSPY_SEARCH_TERM}" \
             "JOBSPY_LOCATION=${JOBSPY_LOCATION}" \
             "JOBSPY_RESULTS_WANTED=${JOBSPY_RESULTS_WANTED}" \
+            "BACKUP_AGE_RECIPIENT=${BACKUP_AGE_RECIPIENT}" \
+            "BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT}" \
+            "BACKUP_S3_REGION=${BACKUP_S3_REGION}" \
+            "BACKUP_BUCKET=${BACKUP_BUCKET}" \
+            "BACKUP_KEY_ID=${BACKUP_KEY_ID}" \
+            "BACKUP_KEY=${BACKUP_KEY}" \
+            "BACKUP_HEALTHCHECK_URL=${BACKUP_HEALTHCHECK_URL}" \
             | tailscale ssh deploy@copilot "cd ~/copilot && ./deploy/deploy.sh ${TARGET_SHA}"

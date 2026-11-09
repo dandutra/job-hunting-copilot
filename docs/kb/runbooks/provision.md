@@ -69,7 +69,7 @@ Root tasks on the Droplet go through the Recovery Console below.
 2. `terraform init -backend-config=backend.hcl`. State is in B2, so Terraform knows what exists.
 3. Delete the old machine in the Tailscale admin console. A second machine with the same name gets a `-1` suffix and the `*.ts.net` address changes.
 4. Replace only the server: `terraform apply -replace=tailscale_tailnet_key.server -replace=digitalocean_droplet.app`. The key is replaced as well, because the old one is single-use and expired.
-5. Deploy the stack from CI and restore the data with the restore runbook once it exists.
+5. Deploy the stack from CI and restore the data with the [restore runbook](restore.md).
 
 If the state is lost, import is not worth it.
 
