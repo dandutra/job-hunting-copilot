@@ -30,6 +30,8 @@ The accounts, the state bucket, the `age` key pair and `infra/.env` are in the c
 - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, holding a B2 key ID and key that can read and write the state bucket. The S3 backend reads these.
 - `TF_VAR_backups_bucket_name`, unique across all B2 accounts. B2 can't rename a bucket, and File Lock keeps it, so choose with care.
 
+- `TF_VAR_alert_email`, the address for the disk alert. See [What each alert means](deploy.md#what-each-alert-means).
+
 Don't set `B2_ENDPOINT`. The B2 provider reads it as its native API endpoint, so an S3 endpoint there fails the bucket create with `MissingSchema`. The S3 endpoint belongs only in `backend.hcl`. A name with a hyphen is skipped by `source`, so the variable is silently missing. Then:
 
 ```sh

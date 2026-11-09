@@ -16,6 +16,11 @@ variable "hostname" {
   default     = "copilot"
 }
 
+variable "alert_email" {
+  description = "Address DigitalOcean emails when the Droplet's disk passes 80%."
+  type        = string
+}
+
 variable "backups_bucket_name" {
   description = "Name of the B2 bucket for nightly dumps. B2 bucket names are unique across all accounts."
   type        = string

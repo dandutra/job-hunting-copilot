@@ -73,7 +73,9 @@ services:
     <<: *service
     image: ghcr.io/dandutra/copilot-api:${IMAGE_TAG:?set IMAGE_TAG to a commit SHA}
     command: ["node", "dist/main.ingest.js"]
-    environment: *app-env
+    environment:
+      <<: *app-env
+      HEARTBEAT_URL: ${HEARTBEAT_URL:-}
     # Covers JobSpy's 5-minute timeout, so a run in progress finishes on SIGTERM.
     stop_grace_period: 6m
     depends_on:
