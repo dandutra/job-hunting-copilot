@@ -456,6 +456,38 @@ describe("WorkdayAdapter", () => {
     expect(result.completeBoards).toEqual([7]);
   });
 
+  it.each([
+    ["total 0", 0],
+    ["a total under the facet's count", 3],
+    ["a total over the unfiltered one", 950],
+  ])(
+    "walks the unfiltered total and is never complete when filtered page one gives %s",
+    async (_label, filteredTotal) => {
+      const calls: Call[] = [];
+      const http: WorkdayHttp = {
+        async post(url, body, headers) {
+          const parsed = JSON.parse(body);
+          calls.push({ method: "POST", url, body: parsed, headers });
+          const filtered = Object.keys(parsed.appliedFacets).length > 0;
+          return ok({
+            total: parsed.offset > 0 ? 0 : filtered ? filteredTotal : 60,
+            jobPostings: [row(filtered ? parsed.offset : 1000)],
+            // The Canada value counts 7 jobs.
+            facets: filtered ? [] : fixtures.nestedCountryFacet,
+          });
+        },
+        get: async () => ok(fixtures.detailToronto),
+      };
+      const { adapter } = make(http);
+
+      const result = await adapter.poll(window());
+
+      expect(lists(calls).map((c) => c.body!.offset)).toEqual([0, 0, 20, 40]);
+      expect(result.completeBoards).toEqual([]);
+      expect(result.errors).toEqual([]);
+    },
+  );
+
   it("applies no filter when no Country facet holds Canada", async () => {
     const rows = Array.from({ length: 30 }, (_, i) => row(i));
     const { http, calls } = tenant(rows, {

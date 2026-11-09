@@ -53,6 +53,8 @@ const PAGE_SIZE = 20;
 // Some tenants refuse to page past 2000 results, so a bigger tenant can never be read in full.
 const RESULT_CAP = 2000;
 export const REQUEST_GAP_MS = 1_500;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 const SLUG = /^([a-z0-9-]+)\.(wd\d+)\/([^/]+)$/i;
 const MANY_LOCATIONS = /^\d+\s+locations?$/i;
 
@@ -64,8 +66,14 @@ interface Facet {
 }
 
 // Facets nest (Manulife wraps its locations in a group), so the Canada value is found at any depth.
-function canadaFilter(facets: unknown): Record<string, string[]> | null {
-  const walk = (list: unknown): Record<string, string[]> | null => {
+interface CanadaFilter {
+  applied: Record<string, string[]>;
+  // The facet's own job count, a check on the filtered total.
+  count: number | null;
+}
+
+function canadaFilter(facets: unknown): CanadaFilter | null {
+  const walk = (list: unknown): CanadaFilter | null => {
     if (!Array.isArray(list)) return null;
     for (const facet of list as Facet[]) {
       const name = str(facet?.facetParameter);
@@ -73,7 +81,13 @@ function canadaFilter(facets: unknown): Record<string, string[]> | null {
         const canada = (facet.values as Facet[]).find(
           (v) => str(v?.descriptor)?.toLowerCase() === "canada" && str(v?.id),
         );
-        if (canada) return { [name]: [str(canada.id)!] };
+        if (canada) {
+          const count = (canada as { count?: unknown }).count;
+          return {
+            applied: { [name]: [str(canada.id)!] },
+            count: typeof count === "number" ? count : null,
+          };
+        }
       }
       const inner = walk(facet?.values);
       if (inner) return inner;
@@ -273,9 +287,8 @@ export class WorkdayAdapter extends JobSourceAdapter {
           `${tenant.name}: dropped ${outside} of ${readable} rows outside the Search area`,
         );
       }
-      // A cut-off walk never reaches here, and neither does a board past the cap.
-      if (!unreadable && rows.total <= RESULT_CAP)
-        result.completeBoards.push(tenant.id);
+      // Only a full, trusted walk with every row read may close a Sighting.
+      if (!unreadable && rows.complete) result.completeBoards.push(tenant.id);
       return { watchedCompanyId: tenant.id, status: "ok", rows: readable };
     } catch (err) {
       if (err instanceof Stopped)
@@ -353,16 +366,28 @@ export class WorkdayAdapter extends JobSourceAdapter {
         ),
       );
 
-    let head = await page(0, {});
+    const head = await page(0, {});
     collect(head.postings);
+    let total = head.total;
+    let trusted = true;
     // Page one is unfiltered, so a filtered walk restarts at offset 0 rather than skip rows the filter would put on page one.
     const filter = canadaFilter(head.facets);
     if (filter) {
-      head = await page(0, filter);
-      collect(head.postings);
+      const filtered = await page(0, filter.applied);
+      collect(filtered.postings);
+      // A bad filtered total would end the walk early and close the jobs it missed, so it must agree with both counts.
+      if (
+        filtered.total > head.total ||
+        (filter.count !== null && filtered.total < filter.count)
+      ) {
+        trusted = false;
+        this.logger.warn(
+          `${tenant.name}: filtered total ${filtered.total} disagrees with the Canada count ${filter.count} or the total ${head.total}, so this read is not complete`,
+        );
+      } else {
+        total = filtered.total;
+      }
     }
-    // total comes only at offset 0, so the walk's own first page sets where it ends.
-    const total = head.total;
     if (total > RESULT_CAP) {
       this.logger.warn(
         `${tenant.name}: total ${total} is over ${RESULT_CAP}, so this board is never complete`,
@@ -370,9 +395,9 @@ export class WorkdayAdapter extends JobSourceAdapter {
     }
     const end = Math.min(total, RESULT_CAP);
     for (let offset = PAGE_SIZE; offset < end; offset += PAGE_SIZE) {
-      collect((await page(offset, filter ?? {})).postings);
+      collect((await page(offset, filter?.applied ?? {})).postings);
     }
-    return { list, total };
+    return { list, complete: trusted && total <= RESULT_CAP };
   }
 
   // Detail rows are judged and filled here; a string is the reason one row is unreadable.
@@ -435,7 +460,10 @@ export class WorkdayAdapter extends JobSourceAdapter {
       where: {
         jobSource: "workday",
         listingKey: { in: keys },
-        lastSeenAt: { gte: new Date(now.getTime() - WINDOW_DAYS * 86_400_000) },
+        // An hour short of the window, because the matcher measures it later, after the rest of the walk.
+        lastSeenAt: {
+          gte: new Date(now.getTime() - WINDOW_DAYS * DAY_MS + HOUR_MS),
+        },
       },
       orderBy: { lastSeenAt: "desc" },
     });
