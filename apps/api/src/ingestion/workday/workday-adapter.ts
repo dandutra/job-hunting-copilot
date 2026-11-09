@@ -69,33 +69,43 @@ interface CanadaFilter {
   applied: Record<string, string[]>;
   // The facet's own job count, a check on the filtered total.
   count: number | null;
+  // Only a country facet surely covers every Canadian job, so only it can make a tenant complete.
+  country: boolean;
 }
 
-// A country facet is preferred; Nvidia files Canada under locationHierarchy1, so any facet with a "Canada" value is the fallback.
+// Nvidia has no country facet and files Canada under locationHierarchy1, so any facet with a "Canada" value is the fallback.
 function canadaFilter(facets: unknown): CanadaFilter | null {
-  const found: { name: string; value: Facet }[] = [];
+  const found: { name: string; id: string; count: number | null }[] = [];
   const walk = (list: unknown) => {
     if (!Array.isArray(list)) return;
     for (const facet of list as Facet[]) {
       const name = str(facet?.facetParameter);
-      const canada =
-        name && Array.isArray(facet.values)
-          ? (facet.values as Facet[]).find(
-              (v) =>
-                str(v?.descriptor)?.toLowerCase() === "canada" && str(v?.id),
-            )
-          : undefined;
-      if (name && canada) found.push({ name, value: canada });
+      const canada = Array.isArray(facet?.values)
+        ? (facet.values as Facet[]).find(
+            (v) => str(v?.descriptor)?.toLowerCase() === "canada" && str(v?.id),
+          )
+        : undefined;
+      if (name && canada) {
+        const count = (canada as { count?: unknown }).count;
+        found.push({
+          name,
+          id: str(canada.id)!,
+          count: typeof count === "number" ? count : null,
+        });
+      }
       walk(facet?.values);
     }
   };
   walk(facets);
-  const pick = found.find((f) => /country/i.test(f.name)) ?? found[0];
+  const country = found.find((f) => /country/i.test(f.name));
+  // A location record can also be named "Canada"; the country-level value counts the most jobs.
+  const pick =
+    country ?? [...found].sort((a, b) => (b.count ?? -1) - (a.count ?? -1))[0];
   if (!pick) return null;
-  const count = (pick.value as { count?: unknown }).count;
   return {
-    applied: { [pick.name]: [str(pick.value.id)!] },
-    count: typeof count === "number" ? count : null,
+    applied: { [pick.name]: [pick.id] },
+    count: pick.count,
+    country: pick === country,
   };
 }
 
@@ -386,6 +396,7 @@ export class WorkdayAdapter extends JobSourceAdapter {
         );
       } else {
         total = filtered.total;
+        if (!filter.country) trusted = false;
       }
     }
     // A capped query reports exactly 2000, so 2000 itself cannot be trusted as a full count.

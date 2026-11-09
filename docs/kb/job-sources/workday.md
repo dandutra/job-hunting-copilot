@@ -4,17 +4,18 @@ title: Workday career-site API
 description: A POST list call pages at 20 and wraps past the total, dates need a detail call, and some tenants cap a query at 2000; RBC's robots.txt disallows its career site.
 resource: https://{tenant}.{wdN}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs
 tags: [ingestion, ats]
-sources: ["#5", "#73"]
+sources: ["#5", "#73", "#92"]
 generated:
-  by: claude-sonnet-5-5
-  at: 2026-11-09T12:00:00-05:00
+  by: claude-opus-5-5
+  at: 2026-11-09T16:00:00-05:00
 ---
 
 `WorkdayAdapter` reads each Workday Watched company every 3 hours (`minIntervalMs`). It polls one tenant at a time and sends each request 1.5 s after the last, across tenants too. The research is in `docs/research/workday-json-endpoint.md` on the `research/workday-json-endpoint` branch.
 
 - The Watched company's slug is `tenant.wdN/site`, for example `rbc.wd3/RBCGLOBAL1`, and the seed takes it from the row's URL, not from the CSV slug column. A wrong `wdN` answers 422, which is a `fault` on that board. A 429 or 403 is `blocked`.
 - The list call is a POST with `limit: 20`, the most Workday accepts (21 returns 400). Page one alone has `total` and `facets`, and later pages report `total: 0`. An offset at or past `total` returns page one again, so the walk stops at `offset >= total` and dedupes by path.
-- If a facet holds a value named "Canada" (at any nesting depth), the adapter applies it. A facet whose name has "country" in it wins (`Country`, `Location_Country`, `locationCountry`, and Salesforce's long custom name). Nvidia has none and files Canada under `locationHierarchy1`. RBC's site has no country facet at all on 2026-11-09, so RBC is walked unfiltered, about 40 list calls. The adapter applies the facet to the rest of the walk. Page one is unfiltered, so the filtered walk restarts at offset 0. Otherwise it would skip rows that the filter puts on page one. The filtered page one gives its own `total`, and the walk ends there. That total must not be above the unfiltered `total` or below the Canada facet's own `count`, and a Canada value with no `count` gives no check. If it is, the walk ends at the unfiltered total and the tenant is not complete, because an early end would close every job the walk missed. Nvidia, Salesforce and Workday have few Canada jobs, so this saves most of their calls.
+- If a facet holds a value named "Canada" (at any nesting depth), the adapter applies it to the rest of the walk. A facet whose name has "country" in it wins (`Country`, `Location_Country`, `locationCountry`, and Salesforce's long custom name). Page one is unfiltered, so the filtered walk restarts at offset 0. Otherwise it would skip rows that the filter puts on page one. The filtered page one gives its own `total`, and the walk ends there. That total must not be above the unfiltered `total` or below the Canada value's own `count`, and a Canada value with no `count` gives no check. If either test fails, the walk ends at the unfiltered total and the tenant is not complete, because an early end would close every job the walk missed. In the 2026-11-09 live run, Nvidia, Salesforce and Workday had few Canada jobs, so the filter saved most of their calls.
+- Nvidia has no country facet and files Canada under `locationHierarchy1`, so any facet with a "Canada" value is the fallback. A single location record can also be named "Canada", so the fallback takes the value with the largest `count`. A fallback filter still ends the walk early, but it never makes a tenant complete. Only a country facet is sure to cover every Canadian job. Nvidia's gone jobs therefore go Stale, not Closed. RBC's site had no Canada facet of any kind on 2026-11-09, so RBC is walked unfiltered, about 40 list calls.
 - The list has only a relative `postedOn` label. The detail call (`GET .../wday/cxs/{tenant}/{site}{externalPath}`) gives `startDate` (a day, used as the date), `jobDescription` (HTML, stored as `full`) and `location` plus `additionalLocations`.
 - The key is `workday:{tenant}:{requisition}`, where the requisition is the token after the last `_` of the path. The path slug keeps the title from the first posting, so it cannot be the key.
 - Thomson Reuters sends no `locationsText` on any row. A row without one is judged by its detail call, like an "N Locations" row.

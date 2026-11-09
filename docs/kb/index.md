@@ -65,3 +65,4 @@ Glossary: [glossary.md](glossary.md)
 
 - [Provision the server](runbooks/provision.md): build, check, rebuild and recover the Droplet, firewall, Tailscale policy and backups bucket with Terraform from the Mac.
 - [Deploy, roll back and rotate secrets](runbooks/deploy.md): how a push to `main` reaches the Droplet, the rollback run, the migration rule, the one-time GitHub and Tailscale settings, and secret rotation.
+- [Seed the production database](runbooks/seed-production.md): no deploy runs the seed, so it runs from the Mac through an SSH tunnel, after the seed names are checked against the Companies JobSpy already made.
