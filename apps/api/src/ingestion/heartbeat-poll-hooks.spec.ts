@@ -83,7 +83,12 @@ describe("HeartbeatPollHooks through the scheduler", () => {
     const hourly = [new FakeAdapter("a", false, 60 * 60 * 1000)];
     const t0 = new Date();
     await run(hourly, url, t0);
-    await run(hourly, url, new Date(t0.getTime() + 40 * 60 * 1000));
+    const outcomes = await run(
+      hourly,
+      url,
+      new Date(t0.getTime() + 40 * 60 * 1000),
+    );
+    expect(outcomes).toEqual([expect.objectContaining({ status: "skipped" })]);
     expect(pings).toBe(2);
   });
 
