@@ -14,7 +14,8 @@ import { GreenhouseAdapter } from "./greenhouse/greenhouse-adapter";
 import { LeverAdapter } from "./lever/lever-adapter";
 import { WorkdayAdapter } from "./workday/workday-adapter";
 import { JobspyAdapter, jobspyConfigFromEnv } from "./jobspy/jobspy-adapter";
-import { LogPollHooks, PollHooks } from "./poll-hooks";
+import { HeartbeatPollHooks } from "./heartbeat-poll-hooks";
+import { PollHooks } from "./poll-hooks";
 
 const JOBSPY_SITES = ["linkedin", "indeed"] as const;
 
@@ -23,7 +24,10 @@ const JOBSPY_SITES = ["linkedin", "indeed"] as const;
   providers: [
     IngestScheduler,
     { provide: AlertHook, useClass: LogAlertHook },
-    { provide: PollHooks, useClass: LogPollHooks },
+    {
+      provide: PollHooks,
+      useFactory: () => new HeartbeatPollHooks(process.env.HEARTBEAT_URL ?? ""),
+    },
     {
       provide: INGEST_OPTIONS,
       useFactory: (): IngestOptions => ({
