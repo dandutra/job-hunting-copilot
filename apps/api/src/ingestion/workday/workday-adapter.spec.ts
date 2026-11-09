@@ -397,8 +397,31 @@ describe("WorkdayAdapter", () => {
     expect(result.completeBoards).toEqual([]);
   });
 
-  it("treats a row with no location as unreadable", async () => {
-    const { http } = tenant([row(1, "")]);
+  it("judges a row with no locationsText by its detail call, as Thomson Reuters lists every row", async () => {
+    const { http, calls } = tenant([row(1, ""), row(2, "")], {
+      detail: (path) =>
+        path.includes("Job-1_")
+          ? fixtures.detailToronto
+          : fixtures.detailSingapore,
+    });
+    const { adapter } = make(http);
+
+    const result = await adapter.poll(window());
+
+    expect(details(calls)).toHaveLength(2);
+    expect(result.drafts.map((d) => d.listingKey)).toEqual([
+      "workday:manulife:jr1",
+    ]);
+    expect(result.errors).toEqual([]);
+    expect(result.completeBoards).toEqual([7]);
+  });
+
+  it("calls a row a bad-row when neither the list nor the detail has a location", async () => {
+    const { http } = tenant([row(1, "")], {
+      detail: () => ({
+        jobPostingInfo: { title: "x", jobDescription: "<p>x</p>" },
+      }),
+    });
     const { adapter } = make(http);
 
     const result = await adapter.poll(window());
@@ -407,6 +430,34 @@ describe("WorkdayAdapter", () => {
       expect.objectContaining({ kind: "bad-row" }),
     ]);
     expect(result.completeBoards).toEqual([]);
+  });
+
+  it("uses a facet value named Canada when no country facet has one, as Nvidia's locationHierarchy1", async () => {
+    const rows = Array.from({ length: 30 }, (_, i) => row(i));
+    const { http, calls } = tenant(rows, {
+      facets: [
+        {
+          facetParameter: "locationMainGroup",
+          values: [
+            {
+              facetParameter: "locations",
+              values: [{ descriptor: "Canada, Toronto", id: "to", count: 16 }],
+            },
+            {
+              facetParameter: "locationHierarchy1",
+              values: [{ descriptor: "Canada", id: "ca9", count: 20 }],
+            },
+          ],
+        },
+      ],
+    });
+    const { adapter } = make(http);
+
+    await adapter.poll(window());
+
+    expect(lists(calls)[1].body!.appliedFacets).toEqual({
+      locationHierarchy1: ["ca9"],
+    });
   });
 
   it("applies a Canada facet found in nested values to the walk from offset 0", async () => {
@@ -520,31 +571,34 @@ describe("WorkdayAdapter", () => {
     expect(lists(calls).map((c) => c.body!.offset)).toEqual([0, 20]);
   });
 
-  it("is never complete when total is over 2000, and warns", async () => {
-    const calls: Call[] = [];
-    const http: WorkdayHttp = {
-      async post(url, body, headers) {
-        const parsed = JSON.parse(body);
-        calls.push({ method: "POST", url, body: parsed, headers });
-        return ok({
-          total: parsed.offset === 0 ? 2001 : 0,
-          jobPostings: [row(parsed.offset)],
-          facets: [],
-        });
-      },
-      get: async () => ok(fixtures.detailToronto),
-    };
-    const { adapter } = make(http, [{ listingKey: "workday:manulife:jr0" }]);
+  it.each([2000, 2001])(
+    "is never complete when total is %i, since Workday reports a capped query as 2000, and warns",
+    async (reported) => {
+      const calls: Call[] = [];
+      const http: WorkdayHttp = {
+        async post(url, body, headers) {
+          const parsed = JSON.parse(body);
+          calls.push({ method: "POST", url, body: parsed, headers });
+          return ok({
+            total: parsed.offset === 0 ? reported : 0,
+            jobPostings: [row(parsed.offset)],
+            facets: [],
+          });
+        },
+        get: async () => ok(fixtures.detailToronto),
+      };
+      const { adapter } = make(http, [{ listingKey: "workday:manulife:jr0" }]);
 
-    const result = await adapter.poll(window());
+      const result = await adapter.poll(window());
 
-    expect(Logger.prototype.warn).toHaveBeenCalledWith(
-      expect.stringContaining("2001"),
-    );
-    expect(result.completeBoards).toEqual([]);
-    expect(result.errors).toEqual([]);
-    expect(lists(calls).length).toBeLessThanOrEqual(100);
-  });
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        expect.stringContaining(String(reported)),
+      );
+      expect(result.completeBoards).toEqual([]);
+      expect(result.errors).toEqual([]);
+      expect(lists(calls).length).toBeLessThanOrEqual(100);
+    },
+  );
 
   it("waits 1.5 s before every request but the first", async () => {
     const { http, calls } = tenant([row(1), row(2)]);

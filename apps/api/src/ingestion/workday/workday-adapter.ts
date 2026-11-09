@@ -71,29 +71,32 @@ interface CanadaFilter {
   count: number | null;
 }
 
+// A country facet is preferred; Nvidia files Canada under locationHierarchy1, so any facet with a "Canada" value is the fallback.
 function canadaFilter(facets: unknown): CanadaFilter | null {
-  const walk = (list: unknown): CanadaFilter | null => {
-    if (!Array.isArray(list)) return null;
+  const found: { name: string; value: Facet }[] = [];
+  const walk = (list: unknown) => {
+    if (!Array.isArray(list)) return;
     for (const facet of list as Facet[]) {
       const name = str(facet?.facetParameter);
-      if (name && /country/i.test(name) && Array.isArray(facet.values)) {
-        const canada = (facet.values as Facet[]).find(
-          (v) => str(v?.descriptor)?.toLowerCase() === "canada" && str(v?.id),
-        );
-        if (canada) {
-          const count = (canada as { count?: unknown }).count;
-          return {
-            applied: { [name]: [str(canada.id)!] },
-            count: typeof count === "number" ? count : null,
-          };
-        }
-      }
-      const inner = walk(facet?.values);
-      if (inner) return inner;
+      const canada =
+        name && Array.isArray(facet.values)
+          ? (facet.values as Facet[]).find(
+              (v) =>
+                str(v?.descriptor)?.toLowerCase() === "canada" && str(v?.id),
+            )
+          : undefined;
+      if (name && canada) found.push({ name, value: canada });
+      walk(facet?.values);
     }
-    return null;
   };
-  return walk(facets);
+  walk(facets);
+  const pick = found.find((f) => /country/i.test(f.name)) ?? found[0];
+  if (!pick) return null;
+  const count = (pick.value as { count?: unknown }).count;
+  return {
+    applied: { [pick.name]: [str(pick.value.id)!] },
+    count: typeof count === "number" ? count : null,
+  };
 }
 
 interface Tenant {
@@ -232,17 +235,14 @@ export class WorkdayAdapter extends JobSourceAdapter {
         now,
       );
       for (const { path, key, posting } of rows.list) {
-        const where = str(posting.locationsText);
-        if (!where) {
-          badRow("location is missing");
-          continue;
-        }
+        // Some tenants (Thomson Reuters) send no locationsText, so the detail call judges those rows.
+        const where = str(posting.locationsText) ?? "";
         readable++;
         if (this.judgedOut.has(key)) {
           outside++;
           continue;
         }
-        const many = MANY_LOCATIONS.test(where);
+        const many = !where || MANY_LOCATIONS.test(where);
         // A stored Sighting already passed the area test, which only a single named place can change.
         const known = stored.get(key);
         if (known && (many || inSearchArea([where]))) {
@@ -388,16 +388,17 @@ export class WorkdayAdapter extends JobSourceAdapter {
         total = filtered.total;
       }
     }
-    if (total > RESULT_CAP) {
+    // A capped query reports exactly 2000, so 2000 itself cannot be trusted as a full count.
+    if (total >= RESULT_CAP) {
       this.logger.warn(
-        `${tenant.name}: total ${total} is over ${RESULT_CAP}, so this board is never complete`,
+        `${tenant.name}: total ${total} reaches the ${RESULT_CAP} cap, so this board is never complete`,
       );
     }
     const end = Math.min(total, RESULT_CAP);
     for (let offset = PAGE_SIZE; offset < end; offset += PAGE_SIZE) {
       collect((await page(offset, filter?.applied ?? {})).postings);
     }
-    return { list, complete: trusted && total <= RESULT_CAP };
+    return { list, complete: trusted && total < RESULT_CAP };
   }
 
   // Detail rows are judged and filled here; a string is the reason one row is unreadable.
