@@ -305,6 +305,25 @@ describe("source-specific rules", () => {
     expect(r.drafts[0].reportedAt).toEqual(new Date(1760000000000));
   });
 
+  it("ashby keeps a remote row with no place as plain Remote", async () => {
+    const r = await run(
+      (p, h, s) => new AshbyAdapter(p, h, s),
+      "ashby",
+      JSON.stringify({
+        jobs: [
+          {
+            id: "6c4d2a1f-5555-4b3c-9d4e-eeeeeeeeeeee",
+            title: "Anywhere Dev",
+            isRemote: true,
+            isListed: true,
+          },
+        ],
+      }),
+    );
+    expect(r.errors).toEqual([]);
+    expect(r.drafts.map((d) => d.location)).toEqual(["Remote"]);
+  });
+
   it("ashby skips unlisted rows without an error", async () => {
     const r = await run(
       (p, h, s) => new AshbyAdapter(p, h, s),
