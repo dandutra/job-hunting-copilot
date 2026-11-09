@@ -210,6 +210,7 @@ export abstract class BoardAdapter extends JobSourceAdapter {
 
     let outside = 0;
     let unreadable = false;
+    let readable = 0;
     for (const raw of parsed.rows) {
       const row = this.readRow(raw, board.boardSlug);
       if (row === null) continue;
@@ -222,6 +223,17 @@ export abstract class BoardAdapter extends JobSourceAdapter {
         });
         continue;
       }
+      // A lost location field would make every row look out of area, and that board would then close all its jobs.
+      if (row.locations.length === 0) {
+        unreadable = true;
+        result.errors.push({
+          kind: "bad-row",
+          watchedCompanyId: board.id,
+          message: `${board.name}: row skipped: location is missing`,
+        });
+        continue;
+      }
+      readable++;
       if (!inSearchArea(row.locations)) {
         outside++;
         continue;
@@ -230,7 +242,7 @@ export abstract class BoardAdapter extends JobSourceAdapter {
     }
     if (outside > 0) {
       this.logger.log(
-        `${board.name}: dropped ${outside} of ${parsed.rows.length} rows outside the Search area`,
+        `${board.name}: dropped ${outside} of ${readable} rows outside the Search area`,
       );
     }
     // A row we could not read may still be listed, so this read cannot close anything.
@@ -238,7 +250,7 @@ export abstract class BoardAdapter extends JobSourceAdapter {
     return {
       watchedCompanyId: board.id,
       status: "ok",
-      rows: parsed.rows.length,
+      rows: readable,
     };
   }
 

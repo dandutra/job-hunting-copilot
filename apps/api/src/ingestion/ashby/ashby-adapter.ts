@@ -41,9 +41,7 @@ export class AshbyAdapter extends BoardAdapter {
       .filter((l): l is string => l !== null);
     // isRemote is also true for some hybrid roles, so it only adds "Remote", and the place still has to be in the area.
     if ((job?.isRemote as unknown) === true) {
-      locations.push(
-        ...(locations.length ? locations : [""]).map((l) => `Remote, ${l}`),
-      );
+      locations.push(...locations.map((l) => `Remote, ${l}`));
     }
     return {
       id,

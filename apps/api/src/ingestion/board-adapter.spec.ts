@@ -25,6 +25,8 @@ interface Case {
   kept: string[];
   publicUrl: (slug: string, id: string) => string;
   empty: string;
+  // Readable rows in the fixture, in or out of the area.
+  listed: number;
 }
 
 const CASES: Case[] = [
@@ -37,6 +39,7 @@ const CASES: Case[] = [
     kept: ["4001"],
     publicUrl: (s, id) => `https://boards.greenhouse.io/${s}/jobs/${id}`,
     empty: '{"jobs":[]}',
+    listed: 2,
   },
   {
     ats: "lever",
@@ -49,6 +52,7 @@ const CASES: Case[] = [
     ],
     publicUrl: (s, id) => `https://jobs.lever.co/${s}/${id}`,
     empty: "[]",
+    listed: 3,
   },
   {
     ats: "ashby",
@@ -61,6 +65,7 @@ const CASES: Case[] = [
     ],
     publicUrl: (s, id) => `https://jobs.ashbyhq.com/${s}/${id}`,
     empty: '{"jobs":[]}',
+    listed: 3,
   },
 ];
 
@@ -188,23 +193,43 @@ describe.each(CASES)("$ats adapter", (c) => {
       expect.objectContaining({ kind: "bad-row", watchedCompanyId: 1 }),
     );
     expect(result.completeBoards).toEqual([3]);
-    expect(result.boards).toContainEqual({
-      watchedCompanyId: 1,
-      status: "ok",
-      rows: list.length,
-    });
+    expect(result.boards).toContainEqual(
+      expect.objectContaining({ watchedCompanyId: 1, status: "ok" }),
+    );
   });
 
-  it("reports how many rows the board listed before the Search area filter", async () => {
+  it("treats a row with no location as unreadable, so a lost location field closes nothing", async () => {
+    answers[c.expectedUrl("acme")] = {
+      status: 200,
+      body: JSON.stringify(
+        c.ats === "lever"
+          ? [{ id: "5b3c1f0e-9999-4a2b-8c3d-aaaaaaaaaaaa", text: "Dev" }]
+          : {
+              jobs: [
+                {
+                  id:
+                    c.ats === "greenhouse"
+                      ? 9
+                      : "6c4d2a1f-9999-4b3c-9d4e-aaaaaaaaaaaa",
+                  title: "Dev",
+                },
+              ],
+            },
+      ),
+    };
     const result = await adapter().poll(window());
-    const parsed: unknown = JSON.parse(c.body);
-    const total = (
-      Array.isArray(parsed) ? parsed : (parsed as { jobs: unknown[] }).jobs
-    ).length;
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ kind: "bad-row", watchedCompanyId: 1 }),
+    );
+    expect(result.completeBoards).not.toContain(1);
+  });
+
+  it("reports how many readable rows the board listed before the Search area filter", async () => {
+    const result = await adapter().poll(window());
     expect(result.boards?.[0]).toEqual({
       watchedCompanyId: 1,
       status: "ok",
-      rows: total,
+      rows: c.listed,
     });
   });
 

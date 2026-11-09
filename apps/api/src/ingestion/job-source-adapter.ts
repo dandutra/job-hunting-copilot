@@ -24,7 +24,7 @@ export interface AdapterError {
 export interface BoardReport {
   watchedCompanyId: number;
   status: "ok" | "failed" | "incomplete";
-  // Rows the board listed before the Search area filter, so an all-out-of-area board is not mistaken for an empty page.
+  // Readable rows with a location, counted before the Search area filter, so an all-out-of-area board is not mistaken for an empty page.
   rows?: number;
 }
 
