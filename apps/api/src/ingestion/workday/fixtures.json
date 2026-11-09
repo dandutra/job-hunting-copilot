@@ -1,0 +1,108 @@
+{
+  "page": {
+    "total": 624,
+    "jobPostings": [
+      {
+        "title": "Senior Technology Project Manager, Group Functions Technology",
+        "externalPath": "/job/Toronto-Ontario/Senior-Technology-Project-Manager--Group-Functions-Technology_JR26100844-1",
+        "locationsText": "Toronto, Ontario",
+        "postedOn": "Posted Today",
+        "bulletFields": ["JR26100844", "Toronto"]
+      },
+      {
+        "title": "Senior Product Delivery Analyst",
+        "externalPath": "/job/Boston-Massachusetts/Senior-Product-Delivery-Analyst_JR26100312",
+        "locationsText": "Boston, Massachusetts",
+        "postedOn": "Posted Yesterday",
+        "bulletFields": ["JR26100312", "Boston"]
+      },
+      {
+        "title": "Associate Director, Data Engineering",
+        "externalPath": "/job/Singapore/Associate-Director--Data-Engineering_JR26100500",
+        "locationsText": "3 Locations",
+        "postedOn": "Posted 30+ Days Ago",
+        "bulletFields": ["JR26100500"]
+      }
+    ],
+    "facets": [
+      {
+        "facetParameter": "Location_Country",
+        "descriptor": "Location Country",
+        "values": [
+          {
+            "descriptor": "Canada",
+            "id": "a30a87ed25634629aa6c3958aa2b91ea",
+            "count": 191
+          }
+        ]
+      },
+      {
+        "facetParameter": "locationMainGroup",
+        "values": [
+          {
+            "facetParameter": "locations",
+            "descriptor": "Locations",
+            "values": [
+              {
+                "descriptor": "Toronto, Ontario",
+                "id": "90905028607c019c77b34f1f8257fee2",
+                "count": 124
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "userAuthenticated": false
+  },
+  "nestedCountryFacet": [
+    {
+      "facetParameter": "locationMainGroup",
+      "values": [
+        {
+          "facetParameter": "Country",
+          "descriptor": "Country",
+          "values": [
+            {
+              "descriptor": "United States of America",
+              "id": "us1",
+              "count": 5
+            },
+            { "descriptor": "Canada", "id": "ca1", "count": 7 }
+          ]
+        }
+      ]
+    }
+  ],
+  "detailToronto": {
+    "jobPostingInfo": {
+      "title": "Senior Technology Project Manager, Group Functions Technology",
+      "jobDescription": "<p>Working within Technology Business Management &amp; Strategy.</p><ul><li>Plan</li><li>Deliver</li></ul>",
+      "location": "Toronto, Ontario",
+      "postedOn": "Posted Today",
+      "startDate": "2026-10-29",
+      "jobReqId": "JR26100844",
+      "externalUrl": "https://manulife.wd3.myworkdayjobs.com/MFCJH_Jobs/job/Toronto-Ontario/Senior-Technology-Project-Manager--Group-Functions-Technology_JR26100844-1"
+    }
+  },
+  "detailSingapore": {
+    "jobPostingInfo": {
+      "title": "Associate Director, Data Engineering",
+      "jobDescription": "<p>Lead the team.</p>",
+      "location": "Singapore, Singapore",
+      "additionalLocations": ["Hong Kong, Hong Kong", "London, United Kingdom"],
+      "startDate": "2026-09-23",
+      "jobReqId": "JR26100500"
+    }
+  },
+  "detailMultiToronto": {
+    "jobPostingInfo": {
+      "title": "Associate Director, Data Engineering",
+      "jobDescription": "<p>Lead the team.</p>",
+      "location": "Singapore, Singapore",
+      "additionalLocations": ["Toronto, Ontario"],
+      "startDate": "2026-09-23",
+      "jobReqId": "JR26100500"
+    }
+  }
+}

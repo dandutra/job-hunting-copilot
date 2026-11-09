@@ -45,7 +45,7 @@ describe("seedCompanies", () => {
     expect(
       rows.filter((c) => c.ats).map((c) => [c.name, c.ats, c.boardSlug]),
     ).toEqual([
-      ["RBC", "workday", "rbc/RBCGLOBAL1"],
+      ["RBC", "workday", "rbc.wd3/RBCGLOBAL1"],
       ["Wealthsimple", "ashby", "wealthsimple"],
     ]);
   });
@@ -103,6 +103,25 @@ describe("seedCompanies", () => {
       "Scotiabank",
       "Shopify",
       "Wealthsimple",
+    ]);
+  });
+
+  it("takes a Workday slug as tenant.wdN/site from the row's URL", () => {
+    const rows = parseWatchedCsv(
+      [
+        "company,sector,ats,slug,url,verified",
+        "RBC,Bank,workday,rbc/RBCGLOBAL1,https://rbc.wd3.myworkdayjobs.com/RBCGLOBAL1,yes",
+        "Aviva,Insurer,workday,x,https://aviva.wd1.myworkdayjobs.com/en-US/External/,yes",
+        "Odd,Bank,workday,odd/Site,https://careers.odd.example/jobs,yes",
+        "Other,Bank,ashby,other,https://jobs.ashbyhq.com/other,yes",
+      ].join("\n"),
+    );
+
+    expect(rows.map((r) => r.slug)).toEqual([
+      "rbc.wd3/RBCGLOBAL1",
+      "aviva.wd1/External",
+      "",
+      "other",
     ]);
   });
 

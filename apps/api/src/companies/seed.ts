@@ -38,6 +38,15 @@ export interface SeedCounts {
   watched: number;
 }
 
+const WORKDAY_URL =
+  /^https?:\/\/([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?([^/?#]+)/i;
+
+// A Workday board needs all three parts of its URL, and a bare tenant/site slug loses the data centre.
+export function workdaySlug(url: string): string {
+  const m = WORKDAY_URL.exec(url);
+  return m ? `${m[1]}.${m[2]}/${m[3]}` : "";
+}
+
 const HEADER = ["company", "sector", "ats", "slug", "url", "verified"];
 
 // The file has no quoted fields; a row with a comma inside a field fails loudly.
@@ -54,8 +63,15 @@ export function parseWatchedCsv(text: string): WatchedRow[] {
         `CSV line ${index + 2} has ${fields.length} fields, expected ${HEADER.length}`,
       );
     }
-    const [company, , ats, slug, , verified] = fields.map((f) => f.trim());
-    return [{ company, ats, slug, verified: verified === "yes" }];
+    const [company, , ats, slug, url, verified] = fields.map((f) => f.trim());
+    return [
+      {
+        company,
+        ats,
+        slug: ats === "workday" ? workdaySlug(url) : slug,
+        verified: verified === "yes",
+      },
+    ];
   });
   if (rows.length === 0) throw new Error("CSV has no rows");
   return rows;
