@@ -488,6 +488,21 @@ describe("WorkdayAdapter", () => {
     },
   );
 
+  it("is never complete when the Canada value has no count to check the filtered total against", async () => {
+    const facets = [
+      {
+        facetParameter: "Country",
+        values: [{ descriptor: "Canada", id: "ca1" }],
+      },
+    ];
+    const { http } = tenant([row(1)], { facets });
+    const { adapter } = make(http);
+
+    const result = await adapter.poll(window());
+
+    expect(result.completeBoards).toEqual([]);
+  });
+
   it("applies no filter when no Country facet holds Canada", async () => {
     const rows = Array.from({ length: 30 }, (_, i) => row(i));
     const { http, calls } = tenant(rows, {

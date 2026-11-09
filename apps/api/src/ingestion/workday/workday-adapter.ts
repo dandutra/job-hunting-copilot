@@ -53,8 +53,7 @@ const PAGE_SIZE = 20;
 // Some tenants refuse to page past 2000 results, so a bigger tenant can never be read in full.
 const RESULT_CAP = 2000;
 export const REQUEST_GAP_MS = 1_500;
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const SLUG = /^([a-z0-9-]+)\.(wd\d+)\/([^/]+)$/i;
 const MANY_LOCATIONS = /^\d+\s+locations?$/i;
 
@@ -378,7 +377,8 @@ export class WorkdayAdapter extends JobSourceAdapter {
       // A bad filtered total would end the walk early and close the jobs it missed, so it must agree with both counts.
       if (
         filtered.total > head.total ||
-        (filter.count !== null && filtered.total < filter.count)
+        filter.count === null ||
+        filtered.total < filter.count
       ) {
         trusted = false;
         this.logger.warn(
@@ -460,10 +460,7 @@ export class WorkdayAdapter extends JobSourceAdapter {
       where: {
         jobSource: "workday",
         listingKey: { in: keys },
-        // An hour short of the window, because the matcher measures it later, after the rest of the walk.
-        lastSeenAt: {
-          gte: new Date(now.getTime() - WINDOW_DAYS * DAY_MS + HOUR_MS),
-        },
+        lastSeenAt: { gte: new Date(now.getTime() - WINDOW_DAYS * DAY_MS) },
       },
       orderBy: { lastSeenAt: "desc" },
     });
