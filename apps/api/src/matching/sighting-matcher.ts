@@ -6,7 +6,7 @@ import { boardOf, normalizeListingKey, parseListingKey } from "./listing-key";
 import { MatchingHooks } from "./matching-hooks";
 import { kindRank, precedenceOf, SightingDraft } from "./sighting-draft";
 
-const WINDOW_DAYS = 30;
+export const WINDOW_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MATCHER_LOCK_ID = 2300023;
 const TRANSACTION_TIMEOUT_MS = 60_000;

@@ -82,9 +82,16 @@ function make(
 ) {
   const sleeps: number[] = [];
   const findMany = jest.fn(
-    async (args: { where: { listingKey: { in: string[] } } }) => {
+    async (args: {
+      where: { listingKey: { in: string[] }; lastSeenAt: { gte: Date } };
+    }) => {
       const keys: string[] = args.where.listingKey.in;
-      return stored.filter((s) => keys.includes(s.listingKey as string));
+      return stored.filter(
+        (s) =>
+          keys.includes(s.listingKey as string) &&
+          ((s.lastSeenAt as Date | undefined) ?? NOW) >=
+            args.where.lastSeenAt.gte,
+      );
     },
   );
   const adapter = new WorkdayAdapter(
@@ -202,12 +209,34 @@ describe("WorkdayAdapter", () => {
     const { drafts, completeBoards } = await adapter.poll(window());
 
     expect(details(calls)).toHaveLength(0);
+    // The list title is free and Workday retitles jobs, so it wins over the stored one.
     expect(drafts.map((d) => [d.title, d.description, d.url])).toEqual([
-      ["Stored 1", "Stored text 1", "https://stored/1"],
-      ["Stored 2", "Stored text 2", "https://stored/2"],
+      ["Job 1", "Stored text 1", "https://stored/1"],
+      ["Job 2", "Stored text 2", "https://stored/2"],
     ]);
     expect(drafts[0].reportedAt).toEqual(new Date("2026-10-01T00:00:00Z"));
     expect(completeBoards).toEqual([7]);
+  });
+
+  it("makes a detail call for a key whose Sighting is older than the matcher's 30-day window", async () => {
+    const { http, calls } = tenant([row(1)]);
+    const { adapter } = make(http, [
+      {
+        listingKey: "workday:manulife:jr1",
+        lastSeenAt: new Date("2026-10-09T11:00:00Z"),
+        url: "https://stored/1",
+        reportedAt: new Date("2026-09-01T00:00:00Z"),
+        title: "Old",
+        location: "Toronto, Ontario",
+        description: "Old text",
+        descriptionKind: "full",
+      },
+    ]);
+
+    const { drafts } = await adapter.poll(window());
+
+    expect(details(calls)).toHaveLength(1);
+    expect(drafts[0].reportedAt).toEqual(new Date("2026-10-29T00:00:00Z"));
   });
 
   it("makes one detail call for an out-of-area '3 Locations' row, and none on the second poll", async () => {
@@ -317,6 +346,41 @@ describe("WorkdayAdapter", () => {
     expect(result.completeBoards).toEqual([]);
   });
 
+  it("skips a row whose detail answers 403 S22, a listing that closed mid-pass, and reads the rest", async () => {
+    const { http } = tenant([row(1), row(2)]);
+    const realGet = http.get.bind(http);
+    http.get = async (url, h) =>
+      url.includes("Job-1_")
+        ? {
+            status: 403,
+            body: '{"errorCode":"S22","message":"permission denied"}',
+          }
+        : realGet(url, h);
+    const { adapter } = make(http);
+
+    const result = await adapter.poll(window());
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({ kind: "bad-row" }),
+    ]);
+    expect(result.drafts).toHaveLength(1);
+    expect(result.boards).toEqual([
+      { watchedCompanyId: 7, status: "ok", rows: 2 },
+    ]);
+  });
+
+  it("gives blocked for a plain 403 on a detail call", async () => {
+    const { http } = tenant([row(1)]);
+    http.get = async () => ({ status: 403, body: "Forbidden" });
+    const { adapter } = make(http);
+
+    const result = await adapter.poll(window());
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({ kind: "blocked", httpStatus: 403 }),
+    ]);
+  });
+
   it("calls a detail failure on one row a bad-row and keeps the board incomplete", async () => {
     const { http } = tenant([row(1), row(2)]);
     const realGet = http.get.bind(http);
@@ -361,6 +425,35 @@ describe("WorkdayAdapter", () => {
       [0, { Country: ["ca1"] }],
       [20, { Country: ["ca1"] }],
     ]);
+  });
+
+  it("ends a filtered walk at the filtered total", async () => {
+    const calls: Call[] = [];
+    const http: WorkdayHttp = {
+      async post(url, body, headers) {
+        const parsed = JSON.parse(body);
+        calls.push({ method: "POST", url, body: parsed, headers });
+        const filtered = Object.keys(parsed.appliedFacets).length > 0;
+        if (filtered)
+          return ok({
+            total: 25,
+            jobPostings: [row(parsed.offset)],
+            facets: [],
+          });
+        return ok({
+          total: 900,
+          jobPostings: [row(1000)],
+          facets: fixtures.nestedCountryFacet,
+        });
+      },
+      get: async () => ok(fixtures.detailToronto),
+    };
+    const { adapter } = make(http);
+
+    const result = await adapter.poll(window());
+
+    expect(lists(calls).map((c) => c.body!.offset)).toEqual([0, 0, 20]);
+    expect(result.completeBoards).toEqual([7]);
   });
 
   it("applies no filter when no Country facet holds Canada", async () => {

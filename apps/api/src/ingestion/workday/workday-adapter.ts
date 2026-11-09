@@ -2,6 +2,7 @@ import { Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { normalizeListingKey } from "../../matching/listing-key";
 import { SightingDraft } from "../../matching/sighting-draft";
+import { WINDOW_DAYS } from "../../matching/sighting-matcher";
 import {
   HttpResponse,
   USER_AGENT,
@@ -213,7 +214,10 @@ export class WorkdayAdapter extends JobSourceAdapter {
 
     try {
       const rows = await this.walk(tenant, api, request, badRow);
-      const stored = await this.storedSightings(rows.list.map((r) => r.key));
+      const stored = await this.storedSightings(
+        rows.list.map((r) => r.key),
+        now,
+      );
       for (const { path, key, posting } of rows.list) {
         const where = str(posting.locationsText);
         if (!where) {
@@ -229,7 +233,13 @@ export class WorkdayAdapter extends JobSourceAdapter {
         // A stored Sighting already passed the area test, which only a single named place can change.
         const known = stored.get(key);
         if (known && (many || inSearchArea([where]))) {
-          result.drafts.push(this.draft(tenant, key, known));
+          result.drafts.push(
+            this.draft(tenant, key, {
+              ...known,
+              // The list title costs nothing, and Workday retitles a listed job.
+              title: str(posting.title) ?? known.title,
+            }),
+          );
           continue;
         }
         if (!many && !inSearchArea([where])) {
@@ -343,24 +353,26 @@ export class WorkdayAdapter extends JobSourceAdapter {
         ),
       );
 
-    const first = await page(0, {});
-    collect(first.postings);
-    if (first.total > RESULT_CAP) {
+    let head = await page(0, {});
+    collect(head.postings);
+    // Page one is unfiltered, so a filtered walk restarts at offset 0 rather than skip rows the filter would put on page one.
+    const filter = canadaFilter(head.facets);
+    if (filter) {
+      head = await page(0, filter);
+      collect(head.postings);
+    }
+    // total comes only at offset 0, so the walk's own first page sets where it ends.
+    const total = head.total;
+    if (total > RESULT_CAP) {
       this.logger.warn(
-        `${tenant.name}: total ${first.total} is over ${RESULT_CAP}, so this board is never complete`,
+        `${tenant.name}: total ${total} is over ${RESULT_CAP}, so this board is never complete`,
       );
     }
-    // Page one is unfiltered, so a filtered walk restarts at offset 0 rather than skip rows the filter would put on page one.
-    const filter = canadaFilter(first.facets);
-    const end = Math.min(first.total, RESULT_CAP);
-    for (
-      let offset = filter ? 0 : PAGE_SIZE;
-      offset < end;
-      offset += PAGE_SIZE
-    ) {
+    const end = Math.min(total, RESULT_CAP);
+    for (let offset = PAGE_SIZE; offset < end; offset += PAGE_SIZE) {
       collect((await page(offset, filter ?? {})).postings);
     }
-    return { list, total: first.total };
+    return { list, total };
   }
 
   // Detail rows are judged and filled here; a string is the reason one row is unreadable.
@@ -375,6 +387,9 @@ export class WorkdayAdapter extends JobSourceAdapter {
       if (err instanceof Stopped) throw err;
       return `detail call failed: ${causeOf(err)}`;
     }
+    // S22 is a listing that closed after the list call, not a block.
+    if (res.status === 403 && isGone(res.body))
+      return "the listing closed during the poll (403 S22)";
     if (res.status === 429 || res.status === 403) {
       throw new BoardFailure(
         "blocked",
@@ -412,12 +427,16 @@ export class WorkdayAdapter extends JobSourceAdapter {
     };
   }
 
-  // The newest stored Sighting for each key, so a known row costs no detail call.
-  private async storedSightings(keys: string[]) {
+  // Only Sightings the matcher would still join, so a repost after 30 quiet days gets fresh fields.
+  private async storedSightings(keys: string[], now: Date) {
     const found = new Map<string, Fields>();
     if (keys.length === 0) return found;
     const rows = await this.prisma.sighting.findMany({
-      where: { jobSource: "workday", listingKey: { in: keys } },
+      where: {
+        jobSource: "workday",
+        listingKey: { in: keys },
+        lastSeenAt: { gte: new Date(now.getTime() - WINDOW_DAYS * 86_400_000) },
+      },
       orderBy: { lastSeenAt: "desc" },
     });
     for (const s of rows)
@@ -438,6 +457,16 @@ export class WorkdayAdapter extends JobSourceAdapter {
       descriptionKind: f.descriptionKind as SightingDraft["descriptionKind"],
       watchedCompanyId: tenant.id,
     };
+  }
+}
+
+function isGone(body: string): boolean {
+  try {
+    return (
+      (JSON.parse(body) as { errorCode?: unknown } | null)?.errorCode === "S22"
+    );
+  } catch {
+    return false;
   }
 }
 

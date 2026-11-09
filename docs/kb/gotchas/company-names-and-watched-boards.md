@@ -3,10 +3,10 @@ type: gotcha
 title: Company names and Watched boards
 description: Name normalization strips "Canada" even from "Royal Bank of Canada", so such a name needs a seed alias, and only five ATSes count as pollable.
 tags: [companies, ingestion]
-sources: ["#22"]
+sources: ["#22", "#73"]
 generated:
-  by: claude-sonnet-5-5
-  at: 2026-11-02T17:00:00-05:00
+  by: claude-opus-5-5
+  at: 2026-11-09T12:00:00-05:00
 ---
 
 `normalizeName` lowercases, collapses spaces and strips trailing Inc, Ltd, Corp and Canada. "Royal Bank of Canada" becomes `royal bank of`, and "RBC" stays `rbc`, so nothing joins them by itself. `SEED_ALIASES` in `apps/api/src/companies/seed.ts` lists the other spellings the seed adds, and a subsidiary never goes there. Both the stored alias and the lookup go through the same function, so the odd form still matches.
