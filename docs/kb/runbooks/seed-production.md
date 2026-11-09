@@ -24,10 +24,16 @@ PSQL='cd ~/copilot && docker compose -f deploy/compose.prod.yaml --env-file .env
 The matcher creates a Company for every employer name it sees, so production already holds Companies that JobSpy named. The seed reuses a Company only when the normalized names match exactly ([Company names and Watched boards](../gotchas/company-names-and-watched-boards.md)). On 2026-11-09, JobSpy had made "TD", and the seed's "TD Bank" would have become a second Company.
 
 - List the names with `echo "SELECT id, name FROM company WHERE ats IS NULL ORDER BY name;" | tailscale ssh deploy@copilot "$PSQL"`, and compare them with the CSV's `company` column.
-- For each employer that JobSpy named differently, add the seed's name as an alias of the existing Company first. The `normalized_name` must be exactly what `normalizeName` returns, so check it with `tsx` against `apps/api/src/companies/normalize-name.ts`:
+- For each employer that JobSpy named differently, add the seed's name as an alias of the existing Company first. The `normalized_name` must be exactly what `normalizeName` returns, so print it from the repo root:
 
   ```sh
-  echo "INSERT INTO company_alias (company_id, name, normalized_name) VALUES (10, 'TD Bank', 'td bank');" | tailscale ssh deploy@copilot "$PSQL"
+  pnpm --dir apps/api exec tsx -e 'import { normalizeName } from "./src/companies/normalize-name"; console.log(normalizeName("TD Bank"))'
+  ```
+
+  Then insert the alias. `<company id>` is the id of the existing Company from the list above. Look it up each time, because ids differ between databases. For TD on 2026-11-09 it was 10.
+
+  ```sh
+  echo "INSERT INTO company_alias (company_id, name, normalized_name) VALUES (<company id>, 'TD Bank', 'td bank');" | tailscale ssh deploy@copilot "$PSQL"
   ```
 
 - A long name in `SEED_ALIASES` (for example "Royal Bank of Canada") that already belongs to a different Company makes the seed throw. Those two Companies need merging first, which is its own decision.
@@ -43,8 +49,11 @@ ssh -N -L 15432:<that IP>:5432 deploy@copilot
 
 ## 3. Run the seed from `main`
 
+Wait until the Deploy run for the `main` commit you pull has finished. Its `migrate` step must have applied any new migration before the seed writes to the schema. On the Mac, `pnpm install` and `pnpm --dir apps/api exec prisma generate` must have run since the last pull, because the seed uses the generated Prisma client ([Toolchain version pins](../gotchas/toolchain-version-pins.md)).
+
 ```sh
 git checkout main && git pull
+pnpm install && pnpm --dir apps/api exec prisma generate
 DATABASE_URL='postgresql://copilot:<POSTGRES_PASSWORD>@localhost:15432/copilot' pnpm --dir apps/api exec prisma db seed
 ```
 
