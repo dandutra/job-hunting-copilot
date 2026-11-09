@@ -4,6 +4,7 @@ import {
   ParsedBoard,
   Raw,
   dateOrNull,
+  slugPath,
   decodeEntities,
   htmlToText,
   str,
@@ -13,7 +14,7 @@ export class GreenhouseAdapter extends BoardAdapter {
   protected readonly ats = "greenhouse" as const;
 
   protected url(slug: string): string {
-    return `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}/jobs?content=true`;
+    return `https://boards-api.greenhouse.io/v1/boards/${slugPath(slug)}/jobs?content=true`;
   }
 
   protected parseBody(json: unknown): ParsedBoard {

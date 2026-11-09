@@ -15,6 +15,8 @@ A name that normalizes to nothing (" Inc. ") is rejected, not stored.
 
 The seed makes a Company of every CSV row. A row becomes a Watched company only when `verified` is `yes` and its ATS is greenhouse, lever, ashby, smartrecruiters or workday. SuccessFactors, Dayforce, iCIMS and the other ATSes in the CSV have no public JSON board API, so those rows stay plain Companies even when verified.
 
+Some slugs in the CSV are copied from board URLs and arrive percent-encoded, such as Ashby's `PAR%20Technology`. The board adapters decode a slug before encoding it into the API URL (`slugPath`), so the API is called with `%20`, not `%2520`. The listing key keeps the slug as stored, which is also what `parseListingKey` reads from the job URL.
+
 Tests run against a `<database>_test` database that `test/global-setup.ts` creates and migrates. Docker Compose Postgres must be up, and the shell must run Node 22 (see [Toolchain version pins](toolchain-version-pins.md)).
 
 `findSimilarCompanies` scores every alias with bigram Dice at 0.8 or more. It loads all aliases, which is fine at about 100 Companies. Move it to `pg_trgm` if the table grows past a few thousand.

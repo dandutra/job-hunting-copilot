@@ -4,6 +4,8 @@ import {
   ParsedBoard,
   Raw,
   dateOrNull,
+  slugPath,
+  withRemote,
   str,
 } from "../board-adapter";
 
@@ -11,7 +13,7 @@ export class AshbyAdapter extends BoardAdapter {
   protected readonly ats = "ashby" as const;
 
   protected url(slug: string): string {
-    return `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(slug)}`;
+    return `https://api.ashbyhq.com/posting-api/job-board/${slugPath(slug)}`;
   }
 
   protected parseBody(json: unknown): ParsedBoard {
@@ -39,21 +41,18 @@ export class AshbyAdapter extends BoardAdapter {
     ]
       .map(str)
       .filter((l): l is string => l !== null);
-    // isRemote is also true for some hybrid roles, so it only adds "Remote", and the place still has to be in the area.
-    if ((job?.isRemote as unknown) === true) {
-      locations.push(
-        ...(locations.length
-          ? locations.map((l) => `Remote, ${l}`)
-          : ["Remote"]),
-      );
-    }
+    // isRemote is also true for hybrid roles, so workplaceType decides when Ashby sends it.
+    const workplace = str(job?.workplaceType);
+    const remote = workplace
+      ? workplace.toLowerCase() === "remote"
+      : (job?.isRemote as unknown) === true;
     return {
       id,
       url: str(job?.jobUrl) ?? `https://jobs.ashbyhq.com/${slug}/${id}`,
       title,
-      locations,
+      locations: remote ? withRemote(locations) : locations,
       description: str(job?.descriptionPlain) ?? "",
-      // publishedAt resets when a job is republished, so it can move a Posting's age forward.
+      // publishedAt resets on a republish; the matcher keeps a Sighting's earliest date, so the Posting's age holds.
       postedAt: dateOrNull(job?.publishedAt),
     };
   }

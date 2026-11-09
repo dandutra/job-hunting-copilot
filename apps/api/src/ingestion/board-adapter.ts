@@ -51,13 +51,154 @@ export interface BoardRow {
   postedAt: Date | null;
 }
 
-const ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
+// Latin-1 plus the typographic names boards use; an unknown name is left as written.
+const ENTITIES: Record<string, number> = {
+  amp: 0x26,
+  lt: 0x3c,
+  gt: 0x3e,
+  quot: 0x22,
+  apos: 0x27,
+  nbsp: 0xa0,
+  iexcl: 0xa1,
+  cent: 0xa2,
+  pound: 0xa3,
+  curren: 0xa4,
+  yen: 0xa5,
+  brvbar: 0xa6,
+  sect: 0xa7,
+  uml: 0xa8,
+  copy: 0xa9,
+  ordf: 0xaa,
+  laquo: 0xab,
+  not: 0xac,
+  shy: 0xad,
+  reg: 0xae,
+  macr: 0xaf,
+  deg: 0xb0,
+  plusmn: 0xb1,
+  sup2: 0xb2,
+  sup3: 0xb3,
+  acute: 0xb4,
+  micro: 0xb5,
+  para: 0xb6,
+  middot: 0xb7,
+  cedil: 0xb8,
+  sup1: 0xb9,
+  ordm: 0xba,
+  raquo: 0xbb,
+  frac14: 0xbc,
+  frac12: 0xbd,
+  frac34: 0xbe,
+  iquest: 0xbf,
+  Agrave: 0xc0,
+  Aacute: 0xc1,
+  Acirc: 0xc2,
+  Atilde: 0xc3,
+  Auml: 0xc4,
+  Aring: 0xc5,
+  AElig: 0xc6,
+  Ccedil: 0xc7,
+  Egrave: 0xc8,
+  Eacute: 0xc9,
+  Ecirc: 0xca,
+  Euml: 0xcb,
+  Igrave: 0xcc,
+  Iacute: 0xcd,
+  Icirc: 0xce,
+  Iuml: 0xcf,
+  ETH: 0xd0,
+  Ntilde: 0xd1,
+  Ograve: 0xd2,
+  Oacute: 0xd3,
+  Ocirc: 0xd4,
+  Otilde: 0xd5,
+  Ouml: 0xd6,
+  times: 0xd7,
+  Oslash: 0xd8,
+  Ugrave: 0xd9,
+  Uacute: 0xda,
+  Ucirc: 0xdb,
+  Uuml: 0xdc,
+  Yacute: 0xdd,
+  THORN: 0xde,
+  szlig: 0xdf,
+  agrave: 0xe0,
+  aacute: 0xe1,
+  acirc: 0xe2,
+  atilde: 0xe3,
+  auml: 0xe4,
+  aring: 0xe5,
+  aelig: 0xe6,
+  ccedil: 0xe7,
+  egrave: 0xe8,
+  eacute: 0xe9,
+  ecirc: 0xea,
+  euml: 0xeb,
+  igrave: 0xec,
+  iacute: 0xed,
+  icirc: 0xee,
+  iuml: 0xef,
+  eth: 0xf0,
+  ntilde: 0xf1,
+  ograve: 0xf2,
+  oacute: 0xf3,
+  ocirc: 0xf4,
+  otilde: 0xf5,
+  ouml: 0xf6,
+  divide: 0xf7,
+  oslash: 0xf8,
+  ugrave: 0xf9,
+  uacute: 0xfa,
+  ucirc: 0xfb,
+  uuml: 0xfc,
+  yacute: 0xfd,
+  thorn: 0xfe,
+  yuml: 0xff,
+  OElig: 0x152,
+  oelig: 0x153,
+  Scaron: 0x160,
+  scaron: 0x161,
+  Yuml: 0x178,
+  fnof: 0x192,
+  circ: 0x2c6,
+  tilde: 0x2dc,
+  ensp: 0x2002,
+  emsp: 0x2003,
+  thinsp: 0x2009,
+  zwnj: 0x200c,
+  zwj: 0x200d,
+  lrm: 0x200e,
+  rlm: 0x200f,
+  ndash: 0x2013,
+  mdash: 0x2014,
+  lsquo: 0x2018,
+  rsquo: 0x2019,
+  sbquo: 0x201a,
+  ldquo: 0x201c,
+  rdquo: 0x201d,
+  bdquo: 0x201e,
+  dagger: 0x2020,
+  Dagger: 0x2021,
+  bull: 0x2022,
+  hellip: 0x2026,
+  permil: 0x2030,
+  prime: 0x2032,
+  Prime: 0x2033,
+  lsaquo: 0x2039,
+  rsaquo: 0x203a,
+  euro: 0x20ac,
+  trade: 0x2122,
+  larr: 0x2190,
+  uarr: 0x2191,
+  rarr: 0x2192,
+  darr: 0x2193,
+  harr: 0x2194,
+  minus: 0x2212,
+  infin: 0x221e,
+  asymp: 0x2248,
+  ne: 0x2260,
+  le: 0x2264,
+  ge: 0x2265,
 };
 
 export function decodeEntities(text: string): string {
@@ -71,7 +212,9 @@ export function decodeEntities(text: string): string {
         ? String.fromCodePoint(n)
         : whole;
     }
-    return ENTITIES[code.toLowerCase()] ?? whole;
+    // Case matters: &Eacute; and &eacute; are different letters.
+    const point = ENTITIES[code] ?? ENTITIES[code.toLowerCase()];
+    return point === undefined ? whole : String.fromCodePoint(point);
   });
 }
 
@@ -81,7 +224,7 @@ export function htmlToText(html: string): string {
       .replace(/<(br|\/p|\/li|\/h[1-6]|\/div)[^>]*>/gi, "\n")
       .replace(/<[^>]*>/g, ""),
   )
-    .replace(/[ \t]+/g, " ")
+    .replace(/[ \t\u00a0]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")
     .trim();
 }
@@ -89,6 +232,24 @@ export function htmlToText(html: string): string {
 // An untyped JSON object; every field is read through str() or dateOrNull(), which check the type.
 export interface Raw {
   [key: string]: Raw;
+}
+
+// The seed CSV copies slugs from board URLs, so some arrive already percent-encoded ("PAR%20Technology").
+export function slugPath(slug: string): string {
+  let decoded = slug;
+  try {
+    decoded = decodeURIComponent(slug);
+  } catch {
+    // A stray "%" is part of the slug, not an escape.
+  }
+  return encodeURIComponent(decoded);
+}
+
+// A remote flag only adds "Remote, {place}", so the place still decides the Search area; with no place it is plain "Remote".
+export function withRemote(locations: string[]): string[] {
+  return locations.length
+    ? [...locations, ...locations.map((l) => `Remote, ${l}`)]
+    : ["Remote"];
 }
 
 export function str(value: unknown): string | null {

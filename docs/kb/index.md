@@ -41,7 +41,7 @@ Glossary: [glossary.md](glossary.md)
 ## Gotchas
 
 - [Toolchain version pins](gotchas/toolchain-version-pins.md): NestJS 11, TypeScript 6, Prisma 7.10.1, Node 22 and no Corepack, each for a named reason; `prisma generate` is a manual step after install.
-- [Company names and Watched boards](gotchas/company-names-and-watched-boards.md): "Canada" is stripped from every name, so aliases carry the long forms; only five ATSes count as pollable.
+- [Company names and Watched boards](gotchas/company-names-and-watched-boards.md): "Canada" is stripped from every name, so aliases carry the long forms; only five ATSes count as pollable; some CSV slugs arrive percent-encoded.
 - [Exact-key matching rules](gotchas/exact-key-matching.md): the board veto, the Workday suffix strip, the 30-day window without a unique key, and field precedence.
 - [Production Compose stack](gotchas/production-compose-stack.md): `prisma` is a runtime dependency, `migrate` never restarts, `ingest` is healthy by file, CI checks images for `data/` and `.env`, and on the Droplet every command needs `--env-file .env` and values are single-quoted.
 - [JobSpy scrape service](gotchas/jobspy-scrape-service.md): `errors` is keyed by board, LinkedIn descriptions stay off, proxies come only from `JOBSPY_PROXIES`, and the fixtures are trimmed research samples.
@@ -57,8 +57,8 @@ Glossary: [glossary.md](glossary.md)
 ## Job sources
 
 - [Greenhouse board API](job-sources/greenhouse.md): `boards-api.greenhouse.io`, escaped HTML descriptions, `first_published`, no documented rate limit.
-- [Lever postings API](job-sources/lever.md): `api.lever.co`, `createdAt` in epoch ms, EU boards not reached.
-- [Ashby job board API](job-sources/ashby.md): `api.ashbyhq.com`, `publishedAt` resets on republish, `isListed` and `isRemote` rules.
+- [Lever postings API](job-sources/lever.md): `api.lever.co`, `createdAt` in epoch ms, the description spread over three fields, EU boards not reached.
+- [Ashby job board API](job-sources/ashby.md): `api.ashbyhq.com`, `publishedAt` resets on republish, `workplaceType` over `isRemote`, `isListed` rows skipped.
 
 ## Runbooks
 
