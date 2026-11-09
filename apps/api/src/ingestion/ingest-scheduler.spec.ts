@@ -521,6 +521,21 @@ describe("IngestScheduler", () => {
       ]);
     });
 
+    it("closes the last in-area listing when the board still lists rows outside the area", async () => {
+      const a = new FakeAdapter("boards", listing(acme.id, [1]));
+      const s = scheduler([a]);
+      await s.tick(T0);
+
+      a.result = {
+        ...listing(acme.id, []),
+        boards: [{ watchedCompanyId: acme.id, status: "ok", rows: 3 }],
+      };
+      await s.tick(hoursAfter(30));
+
+      expect(await closedAt(1)).toEqual(hoursAfter(30));
+      expect(finished[1][0].errors).toEqual([]);
+    });
+
     it("closes nothing for a board missing from completeBoards", async () => {
       const a = new FakeAdapter("boards", listing(acme.id, [1, 2]));
       const s = scheduler([a]);

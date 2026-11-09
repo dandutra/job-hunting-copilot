@@ -1,0 +1,53 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "a3c2849d-8a02-4156-b39c-4b1c8780bbf3",
+      "title": "Group Product Manager",
+      "department": "Product",
+      "team": "Product",
+      "employmentType": "FullTime",
+      "location": "Canada",
+      "secondaryLocations": [],
+      "publishedAt": "2026-11-03T17:38:48.132+00:00",
+      "isListed": true,
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "jobUrl": "https://jobs.ashbyhq.com/top-hat/a3c2849d-8a02-4156-b39c-4b1c8780bbf3",
+      "applyUrl": "https://jobs.ashbyhq.com/top-hat/a3c2849d-8a02-4156-b39c-4b1c8780bbf3/application",
+      "descriptionPlain": "We are looking for a Group Product Manager to own and drive the core portfolio of the Top Hat platform — product domains where instructors and students interact in and around the classroom every day. This role requires someone who can execute flawlessly while thinking strategically, build coalitions across teams, and represent the product vision to executive leadership.\n\nYou'll be responsible for key domains of the Top Hat platform, serving millions of students and thousands of instructors in higher education, leading a team of Product Managers."
+    },
+    {
+      "id": "24a445dc-857b-40ac-a8fc-b42c4949b0bc",
+      "title": "Senior Backend Software Engineer",
+      "department": "Engineering",
+      "team": "Engineering",
+      "employmentType": "FullTime",
+      "location": "Canada",
+      "secondaryLocations": [],
+      "publishedAt": "2026-07-23T19:01:09.161+00:00",
+      "isListed": true,
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "jobUrl": "https://jobs.ashbyhq.com/top-hat/24a445dc-857b-40ac-a8fc-b42c4949b0bc",
+      "applyUrl": "https://jobs.ashbyhq.com/top-hat/24a445dc-857b-40ac-a8fc-b42c4949b0bc/application",
+      "descriptionPlain": "Top Hat is hiring for a Senior Backend Software Engineer on our Aktiv Platform team. This is a great opportunity to drive force behind the technical excellence of our ecosystem. You will operate with a high degree of autonomy, leading the delivery of complex features and ensuring the stability of our high-traffic systems. This role is designed for an engineer who is not only a master of their craft in Java and Spring Boot but also a dedicated mentor and a proactive problem-solver."
+    },
+    {
+      "id": "ce7ba9fe-418a-44e8-a304-312ba8329906",
+      "title": "Inside Sales Representative",
+      "department": "Sales",
+      "team": "Sales",
+      "employmentType": "FullTime",
+      "location": "Massachusetts",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-19T21:22:54.725+00:00",
+      "isListed": true,
+      "isRemote": null,
+      "workplaceType": null,
+      "jobUrl": "https://jobs.ashbyhq.com/top-hat/ce7ba9fe-418a-44e8-a304-312ba8329906",
+      "applyUrl": "https://jobs.ashbyhq.com/top-hat/ce7ba9fe-418a-44e8-a304-312ba8329906/application",
+      "descriptionPlain": "Imagine someone gave you these three things: the opportunity to change the future of education, the autonomy to manage and grow your own territory, and all the necessary tools to be successful. If a job that combines all three of those things interests you, you may be a fit for our Inside Sales Representative role here at Top Hat!\n\n\n\nAs an Inside Sales Rep, you will be assigned a list of colleges and universities where you’ll have the autonomy to develop professional relationships with professors, demonstrate the value of our platform and products, and convert them into clients."
+    }
+  ]
+}

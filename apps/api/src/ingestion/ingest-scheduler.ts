@@ -241,7 +241,8 @@ export class IngestScheduler
           .map((d) => normalizeListingKey(d.listingKey)),
       );
       const openOnBoard = { watchedCompanyId: id, closedAt: null };
-      if (listed.size === 0) {
+      const rows = result.boards?.find((b) => b.watchedCompanyId === id)?.rows;
+      if (listed.size === 0 && !rows) {
         const count = await this.prisma.sighting.count({ where: openOnBoard });
         if (count > 0) {
           // No watchedCompanyId on the error: a board that really emptied would alert every hour.

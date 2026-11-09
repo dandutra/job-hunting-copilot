@@ -1,0 +1,114 @@
+[
+  {
+    "id": "a16580aa-7947-4d7b-babd-83ee6f922f0c",
+    "text": "Machine Learning Engineer",
+    "createdAt": 1786545468762,
+    "hostedUrl": "https://jobs.lever.co/waveapps/a16580aa-7947-4d7b-babd-83ee6f922f0c",
+    "applyUrl": "https://jobs.lever.co/waveapps/a16580aa-7947-4d7b-babd-83ee6f922f0c/apply",
+    "categories": {
+      "commitment": "Full-time",
+      "department": "Data & AI",
+      "location": "Canada",
+      "team": "Machine Learning",
+      "allLocations": ["Canada"]
+    },
+    "workplaceType": "remote",
+    "country": "CA",
+    "descriptionPlain": "At Wave, we help small businesses to thrive so the heart of our communities beats stronger.  We work in an environment buzzing with creative energy and inspiration. No matter where you are or how you get the job done, you have what you need to be successful and connected. The mark of true success at Wave is the ability to be bold, learn quickly and share your knowledge generously.\n\n\nAs a Machine Learning Engineer, you will be a key contributor to the design, development, and deployment of our foundational AI and ML models.",
+    "lists": [
+      {
+        "text": "Here's How You Make an Impact:",
+        "content": "<div>\n\n<li>\n<p><strong>Develop &amp; Deploy:</strong> Focus on the hands-on building, training, and operational deployment of machine learning models, ensuring they perform reliably within existing production environments.</p>\n</li>\n<li>\n<p><strong>Champion Technical Standards:</strong> Advocate for top-tier practices across coding, testing, and MLOps processes. Navigate ambiguity autonomously to refine pipelines and elevate ML engineering workflows.</p>\n</li>\n<li>\n<p><strong>Optimize &amp; Scale:</strong> Construct resilient, cost-efficient ML &amp; AI use cases. Balance sustaining established models with accelerating the rollout of highly scalable, modern systems.</p>\n</li>"
+      },
+      {
+        "text": "You Thrive Here By Possessing the Following:",
+        "content": "<div>\n\n<li>\n<p><strong>Experience:</strong> Minimum of <strong>3–5 years</strong> of professional experience in machine learning engineering, with a proven track record of deploying models into production environments.</p>\n</li>\n<li>\n<p><strong>Technical Depth:</strong> Deep understanding of the modern data stack, including data ingestion workflows and experience working with curated data warehouses like <strong>Databricks or Redshift</strong>.</p>\n</li>\n<li>\n<p><strong>Cloud Proficiency:</strong> At least <strong>3 years</strong> of hands-on experience with <strong>AWS infrastructure</strong>, specifically <strong>SageMaker</strong>, Spark/AWS Glue, and Infrastructure as Code (IaC), <strong>Terraform</strong>.</p>\n</li>"
+      }
+    ],
+    "additionalPlain": "At Wave, we value diversity of perspective. Your unique experience enriches our organization. We welcome applicants from all backgrounds. Let’s talk about how you can thrive here!\n \nWave is committed to providing an inclusive and accessible candidate experience."
+  },
+  {
+    "id": "da811487-88c8-440b-b6c2-5da90eb80ca1",
+    "text": "[Wattpad] Engineering Manager",
+    "createdAt": 1787156115902,
+    "hostedUrl": "https://jobs.lever.co/wattpad/da811487-88c8-440b-b6c2-5da90eb80ca1",
+    "applyUrl": "https://jobs.lever.co/wattpad/da811487-88c8-440b-b6c2-5da90eb80ca1/apply",
+    "categories": {
+      "commitment": "Full-time",
+      "department": "Wattpad",
+      "location": "Toronto, Ontario",
+      "team": "Tech | Wattpad | Engineering",
+      "allLocations": ["Toronto, Ontario"]
+    },
+    "workplaceType": "hybrid",
+    "country": "CA",
+    "descriptionPlain": "Wattpad’s vision is to entertain and connect the world through stories. A leading global webnovel platform, Wattpad has democratized storytelling for a new generation of diverse Gen Z writers and their fans. Wattpad is part of WEBTOON Entertainment’s IP & Creator Ecosystem, where approximately 155 million monthly active users discover incredible stories in multiple formats.",
+    "lists": [
+      {
+        "text": "What You'll Do:",
+        "content": "<div>\n\n<li>Lead and support a team of engineers, overseeing performance management, career growth, and general team administration including rituals and meetings</li>\n<li>Contribute to planning and determining the technical roadmap by understanding and aligning business and engineering goals</li>\n<li>Spearhead and participate in technical design and planning sessions</li>"
+      },
+      {
+        "text": "Required Qualifications:",
+        "content": "<div>\n\n<li>8+ years of experience in software development with at least 3 years managing a team of 3 or more engineers including those at the Senior level or higher</li>\n<li>Significant experience designing and building backend distributed systems, including writing and critiquing design and technical plan documentation with diagrams</li>\n<li>Majority experience in backend development with substantial hands-on experience in API, application, and systems design and building</li>"
+      }
+    ],
+    "additionalPlain": "What we offer (For Full-Time Only):\n* Career development; we believe in mentorship and investing in your learning, supporting you to achieve your goals\n* Top industry health benefits, including vision and dental \nYour own health/wellness account to spend each year\n* RRSP Contributions (Canada), 401K"
+  },
+  {
+    "id": "527d862e-47f6-42f1-9447-1e68f71de8db",
+    "text": "[WEBTOON] Associate Visual Designer",
+    "createdAt": 1792603966035,
+    "hostedUrl": "https://jobs.lever.co/wattpad/527d862e-47f6-42f1-9447-1e68f71de8db",
+    "applyUrl": "https://jobs.lever.co/wattpad/527d862e-47f6-42f1-9447-1e68f71de8db/apply",
+    "categories": {
+      "commitment": "Freelance",
+      "department": "WEBTOON",
+      "location": "El Segundo, California",
+      "team": "Service&Business | WEBTOON | Global IP Business",
+      "allLocations": ["El Segundo, California"]
+    },
+    "workplaceType": "hybrid",
+    "country": "US",
+    "descriptionPlain": "WEBTOON Entertainment is a leading global entertainment company and home to some of the world's largest storytelling platforms. As the global leader and pioneer of the mobile webcomic format, WEBTOON Entertainment has transformed comics and visual storytelling for fans and creators.\n \nWith its CANVAS UGC platform empowering anyone to become a creator, and a growing roster of superstar WEBTOON Originals creators and series, WEBTOON Entertainment’s passionate fandoms are the new face of pop culture.",
+    "lists": [
+      {
+        "text": "What You'll Be Doing",
+        "content": "<div>\n\n<li>\n<p>Design IP branding and key visual assets — including Key Visual, Cover, Title Artwork, and Logo — across WEBTOON services</p>\n</li>\n<li>\n<p>Create high-impact creative across channels (platform, social, paid media) and campaigns that drive audience acquisition, engagement, and retention</p>\n</li>\n<li>\n<p>Develop branding and design assets needed for title marketing</p>\n</li>"
+      },
+      {
+        "text": "What We're Looking For",
+        "content": "<div>\n<p><strong><em>Experience &amp; Portfolio</em></strong></p>\n\n<li>\n<p>1+ years of experience in visual design for digital platforms at a creative agency, production company, or in-house team</p>\n</li>\n<li>\n<p>Strong portfolio demonstrating IP branding / key visual work (Key Visual, Cover, Title Artwork)</p>\n</li>\n\n<p><strong><em>Design Skills</em></strong></p>\n\n<li>\n<p>Foundational branding and BX (Brand Experience) capabilities</p>\n</li>"
+      }
+    ],
+    "additionalPlain": "With approximately 155 million monthly active users, WEBTOON Entertainment’s IP & Creator Ecosystem of aligned brands and platforms include WEBTOON, Wattpad--the world’s leading webnovel platform--WEBTOON Productions, Studio N, Studio LICO, WEBTOON Unscrolled, LINE MANGA, and eBookJapan, among other"
+  },
+  {
+    "id": "827dc7a8-8f7d-4754-9fed-937a21a946f9",
+    "text": "[WEBTOON] Social Media Script Writer/Video Editor (Freelancer)",
+    "createdAt": 1775783917648,
+    "hostedUrl": "https://jobs.lever.co/wattpad/827dc7a8-8f7d-4754-9fed-937a21a946f9",
+    "applyUrl": "https://jobs.lever.co/wattpad/827dc7a8-8f7d-4754-9fed-937a21a946f9/apply",
+    "categories": {
+      "commitment": "Freelance",
+      "department": "WEBTOON",
+      "location": "El Segundo, California",
+      "team": "Design | WEBTOON | Creative",
+      "allLocations": ["El Segundo, California"]
+    },
+    "workplaceType": "remote",
+    "country": "US",
+    "descriptionPlain": "WEBTOON Entertainment is a leading global entertainment company and home to some of the world's largest storytelling platforms. As the global leader and pioneer of the mobile webcomic format, WEBTOON Entertainment has transformed comics and visual storytelling for fans and creators.\n \nWith its CANVAS UGC platform empowering anyone to become a creator, and a growing roster of superstar WEBTOON Originals creators and series, WEBTOON Entertainment’s passionate fandoms are the new face of pop culture.",
+    "lists": [
+      {
+        "text": "What You’ll Do",
+        "content": "\n<li>Concept, script, and edit short-form video content that tells a story, capturing audiences’ attention with strong hooks and cliffhangers. Must be able to develop content across various genres ranging from punchy humor to edgy romance and fast-paced action.</li>\n<li>Collaborate with other copywriters, designers, and art directors to create dynamic, character-driven content that feels native to each platform.</li>\n<li>Develop series promos, trailers, and explainer content that make fans feel connected to WEBTOON’s universe.</li>"
+      },
+      {
+        "text": "Who You Are",
+        "content": "\n<li>3+ years of professional experience in a creative agency, production company, or in-house entertainment team, ideally with experience in ad content, trailers, branded content, or entertainment marketing.</li>\n<li>A storyteller first, designer second: you foremost think about pacing, emotion, and structure when creating.</li>\n<li>Strong copywriting/scripting background. Should be eager to experiment with new writing styles and formats.</li>"
+      }
+    ],
+    "additionalPlain": "With approximately 155 million monthly active users, WEBTOON Entertainment’s IP & Creator Ecosystem of aligned brands and platforms include WEBTOON, Wattpad--the world’s leading webnovel platform--WEBTOON Productions, Studio N, Studio LICO, WEBTOON Unscrolled, LINE MANGA, and eBookJapan, among other"
+  }
+]
