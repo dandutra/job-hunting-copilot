@@ -10,10 +10,10 @@ import { IngestScheduler } from "./ingest-scheduler";
 import { AdapterResult, JobSourceAdapter } from "./job-source-adapter";
 
 class FakeAdapter extends JobSourceAdapter {
-  readonly minIntervalMs = 0;
   constructor(
     readonly name: string,
     private readonly fails: boolean,
+    override readonly minIntervalMs = 0,
   ) {
     super();
   }
@@ -30,7 +30,11 @@ describe("HeartbeatPollHooks through the scheduler", () => {
   let pings: number;
   let status: number;
 
-  const run = (adapters: JobSourceAdapter[], heartbeatUrl = url) => {
+  const run = (
+    adapters: JobSourceAdapter[],
+    heartbeatUrl = url,
+    now = new Date(),
+  ) => {
     const matcher = new SightingMatcher(prisma, new CompaniesService(prisma), {
       descriptionUpgraded: async () => {},
     } as MatchingHooks);
@@ -41,7 +45,7 @@ describe("HeartbeatPollHooks through the scheduler", () => {
       { alert: async () => {} },
       new HeartbeatPollHooks(heartbeatUrl),
       { lockUrl: testDatabaseUrl() },
-    ).tick(new Date());
+    ).tick(now);
   };
 
   beforeAll(async () => {
@@ -75,11 +79,32 @@ describe("HeartbeatPollHooks through the scheduler", () => {
     expect(pings).toBe(0);
   });
 
+  it("pings when every adapter was skipped as not yet due, as after a restart", async () => {
+    const hourly = [new FakeAdapter("a", false, 60 * 60 * 1000)];
+    const t0 = new Date();
+    await run(hourly, url, t0);
+    await run(hourly, url, new Date(t0.getTime() + 40 * 60 * 1000));
+    expect(pings).toBe(2);
+  });
+
+  it("sends no ping when the only adapter that ran failed and the rest were not due", async () => {
+    const t0 = new Date();
+    const hourly = new FakeAdapter("a", false, 60 * 60 * 1000);
+    await run([hourly], url, t0);
+    pings = 0;
+    await run(
+      [hourly, new FakeAdapter("b", true)],
+      url,
+      new Date(t0.getTime() + 40 * 60 * 1000),
+    );
+    expect(pings).toBe(0);
+  });
+
   it("finishes the poll when the ping endpoint answers 500", async () => {
     status = 500;
     const outcomes = await run([new FakeAdapter("a", false)]);
     expect(pings).toBe(1);
-    expect(outcomes).not.toBe("skipped");
+    expect(outcomes).toEqual([expect.objectContaining({ status: "ok" })]);
   });
 
   it("finishes the poll when the ping endpoint is unreachable", async () => {
@@ -87,7 +112,7 @@ describe("HeartbeatPollHooks through the scheduler", () => {
       [new FakeAdapter("a", false)],
       "http://127.0.0.1:1/ping",
     );
-    expect(outcomes).not.toBe("skipped");
+    expect(outcomes).toEqual([expect.objectContaining({ status: "ok" })]);
   });
 
   it("sends nothing when HEARTBEAT_URL is empty", async () => {

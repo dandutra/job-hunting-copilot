@@ -63,9 +63,9 @@ GitHub cannot show a secret again after you save it, so the password manager hol
 
 The app has no public address, so it reports in and silence raises the alarm.
 
-- **healthchecks.io "polls" check.** Create it by hand with a period of 1 hour and a grace of 30 minutes, which covers a deploy's drain. Put its ping URL in the `HEARTBEAT_URL` secret. `ingest` pings after a poll where at least one adapter succeeded. An email means no poll has succeeded for 90 minutes: `ingest` is stopped or hung, or every Job source failed. Check `docker compose -f deploy/compose.prod.yaml --env-file .env logs --tail=100 ingest` on the Droplet. A failing ping is logged as `Heartbeat failed` and never stops a poll, so a ping error in the log with no email means healthchecks.io is the problem.
-- **healthchecks.io "backups" check.** Create it by hand. The nightly backup job (#38) sends its ping.
-- **DigitalOcean disk alert.** `infra/monitoring.tf` emails `TF_VAR_alert_email` when disk use stays above 80% for 5 minutes. Run `docker system df` on the Droplet. Old images and the 10 MB x 3 container logs are the usual cause, then the Postgres volume.
+- **healthchecks.io "polls" check.** Create it by hand with a period of 1 hour and a grace of 30 minutes, which covers a deploy's drain. Put its ping URL in the `HEARTBEAT_URL` secret. `ingest` pings after every poll unless each adapter that ran failed. A poll where every adapter was skipped as not yet due still pings, because the first poll after a restart is like that. An email means 90 minutes with no such poll: `ingest` is stopped or hung, or every Job source that ran kept failing. Check `docker compose -f deploy/compose.prod.yaml --env-file .env logs --tail=100 ingest` on the Droplet. A failing ping is logged as `Heartbeat failed` and never stops a poll, so a ping error in the log with no email means healthchecks.io is the problem.
+- **healthchecks.io "backups" check.** Create it by hand. Nothing pings it until the nightly backup job from #38 is built.
+- **DigitalOcean disk alert.** `infra/monitoring.tf` emails `TF_VAR_alert_email`, which must be the verified email of a member of the DigitalOcean team, when disk use stays above 80% for 5 minutes. Run `docker system df` on the Droplet. Old images and the 10 MB x 3 container logs are the usual cause, then the Postgres volume.
 
 An empty `HEARTBEAT_URL` logs a warning at boot and sends nothing, so local development needs no check.
 

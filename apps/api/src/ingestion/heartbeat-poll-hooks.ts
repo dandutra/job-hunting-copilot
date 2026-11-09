@@ -3,15 +3,13 @@ import { AdapterOutcome, LogPollHooks, PollHooks } from "./poll-hooks";
 
 const PING_TIMEOUT_MS = 10_000;
 
-// A ping per poll with at least one working adapter; silence is what raises the alarm.
+// Silence raises the alarm. An all-skipped poll still pings, because a restart's first poll skips every adapter not yet due.
 export class HeartbeatPollHooks extends PollHooks implements OnModuleInit {
   private readonly logger = new Logger("Heartbeat");
 
-  constructor(
-    private readonly url: string,
-    private readonly log: PollHooks = new LogPollHooks(),
-    private readonly fetchFn: typeof fetch = fetch,
-  ) {
+  private readonly log = new LogPollHooks();
+
+  constructor(private readonly url: string) {
     super();
   }
 
@@ -24,12 +22,13 @@ export class HeartbeatPollHooks extends PollHooks implements OnModuleInit {
   async pollFinished(outcomes: AdapterOutcome[]): Promise<void> {
     await this.log.pollFinished(outcomes);
     if (!this.url) return;
-    if (!outcomes.some((o) => o.status === "ok")) {
-      this.logger.warn("No adapter succeeded; sending no heartbeat");
+    const ran = outcomes.filter((o) => o.status !== "skipped");
+    if (ran.length > 0 && !ran.some((o) => o.status === "ok")) {
+      this.logger.warn("Every adapter that ran failed; sending no heartbeat");
       return;
     }
     try {
-      const res = await this.fetchFn(this.url, {
+      const res = await fetch(this.url, {
         signal: AbortSignal.timeout(PING_TIMEOUT_MS),
       });
       if (!res.ok) this.logger.error(`Heartbeat answered ${res.status}`);
