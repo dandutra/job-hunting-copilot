@@ -36,7 +36,7 @@ set -a; source ~/.config/copilot/backup.env; set +a
 deploy/restore-drill.sh
 ```
 
-It lists the bucket, picks the newest dump, decrypts it with `RESTORE_AGE_IDENTITY_FILE`, restores it into a throwaway `postgres:17` container and prints a row count per table in `DRILL_TABLES` (default `master_profile_version`, `merge_log_entry`, `tailored_resume`). It exits non-zero if the bucket holds no dump, `pg_restore` fails, a table is missing or all counts add up to 0. Add the Labels and Applications tables to the default list in the script when they exist.
+It lists the bucket, picks the newest dump, decrypts it with `RESTORE_AGE_IDENTITY_FILE`, restores it into a throwaway `postgres:17` container and prints a row count per table in `DRILL_TABLES` (default `master_profile_version`, `merge_log_entry`, `tailored_resume`, `jev_judgement`). The pre-deploy dump of the deploy that adds a table lacks it, so the drill fails on that table until the next nightly dump. It exits non-zero if the bucket holds no dump, `pg_restore` fails, a table is missing or all counts add up to 0. Add the Labels and Applications tables to the default list in the script when they exist.
 
 Rerun the drill after any change to the schema, the keys or the bucket.
 
