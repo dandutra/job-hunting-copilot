@@ -46,6 +46,8 @@ model Posting {
   mergeLog        MergeLogEntry[]
   tailoredResumes TailoredResume[]
   jevJudgements   JevJudgement[]
+  lookalikesLow   Lookalike[]      @relation("LookalikeLow")
+  lookalikesHigh  Lookalike[]      @relation("LookalikeHigh")
 
   @@index([companyId])
   @@map("posting")
@@ -87,7 +89,7 @@ model Sighting {
 
 model MergeLogEntry {
   id                Int       @id @default(autoincrement())
-  // shared_listing_key or direct_url; the review screen filters on it.
+  // shared_listing_key, direct_url or text_similarity; the review screen filters on it.
   rule              String
   evidence          Json
   postingId         Int       @map("posting_id")
@@ -101,6 +103,23 @@ model MergeLogEntry {
   @@index([rule])
   @@index([postingId])
   @@map("merge_log_entry")
+}
+
+// Two Postings that may be one opening but lack the evidence to merge. The lower Posting id is always first, so a pair has one row.
+model Lookalike {
+  id            Int      @id @default(autoincrement())
+  lowPostingId  Int      @map("low_posting_id")
+  lowPosting    Posting  @relation("LookalikeLow", fields: [lowPostingId], references: [id], onDelete: Cascade)
+  highPostingId Int      @map("high_posting_id")
+  highPosting   Posting  @relation("LookalikeHigh", fields: [highPostingId], references: [id], onDelete: Cascade)
+  // similar_title, similar_company, board_tie or same_title
+  reason        String
+  evidence      Json
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([lowPostingId, highPostingId])
+  @@index([highPostingId])
+  @@map("lookalike")
 }
 
 // lastPollAt is where each adapter's next window starts, so a restart or a long outage still covers the gap.

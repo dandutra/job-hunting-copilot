@@ -9,7 +9,7 @@ generated:
   at: 2026-11-02T18:00:00-05:00
 ---
 
-`SightingMatcher.matchSighting(draft)` in `apps/api/src/matching/` joins drafts on exact keys only. The text rules are a later ticket.
+`SightingMatcher.matchSighting(draft)` in `apps/api/src/matching/` joins drafts on exact keys first. The text rules run after it and are in [Text merges and Lookalikes](text-matching.md).
 
 - A Sighting is found by Job source plus listing key, but only among Sightings seen in the last 30 days. The table has no unique key on that pair, because a repost after 30 quiet days reuses the key and must start a new Posting. Every match takes one Postgres advisory lock inside its transaction, so matches run one at a time. A per-key lock is not enough: a merge deletes a Posting that holds other keys, and a concurrent draft on one of those keys would lose its Sighting. Each waiting match holds a pooled connection, which starves other queries on that pool, so adapters must call `matchSighting` one draft at a time. A parallel call can wait 60 seconds for a connection and 60 more on the lock before it rejects.
 - A draft joins any Posting with a live Sighting whose listing key equals the draft's key, or whose parsed `directUrl` key does. The match works both ways, so an Indeed draft that arrives before its Greenhouse listing still joins it.
@@ -19,5 +19,5 @@ generated:
 - Workday keys strip a trailing `-N` site suffix only when N is 1 to 99 with no leading zero, the rest contains a digit, and the rest does not end in a year, or a year plus one segment of 1 or 2 digits. In those two shapes the `-N` could be a sequence number or a date part. `JR100-1` becomes `jr100`, `R-12345-2` becomes `r-12345`, and `JR-2024-0042-1` becomes `jr-2024-0042`. `R-12345`, `JR-2024-0042`, `2024-12345`, `JR-2024-5` and `2024-12-15` are left alone. This is a guess at the id format, and no real Workday data has tested it. An id like `JR-300-7`, where 7 is a sequence number, still loses its last part, and two such ids would collapse into one Sighting with no merge log entry. The rule also errs the other way: `JR-2024-5-1` and `JR-2024-5-2` keep their suffixes, so one requisition on two sites gives two Postings.
 - Posting fields come from the highest-precedence Sighting. The description comes from the highest-precedence Sighting with full text, then snippet, so an alert with no text never erases a full description. A Sighting also keeps its own text when a later poll returns less.
 - `descriptionUpgraded` fires after the transaction commits, when a Posting's kind moves from none or snippet to full. A Posting born full counts as an upgrade from none. A merge that brings full text into a snippet Posting also fires, so a Posting can fire twice across its life. Decide when Jev attaches whether that second run is wanted.
-- Merge log rules are `shared_listing_key` and `direct_url`. A Sighting that only refreshes last-seen writes no entry.
+- Merge log rules are `shared_listing_key`, `direct_url` and `text_similarity`. A Sighting that only refreshes last-seen writes no entry.
 - `matchSighting(draft, { now })` takes the poll time so tests can cross the 30-day window.
