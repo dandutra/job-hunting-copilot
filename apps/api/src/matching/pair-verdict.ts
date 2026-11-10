@@ -95,7 +95,8 @@ export function judgePair(
     return { kind: "lookalike", reason: "similar_company", similarity: null };
   if (company === "same") {
     const close = titleSimilarity(a.title, b.title);
-    const sameCore = left !== "" && titleCore(a.title) === titleCore(b.title);
+    const core = titleCore(a.title);
+    const sameCore = core !== "" && core === titleCore(b.title);
     if (sameCore || (close >= LOOKALIKE_TITLE_AT_LEAST && close < 1))
       return { kind: "lookalike", reason: "similar_title", similarity: null };
   }

@@ -154,6 +154,16 @@ describe("judgePair", () => {
     ).toBe("none");
   });
 
+  it("links no titles made only of employment words", () => {
+    expect(
+      judgePair(
+        facts({ title: "Contract" }),
+        facts({ title: "Part Time" }),
+        same,
+      ).kind,
+    ).toBe("none");
+  });
+
   it("treats a title of only noise as no title", () => {
     expect(
       judgePair(
