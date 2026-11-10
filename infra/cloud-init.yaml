@@ -19,6 +19,7 @@ packages:
   - ca-certificates
   - curl
   - gnupg
+  - age
 
 write_files:
   - path: /etc/apt/apt.conf.d/52unattended-upgrades-local
@@ -27,6 +28,27 @@ write_files:
       Unattended-Upgrade::Automatic-Reboot "true";
       Unattended-Upgrade::Automatic-Reboot-Time "04:30";
       Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+  # Runs as deploy from the checkout that deploy.sh fills; it fails harmlessly until the first deploy.
+  - path: /etc/systemd/system/copilot-backup.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Nightly encrypted Postgres backup
+      [Service]
+      Type=oneshot
+      User=deploy
+      WorkingDirectory=/home/deploy/copilot
+      ExecStart=/home/deploy/copilot/deploy/backup.sh nightly
+  - path: /etc/systemd/system/copilot-backup.timer
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Nightly encrypted Postgres backup
+      [Timer]
+      OnCalendar=*-*-* 03:30:00
+      Persistent=true
+      [Install]
+      WantedBy=timers.target
   - path: /root/first-boot.env
     permissions: "0600"
     encoding: b64
@@ -37,4 +59,5 @@ write_files:
     content: ${first_boot_b64}
 
 runcmd:
+  - [systemctl, enable, --now, copilot-backup.timer]
   - [bash, /usr/local/sbin/first-boot.sh]

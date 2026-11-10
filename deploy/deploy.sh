@@ -9,7 +9,8 @@ sha="${1:-}"
 compose_file=deploy/compose.prod.yaml
 [ -f "$compose_file" ] || { echo "run from the directory that holds $compose_file" >&2; exit 2; }
 
-required=(POSTGRES_PASSWORD ALLOWED_TAILSCALE_LOGIN)
+backup_vars=(BACKUP_AGE_RECIPIENT BACKUP_S3_ENDPOINT BACKUP_S3_REGION BACKUP_BUCKET BACKUP_KEY_ID BACKUP_KEY BACKUP_HEALTHCHECK_URL)
+required=(POSTGRES_PASSWORD ALLOWED_TAILSCALE_LOGIN "${backup_vars[@]}")
 declare -A seen=()
 umask 077
 env_tmp=$(mktemp .env.XXXXXX)
@@ -40,6 +41,16 @@ docker compose -f "$compose_file" --env-file "$env_tmp" pull --quiet
 mv "$env_tmp" .env
 
 compose=(docker compose -f "$compose_file" --env-file .env)
+
+# A dump before the migration, so a bad migration costs nothing. A failed dump stops the deploy.
+# No volume means the first deploy, so there is nothing to dump yet.
+if docker volume inspect copilot_pgdata >/dev/null 2>&1; then
+  "${compose[@]}" up -d --wait --wait-timeout 120 postgres
+  deploy/backup.sh pre-deploy
+else
+  echo "backup skipped: no Postgres volume yet, so this is the first deploy"
+fi
+
 fail() {
   echo "FAIL: the stack did not become healthy at $sha" >&2
   "${compose[@]}" ps >&2 || true

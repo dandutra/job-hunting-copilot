@@ -53,6 +53,7 @@ Glossary: [glossary.md](glossary.md)
 - [Tailoring API](gotchas/tailoring-api.md): rule 6 runs on submit and approve against the latest profile version, a submit supersedes only open drafts, verdicts and reject lines name lines by location, `postingText` is stored but never returned, the GET carries the Do-not-claims and Fact ownership for `/tailor-review`, and a review post replaces all verdicts and accepts a partial list.
 - [Workday resume parsing](gotchas/workday-resume-parsing.md): Workday read the "(CPP)" in a program name as the college, never fills Skills from a resume, hyphenated line breaks extract joined, and every autofilled field needs a manual check.
 - [The /tailor skill](gotchas/tailor-skill.md): `fetch-input.sh` stops on a profile hash mismatch with exit 3, `summary` is one line per Highlight, and `/tailor` passes its API base to the forked review.
+- [Backups](gotchas/backups.md): `backup.sh` signs uploads itself and needs the payload hash, the test server skips signature checks, the pre-deploy dump keys off the `copilot_pgdata` volume, and the drill counts only listed tables.
 
 ## Job sources
 
@@ -66,3 +67,4 @@ Glossary: [glossary.md](glossary.md)
 - [Provision the server](runbooks/provision.md): build, check, rebuild and recover the Droplet, firewall, Tailscale policy and backups bucket with Terraform from the Mac.
 - [Deploy, roll back and rotate secrets](runbooks/deploy.md): how a push to `main` reaches the Droplet, the rollback run, the migration rule, the one-time GitHub and Tailscale settings, and secret rotation.
 - [Seed the production database](runbooks/seed-production.md): no deploy runs the seed, so it runs from the Mac through an SSH tunnel, after the seed names are checked against the Companies JobSpy already made.
+- [Back up, run the restore drill and restore](runbooks/restore.md): nightly and pre-deploy encrypted dumps, the drill on the Mac, and a full restore onto a new Droplet.
