@@ -9,6 +9,15 @@ import {
   QUESTION_SET_VERSION,
 } from "./question-set";
 
+// The batch runs under the ingest lock, so it must end well inside the hourly tick; the rest waits for the next poll.
+const RUN_BUDGET_MS = 20 * 60 * 1000;
+
+export interface RunOptions {
+  now?: Date;
+  shouldStop?: () => boolean;
+  budgetMs?: number;
+}
+
 export interface RunCounts {
   found: number;
   judged: number;
@@ -31,9 +40,13 @@ export class JevRunner {
     @Inject(JevClient) private readonly jev: JevClient | null,
   ) {}
 
-  async run(now: Date = new Date()): Promise<RunCounts> {
+  async run(options: RunOptions = {}): Promise<RunCounts> {
+    const now = options.now ?? new Date();
+    const shouldStop = options.shouldStop ?? (() => false);
+    const deadline = Date.now() + (options.budgetMs ?? RUN_BUDGET_MS);
     const counts: RunCounts = { found: 0, judged: 0, failed: 0 };
-    if (!this.jev) return counts;
+    const jev = this.jev;
+    if (!jev) return counts;
     const profile = await this.prisma.masterProfileVersion.findFirst({
       orderBy: { createdAt: "desc" },
     });
@@ -79,8 +92,9 @@ export class JevRunner {
     counts.found = due.length;
 
     for (const { id } of due) {
+      if (shouldStop() || Date.now() >= deadline) break;
       try {
-        await this.judge(id, profile.id, summary);
+        await this.judge(jev, id, profile.id, summary);
         counts.judged++;
       } catch (err) {
         counts.failed++;
@@ -88,16 +102,21 @@ export class JevRunner {
       }
     }
     this.logger.log(
-      `Jev run: ${counts.found} due, ${counts.judged} judged, ${counts.failed} failed`,
+      `Jev run: ${counts.found} due, ${counts.judged} judged, ${counts.failed} failed, ${counts.found - counts.judged - counts.failed} left for the next poll`,
     );
     return counts;
   }
 
-  private async judge(postingId: number, profileId: string, summary: string) {
+  private async judge(
+    jev: JevClient,
+    postingId: number,
+    profileId: string,
+    summary: string,
+  ) {
     const posting = await this.prisma.posting.findUniqueOrThrow({
       where: { id: postingId },
     });
-    const response = await this.jev!.ask(judgementState(posting, summary));
+    const response = await jev.ask(judgementState(posting, summary));
     if (invalidAnswers(response.answers)) throw new JevCallError("invalid");
     await this.prisma.jevJudgement.create({
       data: {

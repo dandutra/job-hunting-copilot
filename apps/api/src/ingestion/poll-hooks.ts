@@ -16,7 +16,11 @@ export interface AdapterOutcome {
 
 // Heartbeats and the disk alert attach here; an abstract class doubles as the Nest injection token.
 export abstract class PollHooks {
-  abstract pollFinished(outcomes: AdapterOutcome[]): Promise<void>;
+  // shouldStop turns true on shutdown, so long work after a poll can end early.
+  abstract pollFinished(
+    outcomes: AdapterOutcome[],
+    shouldStop?: () => boolean,
+  ): Promise<void>;
 }
 
 @Injectable()

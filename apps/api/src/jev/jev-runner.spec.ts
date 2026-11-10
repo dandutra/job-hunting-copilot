@@ -334,6 +334,28 @@ describe("JevRunner", () => {
     expect(await judgementsOf(b.id)).toHaveLength(1);
   });
 
+  it("stops between Postings on shutdown and leaves the rest for the next poll", async () => {
+    await addProfile();
+    await addPosting();
+    await addPosting();
+    let calls = 0;
+
+    const counts = await runner.run({ shouldStop: () => calls++ > 0 });
+
+    expect(counts).toMatchObject({ found: 2, judged: 1, failed: 0 });
+    expect(await runner.run()).toMatchObject({ found: 1, judged: 1 });
+  });
+
+  it("stops when the run's time budget is spent", async () => {
+    await addProfile();
+    await addPosting();
+
+    const counts = await runner.run({ budgetMs: 0 });
+
+    expect(counts).toMatchObject({ found: 1, judged: 0 });
+    expect(requests).toHaveLength(0);
+  });
+
   it("judges nothing without a profile version", async () => {
     await addPosting();
     const counts = await runner.run();

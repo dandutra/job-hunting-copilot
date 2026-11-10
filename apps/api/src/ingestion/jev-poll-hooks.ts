@@ -16,8 +16,11 @@ export class JevPollHooks extends PollHooks implements OnModuleInit {
     this.inner.onModuleInit();
   }
 
-  async pollFinished(outcomes: AdapterOutcome[]): Promise<void> {
+  async pollFinished(
+    outcomes: AdapterOutcome[],
+    shouldStop: () => boolean = () => false,
+  ): Promise<void> {
     await this.inner.pollFinished(outcomes);
-    await this.jev.run();
+    await this.jev.run({ shouldStop });
   }
 }

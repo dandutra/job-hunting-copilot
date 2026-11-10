@@ -47,9 +47,11 @@ before(async () => {
     CREATE TABLE master_profile_version (id text PRIMARY KEY, raw_yaml text NOT NULL);
     CREATE TABLE merge_log_entry (id serial PRIMARY KEY, rule text NOT NULL);
     CREATE TABLE tailored_resume (id serial PRIMARY KEY, draft jsonb NOT NULL);
+    CREATE TABLE jev_judgement (id serial PRIMARY KEY, answers jsonb NOT NULL);
     INSERT INTO master_profile_version VALUES ('v1', 'synthetic'), ('v2', 'synthetic too');
     INSERT INTO merge_log_entry (rule) SELECT 'direct_url' FROM generate_series(1, 5);
     INSERT INTO tailored_resume (draft) VALUES ('{"a":1}');
+    INSERT INTO jev_judgement (answers) VALUES ('{}'), ('{}');
   `);
 
   pings = [];
@@ -125,7 +127,8 @@ test("dump, encrypt, upload, download, decrypt, restore and compare row counts",
   assert.match(drill.out, /master_profile_version\s+2\b/);
   assert.match(drill.out, /merge_log_entry\s+5\b/);
   assert.match(drill.out, /tailored_resume\s+1\b/);
-  assert.match(drill.out, /total_rows=8/);
+  assert.match(drill.out, /jev_judgement\s+2\b/);
+  assert.match(drill.out, /total_rows=10/);
 });
 
 test("the uploaded object is encrypted: it holds no plaintext row data", async () => {

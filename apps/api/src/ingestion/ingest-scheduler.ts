@@ -131,7 +131,7 @@ export class IngestScheduler
       );
     }
     try {
-      await this.hooks.pollFinished(outcomes);
+      await this.hooks.pollFinished(outcomes, () => this.stopping);
     } catch (err) {
       this.logger.error(`pollFinished failed: ${describe(err)}`);
     }

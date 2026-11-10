@@ -111,14 +111,6 @@ export function judgementState(
   };
 }
 
-export interface Answers {
-  skills_covered: { score: number };
-  level_match: { score: number };
-  role_family: { choice: (typeof ROLE_FAMILIES)[number] };
-  work_arrangement: { choice: (typeof WORK_ARRANGEMENTS)[number] };
-  [cap: string]: unknown;
-}
-
 export interface Usage {
   inputTokens: number | null;
   outputTokens: number | null;

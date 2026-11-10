@@ -58,9 +58,11 @@ export class TypeSafeJevClient extends JevClient {
       // The SDK would log request details; the state holds the Master profile.
       logLevel: "off",
       compression: false,
-      timeout: 60_000,
-      // Only rate limits and overload retry; a 500 waits for the next poll.
+      timeout: 30_000,
+      // Only rate limits and overload retry; a 500, a timeout or a dropped connection waits for the next poll.
       retry: {
+        apiTimeoutError: false,
+        apiConnectionError: false,
         maxRetries: 3,
         httpStatuses: new Set([429, 529]),
         backoffInitialMs: config.backoffInitialMs ?? 1000,
