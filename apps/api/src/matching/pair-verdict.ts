@@ -1,6 +1,6 @@
 import { sameMetro } from "./metro";
 import { shingleSimilarity, snippetInside } from "./text-similarity";
-import { normalizeTitle, titleSimilarity } from "./title";
+import { normalizeTitle, titleCore, titleSimilarity } from "./title";
 
 // Rule 3's bar. Tuning may move the veto, never this.
 export const MERGE_AT_LEAST = 0.9;
@@ -95,7 +95,8 @@ export function judgePair(
     return { kind: "lookalike", reason: "similar_company", similarity: null };
   if (company === "same") {
     const close = titleSimilarity(a.title, b.title);
-    if (close >= LOOKALIKE_TITLE_AT_LEAST && close < 1)
+    const sameCore = left !== "" && titleCore(a.title) === titleCore(b.title);
+    if (sameCore || (close >= LOOKALIKE_TITLE_AT_LEAST && close < 1))
       return { kind: "lookalike", reason: "similar_title", similarity: null };
   }
   return { kind: "none" };

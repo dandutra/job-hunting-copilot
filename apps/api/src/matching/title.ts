@@ -20,6 +20,17 @@ const NOISE_WORDS = new Set([
   "wfh",
 ]);
 
+const EMPLOYMENT_WORDS = new Set([
+  "full",
+  "part",
+  "time",
+  "fulltime",
+  "parttime",
+  "contract",
+  "permanent",
+  "temporary",
+]);
+
 const ABBREVIATIONS: Record<string, string> = {
   sr: "senior",
   jr: "junior",
@@ -51,6 +62,16 @@ function isNoise(part: string): boolean {
   return found.length > 0 && found.every((t) => NOISE_WORDS.has(t));
 }
 
+// A part of place, mode and employment words keeps only the employment words.
+function trimPart(part: string): string {
+  const found = tokens(part);
+  const mixed = found.every(
+    (t) => NOISE_WORDS.has(t) || EMPLOYMENT_WORDS.has(t),
+  );
+  if (found.length === 0 || !mixed) return part;
+  return found.filter((t) => EMPLOYMENT_WORDS.has(t)).join(" ");
+}
+
 // Only noise parts go, because "Engineer - Payments" and "Engineer - Platform" are two roles.
 export function normalizeTitle(title: string): string {
   let text = title
@@ -64,15 +85,25 @@ export function normalizeTitle(title: string): string {
     .replace(/&/g, " and ");
   text = text.replace(/\(([^)]*)\)|\[([^\]]*)\]/g, (_, round, square) => {
     const inside = round ?? square;
-    return isNoise(inside) ? " " : ` ${inside} `;
+    return isNoise(inside) ? " " : ` ${trimPart(inside)} `;
   });
   const parts = text.split(/\s+[-–—|]\s+/);
-  const kept = parts.filter((part, i) => i === 0 || !isNoise(part));
+  const kept = parts
+    .filter((part, i) => i === 0 || !isNoise(part))
+    .map((part, i) => (i === 0 ? part : trimPart(part)));
   return tokens(kept.join(" "))
     .map((t) => ABBREVIATIONS[t] ?? ROMAN[t] ?? t)
     .join(" ")
     .split(" ")
     .filter(Boolean)
+    .join(" ");
+}
+
+// The title without employment words, so "Engineer (Contract)" and "Engineer" can still be a Lookalike.
+export function titleCore(title: string): string {
+  return normalizeTitle(title)
+    .split(" ")
+    .filter((t) => !EMPLOYMENT_WORDS.has(t))
     .join(" ");
 }
 

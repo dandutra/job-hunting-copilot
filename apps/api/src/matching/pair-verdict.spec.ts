@@ -109,6 +109,29 @@ describe("judgePair", () => {
     });
   });
 
+  it("gives a Lookalike, not a merge, when titles differ only in employment type", () => {
+    const verdict = judgePair(
+      full(para("a"), { title: "Software Engineer (Contract)" }),
+      full(para("a"), { title: "Software Engineer" }),
+      same,
+    );
+    expect(verdict).toMatchObject({
+      kind: "lookalike",
+      reason: "similar_title",
+    });
+  });
+
+  it("gives a Lookalike, not a merge, between 0.5 and 0.9 similarity", () => {
+    const base = para("a", 400);
+    const words = base.split(" ");
+    // 20 changed words spread out kill 100 of 396 shingles, about 0.6 Jaccard.
+    for (let i = 0; i < 20; i++) words[10 + i * 19] = `zz${i}`;
+    expect(judgePair(full(base), full(words.join(" ")), same)).toMatchObject({
+      kind: "lookalike",
+      reason: "same_title",
+    });
+  });
+
   it("gives a Lookalike for an equal title across similar company names", () => {
     expect(
       judgePair(full(para("a")), full(para("a")), "similar"),

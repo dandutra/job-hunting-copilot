@@ -35,6 +35,12 @@ describe("normalizeTitle", () => {
     );
   });
 
+  it("strips the place from a part that also names the employment type", () => {
+    expect(normalizeTitle("Engineer - Toronto, Full-time")).toBe(
+      "engineer full time",
+    );
+  });
+
   it("keeps the level, so a level never equals none", () => {
     expect(normalizeTitle("Software Engineer II")).not.toBe(
       normalizeTitle("Software Engineer"),
