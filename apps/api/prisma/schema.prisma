@@ -45,6 +45,7 @@ model Posting {
   sightings       Sighting[]
   mergeLog        MergeLogEntry[]
   tailoredResumes TailoredResume[]
+  jevJudgements   JevJudgement[]
 
   @@index([companyId])
   @@map("posting")
@@ -118,6 +119,7 @@ model MasterProfileVersion {
   rawYaml         String           @map("raw_yaml")
   createdAt       DateTime         @default(now()) @map("created_at")
   tailoredResumes TailoredResume[]
+  jevJudgements   JevJudgement[]
 
   @@map("master_profile_version")
 }
@@ -142,4 +144,27 @@ model TailoredResume {
 
   @@index([postingId, status])
   @@map("tailored_resume")
+}
+
+// Never updated or deleted: tuning reads these rows, so it needs no second Jev call. The newest row per Posting is live.
+model JevJudgement {
+  id                 Int                  @id @default(autoincrement())
+  // Restrict: a merge must move judgements, never delete them with the absorbed Posting.
+  postingId          Int                  @map("posting_id")
+  posting            Posting              @relation(fields: [postingId], references: [id], onDelete: Restrict)
+  profileVersionId   String               @map("profile_version_id")
+  profileVersion     MasterProfileVersion @relation(fields: [profileVersionId], references: [id])
+  questionSetVersion String               @map("question_set_version")
+  // What the Posting's description was when asked; a move from none or snippet to full triggers a rerun.
+  descriptionKind    String               @map("description_kind")
+  // The model ID Jev returned, not the one we asked for.
+  model              String
+  answers            Json
+  inputTokens        Int?                 @map("input_tokens")
+  outputTokens       Int?                 @map("output_tokens")
+  createdAt          DateTime             @default(now()) @map("created_at")
+
+  @@index([postingId, createdAt])
+  @@index([profileVersionId])
+  @@map("jev_judgement")
 }

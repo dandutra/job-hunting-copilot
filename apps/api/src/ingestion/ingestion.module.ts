@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { JevModule } from "../jev/jev.module";
+import { JevRunner } from "../jev/jev-runner";
 import { MatchingModule } from "../matching/matching.module";
 import { PrismaService } from "../prisma/prisma.service";
 import { PrismaModule } from "../prisma/prisma.module";
@@ -15,18 +17,24 @@ import { LeverAdapter } from "./lever/lever-adapter";
 import { WorkdayAdapter } from "./workday/workday-adapter";
 import { JobspyAdapter, jobspyConfigFromEnv } from "./jobspy/jobspy-adapter";
 import { HeartbeatPollHooks } from "./heartbeat-poll-hooks";
+import { JevPollHooks } from "./jev-poll-hooks";
 import { PollHooks } from "./poll-hooks";
 
 const JOBSPY_SITES = ["linkedin", "indeed"] as const;
 
 @Module({
-  imports: [PrismaModule, MatchingModule],
+  imports: [PrismaModule, MatchingModule, JevModule],
   providers: [
     IngestScheduler,
     { provide: AlertHook, useClass: LogAlertHook },
     {
       provide: PollHooks,
-      useFactory: () => new HeartbeatPollHooks(process.env.HEARTBEAT_URL ?? ""),
+      inject: [JevRunner],
+      useFactory: (jev: JevRunner) =>
+        new JevPollHooks(
+          new HeartbeatPollHooks(process.env.HEARTBEAT_URL ?? ""),
+          jev,
+        ),
     },
     {
       provide: INGEST_OPTIONS,

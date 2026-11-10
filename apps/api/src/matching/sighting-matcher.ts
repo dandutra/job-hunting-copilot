@@ -274,6 +274,10 @@ export class SightingMatcher {
       where: { postingId: fromId },
       data: { postingId: intoId },
     });
+    await tx.jevJudgement.updateMany({
+      where: { postingId: fromId },
+      data: { postingId: intoId },
+    });
     // A Posting has at most one open draft and one approved resume, so the newest of each wins.
     const newestFirst = {
       draft: [{ createdAt: "desc" }, { id: "desc" }],
