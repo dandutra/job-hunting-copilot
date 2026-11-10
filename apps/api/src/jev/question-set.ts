@@ -31,6 +31,22 @@ export const CAP_QUESTIONS = {
   requires_french: "Does `posting` say it requires French?",
 } as const;
 
+// P(yes) at or above which a Tier cap applies. outside_gta is 0.5 from the first real run (see the Jev gotcha); the rest keep TypeSafe's suggested 0.7 until a run says otherwise.
+export const CAP_THRESHOLDS: Record<CapName, number> = {
+  closed_to_juniors: 0.7,
+  outside_gta: 0.5,
+  us_only: 0.7,
+  security_clearance: 0.7,
+  requires_french: 0.7,
+};
+
+export function capsStated(answers: Record<string, unknown>): CapName[] {
+  return CAP_NAMES.filter((name) => {
+    const noul = (answers[name] as { noul?: unknown } | undefined)?.noul;
+    return typeof noul === "number" && noul >= CAP_THRESHOLDS[name];
+  });
+}
+
 export const SCORE_LEVELS = {
   skills_covered: [
     "Almost none of the skills `posting` asks for appear in `master_profile`",
