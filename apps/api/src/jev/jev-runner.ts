@@ -16,6 +16,8 @@ export interface RunOptions {
   now?: Date;
   shouldStop?: () => boolean;
   budgetMs?: number;
+  // Limits the run to these Postings, for a manual sample.
+  postingIds?: number[];
 }
 
 export interface RunCounts {
@@ -64,6 +66,7 @@ export class JevRunner {
     const summary = fitSummary(parsed.profile);
 
     const postings = await this.prisma.posting.findMany({
+      where: options.postingIds ? { id: { in: options.postingIds } } : {},
       select: {
         id: true,
         descriptionKind: true,
