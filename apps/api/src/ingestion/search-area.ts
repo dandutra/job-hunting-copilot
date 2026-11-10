@@ -1,4 +1,4 @@
-const CITIES = [
+export const CITIES = [
   "toronto",
   "mississauga",
   "brampton",
@@ -72,6 +72,11 @@ function entryInArea(location: string): boolean {
   if (hasCanadaCode(location)) return true;
   // Any other word is a place we cannot judge, so it keeps the row out.
   return tokens.every((t) => REMOTE_FILLER.has(t));
+}
+
+export function inGta(location: string): boolean {
+  const tokens = words(location);
+  return CITIES.some((city) => hasPhrase(tokens, city));
 }
 
 // A caller splits multi-location text itself.

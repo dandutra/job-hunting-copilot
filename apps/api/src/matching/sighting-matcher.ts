@@ -2,8 +2,12 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { Posting, Prisma, Sighting } from "@prisma/client";
 import { CompaniesService } from "../companies/companies.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { normalizeName } from "../companies/normalize-name";
 import { boardOf, normalizeListingKey, parseListingKey } from "./listing-key";
+import { conflicts, keysOf } from "./key-conflicts";
 import { MatchingHooks } from "./matching-hooks";
+import { absorbPosting } from "./posting-absorb";
+import { applyTextRules } from "./text-merge";
 import { kindRank, precedenceOf, SightingDraft } from "./sighting-draft";
 
 export const WINDOW_DAYS = 30;
@@ -29,17 +33,6 @@ interface PendingLog {
   absorbedPostingId?: number;
 }
 
-function keysOf(sightings: Sighting[]): string[] {
-  return sightings.flatMap((s) =>
-    s.directKey ? [s.listingKey, s.directKey] : [s.listingKey],
-  );
-}
-
-// Two different keys on one board are two listings, so they never share a Posting.
-function conflicts(a: string[], b: string[]): boolean {
-  return a.some((x) => b.some((y) => x !== y && boardOf(x) === boardOf(y)));
-}
-
 @Injectable()
 export class SightingMatcher {
   constructor(
@@ -59,6 +52,11 @@ export class SightingMatcher {
     const companyId =
       draft.watchedCompanyId ??
       (await this.companies.resolveCompany(draft.companyName)).id;
+    const similarCompanyIds = normalizeName(draft.companyName)
+      ? (await this.companies.findSimilarCompanies(draft.companyName))
+          .map((c) => c.id)
+          .filter((id) => id !== companyId)
+      : [];
 
     // Merges reach Postings beyond the draft's keys, so one lock serialises every match.
     const outcome = await this.prisma.$transaction(
@@ -69,6 +67,7 @@ export class SightingMatcher {
           listingKey,
           directKey,
           companyId,
+          similarCompanyIds,
           now,
         });
       },
@@ -93,6 +92,7 @@ export class SightingMatcher {
       listingKey: string;
       directKey: string | null;
       companyId: number;
+      similarCompanyIds: number[];
       now: Date;
     },
   ) {
@@ -161,10 +161,6 @@ export class SightingMatcher {
       absorbs.push({ ...evidence, absorbedPostingId: candidateId });
     }
 
-    const before = survivorId
-      ? await tx.posting.findUniqueOrThrow({ where: { id: survivorId } })
-      : null;
-
     if (survivorId === null) {
       const created = await tx.posting.create({
         data: {
@@ -181,7 +177,7 @@ export class SightingMatcher {
     const homeId = survivorId;
 
     for (const { absorbedPostingId } of absorbs) {
-      await this.absorb(tx, absorbedPostingId, homeId);
+      await absorbPosting(tx, absorbedPostingId, homeId);
     }
 
     const sighting = existing
@@ -221,12 +217,23 @@ export class SightingMatcher {
       });
     }
 
-    const posting = await this.refreshPosting(tx, homeId);
-    const wasFull = before?.descriptionKind === "full";
+    const text = await applyTextRules(tx, {
+      sighting,
+      homeId,
+      similarCompanyIds: input.similarCompanyIds,
+      cutoff,
+    });
+    // The row is refreshed only below, so its kind is still what it was before this match.
+    const before = await tx.posting.findUnique({ where: { id: text.homeId } });
+    const posting = await this.refreshPosting(tx, text.homeId);
     return {
       posting,
-      sighting,
-      upgraded: !wasFull && posting.descriptionKind === "full",
+      sighting: await tx.sighting.findUniqueOrThrow({
+        where: { id: sighting.id },
+      }),
+      upgraded:
+        before?.descriptionKind !== "full" &&
+        posting.descriptionKind === "full",
     };
   }
 
@@ -257,47 +264,6 @@ export class SightingMatcher {
         draftJobSource: draft.jobSource,
       },
     };
-  }
-
-  private async absorb(tx: Tx, fromId: number, intoId: number) {
-    // Same lock as the tailoring writes, taken before any row moves, so the two can't deadlock.
-    await tx.$queryRaw`SELECT id FROM posting WHERE id IN (${fromId}, ${intoId}) ORDER BY id FOR UPDATE`;
-    await tx.sighting.updateMany({
-      where: { postingId: fromId },
-      data: { postingId: intoId },
-    });
-    await tx.mergeLogEntry.updateMany({
-      where: { postingId: fromId },
-      data: { postingId: intoId },
-    });
-    await tx.tailoredResume.updateMany({
-      where: { postingId: fromId },
-      data: { postingId: intoId },
-    });
-    await tx.jevJudgement.updateMany({
-      where: { postingId: fromId },
-      data: { postingId: intoId },
-    });
-    // A Posting has at most one open draft and one approved resume, so the newest of each wins.
-    const newestFirst = {
-      draft: [{ createdAt: "desc" }, { id: "desc" }],
-      approved: [
-        { approvedAt: { sort: "desc", nulls: "last" } },
-        { id: "desc" },
-      ],
-    } satisfies Record<string, Prisma.TailoredResumeOrderByWithRelationInput[]>;
-    for (const [status, orderBy] of Object.entries(newestFirst)) {
-      const newest = await tx.tailoredResume.findFirst({
-        where: { postingId: intoId, status },
-        orderBy,
-      });
-      if (newest)
-        await tx.tailoredResume.updateMany({
-          where: { postingId: intoId, status, id: { not: newest.id } },
-          data: { status: "superseded" },
-        });
-    }
-    await tx.posting.delete({ where: { id: fromId } });
   }
 
   private refreshSighting(

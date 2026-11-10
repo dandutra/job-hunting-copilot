@@ -55,3 +55,8 @@ const KIND_RANK: Record<DescriptionKind, number> = {
 export function kindRank(kind: string): number {
   return KIND_RANK[kind as DescriptionKind] ?? 0;
 }
+
+// Sources of a Watched company's own board, the ones a job board's Sighting can tie between.
+export function atsSources(): string[] {
+  return JOB_SOURCES.filter((source) => PRECEDENCE[source] === 0);
+}

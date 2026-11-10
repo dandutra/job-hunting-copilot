@@ -760,4 +760,478 @@ describe("SightingMatcher", () => {
       ).toBe(0);
     });
   });
+
+  describe("text rules", () => {
+    const words = (seed: string, n = 120) =>
+      Array.from({ length: n }, (_, i) => `${seed}${i}`).join(" ");
+    const TEXT = words("duty");
+    const indeed = (overrides: Partial<SightingDraft> = {}) =>
+      draft({
+        jobSource: "jobspy-indeed",
+        listingKey: "indeed:abc",
+        url: "https://ca.indeed.com/viewjob?jk=abc",
+        ...overrides,
+      });
+    const full = { description: TEXT, descriptionKind: "full" as const };
+    const greenhouse = (id: number, overrides: Partial<SightingDraft> = {}) =>
+      draft({
+        jobSource: "greenhouse",
+        listingKey: `greenhouse:acme:${id}`,
+        url: `https://boards.greenhouse.io/acme/jobs/${id}`,
+        ...overrides,
+      });
+    const postings = () => prisma.posting.count();
+    const lookalikes = () => prisma.lookalike.findMany();
+
+    it("merges two boards that carry the same text, and logs the similarity", async () => {
+      const a = await matcher.matchSighting(draft(full), { now: T0 });
+      const b = await matcher.matchSighting(indeed(full), { now: T0 });
+
+      expect(b.posting.id).toBe(a.posting.id);
+      expect(b.sighting.postingId).toBe(a.posting.id);
+      expect(await postings()).toBe(1);
+      const [entry] = await prisma.mergeLogEntry.findMany();
+      expect(entry.rule).toBe("text_similarity");
+      expect(entry.evidence).toMatchObject({
+        method: "shingles",
+        similarity: 1,
+      });
+      expect(await lookalikes()).toHaveLength(0);
+    });
+
+    it("merges two Postings that already existed when a later poll brings the text", async () => {
+      await matcher.matchSighting(draft(full), { now: T0 });
+      await matcher.matchSighting(indeed(), { now: T0 });
+      expect(await postings()).toBe(2);
+      expect(await lookalikes()).toHaveLength(1);
+
+      await matcher.matchSighting(indeed(full), { now: daysAfter(1) });
+
+      expect(await postings()).toBe(1);
+      expect(await lookalikes()).toHaveLength(0);
+    });
+
+    it("keeps the same title and Company apart when the text differs, with no link", async () => {
+      await matcher.matchSighting(draft(full), { now: T0 });
+      await matcher.matchSighting(
+        indeed({ description: words("other"), descriptionKind: "full" }),
+        { now: T0 },
+      );
+
+      expect(await postings()).toBe(2);
+      expect(await lookalikes()).toHaveLength(0);
+      expect(await prisma.mergeLogEntry.count()).toBe(0);
+    });
+
+    it("gives a Lookalike, not a merge, for an alert with no description beside a Greenhouse Sighting", async () => {
+      await matcher.matchSighting(greenhouse(1, full), { now: T0 });
+      await matcher.matchSighting(draft({ jobSource: "alert-linkedin" }), {
+        now: T0,
+      });
+
+      expect(await postings()).toBe(2);
+      const [link] = await lookalikes();
+      expect(link.reason).toBe("same_title");
+      expect(link.lowPostingId).toBeLessThan(link.highPostingId);
+    });
+
+    it("writes one Lookalike however many polls repeat the pair", async () => {
+      await matcher.matchSighting(greenhouse(1, full), { now: T0 });
+      for (let day = 0; day < 3; day++) {
+        await matcher.matchSighting(draft({ jobSource: "alert-linkedin" }), {
+          now: daysAfter(day),
+        });
+      }
+      expect(await lookalikes()).toHaveLength(1);
+    });
+
+    describe("an Adzuna snippet", () => {
+      const snippetOf = (text: string) => text.split(" ").slice(5, 45);
+      const adzuna = (snippet: string) =>
+        draft({
+          jobSource: "adzuna",
+          listingKey: "adzuna:77",
+          url: "https://www.adzuna.ca/details/77",
+          description: snippet,
+          descriptionKind: "snippet",
+        });
+
+      it("merges when found word for word in the other side's full description", async () => {
+        const a = await matcher.matchSighting(draft(full), { now: T0 });
+        const b = await matcher.matchSighting(
+          adzuna(`${snippetOf(TEXT).join(" ")}...`),
+          { now: T0 },
+        );
+
+        expect(b.posting.id).toBe(a.posting.id);
+        const [entry] = await prisma.mergeLogEntry.findMany();
+        expect(entry.evidence).toMatchObject({ method: "snippet" });
+      });
+
+      it("gives a Lookalike when it differs by one sentence", async () => {
+        const words40 = snippetOf(TEXT);
+        words40.splice(15, 6, "a", "new", "sentence", "was", "put", "here");
+        await matcher.matchSighting(draft(full), { now: T0 });
+        await matcher.matchSighting(adzuna(`${words40.join(" ")}...`), {
+          now: T0,
+        });
+
+        expect(await postings()).toBe(2);
+        expect(await lookalikes()).toHaveLength(1);
+      });
+    });
+
+    it("never merges 'Software Engineer II' with 'Software Engineer'", async () => {
+      await matcher.matchSighting(
+        draft({ ...full, title: "Software Engineer II" }),
+        {
+          now: T0,
+        },
+      );
+      await matcher.matchSighting(
+        indeed({ ...full, title: "Software Engineer" }),
+        {
+          now: T0,
+        },
+      );
+
+      expect(await postings()).toBe(2);
+      const [link] = await lookalikes();
+      expect(link.reason).toBe("similar_title");
+    });
+
+    it("merges across a title written with noise and abbreviations", async () => {
+      await matcher.matchSighting(
+        draft({ ...full, title: "Sr. Software Dev (Hybrid)" }),
+        { now: T0 },
+      );
+      await matcher.matchSighting(
+        indeed({ ...full, title: "Senior Software Developer - Toronto" }),
+        { now: T0 },
+      );
+      expect(await postings()).toBe(1);
+    });
+
+    it("keeps two metros apart", async () => {
+      await matcher.matchSighting(draft(full), { now: T0 });
+      await matcher.matchSighting(
+        indeed({ ...full, location: "Remote, Canada" }),
+        {
+          now: T0,
+        },
+      );
+      expect(await postings()).toBe(2);
+      expect(await lookalikes()).toHaveLength(0);
+    });
+
+    it("keeps two different Companies apart", async () => {
+      await matcher.matchSighting(draft(full), { now: T0 });
+      await matcher.matchSighting(indeed({ ...full, companyName: "Globex" }), {
+        now: T0,
+      });
+      expect(await postings()).toBe(2);
+      expect(await lookalikes()).toHaveLength(0);
+    });
+
+    it("merges across two names of one Company through an alias", async () => {
+      const companies = new CompaniesService(prisma);
+      const acme = await companies.resolveCompany("Acme Inc");
+      await companies.addAlias(acme.id, "Acme Holdings");
+
+      await matcher.matchSighting(draft(full), { now: T0 });
+      await matcher.matchSighting(
+        indeed({ ...full, companyName: "Acme Holdings" }),
+        {
+          now: T0,
+        },
+      );
+      expect(await postings()).toBe(1);
+    });
+
+    it("gives a Lookalike for an equal title across company names that are close but not aliases", async () => {
+      await matcher.matchSighting(
+        draft({ ...full, companyName: "Northwind Traders" }),
+        {
+          now: T0,
+        },
+      );
+      await matcher.matchSighting(
+        indeed({ ...full, companyName: "Northwind Trader" }),
+        {
+          now: T0,
+        },
+      );
+
+      expect(await postings()).toBe(2);
+      const [link] = await lookalikes();
+      expect(link.reason).toBe("similar_company");
+    });
+
+    it("gives a Lookalike for 'Deloitte' against 'Deloitte LLP'", async () => {
+      await matcher.matchSighting(draft({ ...full, companyName: "Deloitte" }), {
+        now: T0,
+      });
+      await matcher.matchSighting(
+        indeed({ ...full, companyName: "Deloitte LLP" }),
+        { now: T0 },
+      );
+
+      expect(await postings()).toBe(2);
+      const [link] = await lookalikes();
+      expect(link.reason).toBe("similar_company");
+    });
+
+    it("never joins two clearly different Postings through one snippet they both contain", async () => {
+      const blurb = words("blurb", 20);
+      const p1 = await matcher.matchSighting(
+        draft({
+          description: `${blurb} ${words("first")}`,
+          descriptionKind: "full",
+        }),
+        { now: T0 },
+      );
+      const p2 = await matcher.matchSighting(
+        indeed({
+          description: `${blurb} ${words("second")}`,
+          descriptionKind: "full",
+        }),
+        { now: T0 },
+      );
+      expect(p2.posting.id).not.toBe(p1.posting.id);
+
+      await matcher.matchSighting(
+        draft({
+          jobSource: "adzuna",
+          listingKey: "adzuna:77",
+          url: "https://www.adzuna.ca/details/77",
+          description: `${blurb.split(" ").slice(0, 14).join(" ")} ...`,
+          descriptionKind: "snippet",
+        }),
+        { now: T0 },
+      );
+
+      const homes = await prisma.sighting.findMany({
+        where: { id: { in: [p1.sighting.id, p2.sighting.id] } },
+      });
+      expect(new Set(homes.map((s) => s.postingId)).size).toBe(2);
+    });
+
+    it("does not merge a Posting when another of its Sightings vetoes the draft", async () => {
+      await matcher.matchSighting(greenhouse(1, full), { now: T0 });
+      const other = await matcher.matchSighting(
+        draft({
+          jobSource: "jobspy-indeed",
+          listingKey: "indeed:abc",
+          directUrl: "https://boards.greenhouse.io/acme/jobs/1",
+          description: words("other"),
+          descriptionKind: "full",
+        }),
+        { now: T0 },
+      );
+
+      const linkedin = await matcher.matchSighting(draft(full), { now: T0 });
+
+      expect(linkedin.posting.id).not.toBe(other.posting.id);
+      expect(
+        await prisma.mergeLogEntry.count({
+          where: { rule: "text_similarity" },
+        }),
+      ).toBe(0);
+    });
+
+    it("compares only Sightings seen in the last 30 days", async () => {
+      await matcher.matchSighting(draft(full), { now: T0 });
+      await matcher.matchSighting(indeed(full), { now: daysAfter(45) });
+      expect(await postings()).toBe(2);
+    });
+
+    it("keeps two listings of one board apart even when their text is equal", async () => {
+      await matcher.matchSighting(draft(full), { now: T0 });
+      await matcher.matchSighting(
+        draft({ ...full, listingKey: "linkedin:200" }),
+        {
+          now: T0,
+        },
+      );
+
+      expect(await postings()).toBe(2);
+      expect(await lookalikes()).toHaveLength(1);
+      expect(await prisma.mergeLogEntry.count()).toBe(0);
+    });
+
+    describe("a board Sighting that ties between two ATS Postings", () => {
+      it("gives a Lookalike to both when its link passes rule 3 with both", async () => {
+        const one = await matcher.matchSighting(greenhouse(1, full), {
+          now: T0,
+        });
+        const two = await matcher.matchSighting(greenhouse(2, full), {
+          now: T0,
+        });
+        expect(two.posting.id).not.toBe(one.posting.id);
+
+        const board = await matcher.matchSighting(draft(full), { now: T0 });
+
+        expect(await postings()).toBe(3);
+        const links = (await lookalikes()).filter((l) =>
+          [l.lowPostingId, l.highPostingId].includes(board.posting.id),
+        );
+        expect(links.map((l) => l.reason)).toEqual(["board_tie", "board_tie"]);
+      });
+
+      it("joins the one whose link passes rule 3 when the other's does not", async () => {
+        const one = await matcher.matchSighting(greenhouse(1, full), {
+          now: T0,
+        });
+        await matcher.matchSighting(
+          greenhouse(2, {
+            description: words("other"),
+            descriptionKind: "full",
+          }),
+          { now: T0 },
+        );
+
+        const board = await matcher.matchSighting(draft(full), { now: T0 });
+
+        expect(board.posting.id).toBe(one.posting.id);
+        expect(await postings()).toBe(2);
+      });
+
+      it("joins the one when the other has no description to compare", async () => {
+        const one = await matcher.matchSighting(greenhouse(1, full), {
+          now: T0,
+        });
+        const bare = await matcher.matchSighting(greenhouse(2), { now: T0 });
+
+        const board = await matcher.matchSighting(draft(full), { now: T0 });
+
+        expect(board.posting.id).toBe(one.posting.id);
+        const [link] = await lookalikes();
+        expect([link.lowPostingId, link.highPostingId]).toContain(
+          bare.posting.id,
+        );
+      });
+    });
+
+    describe("the bridge case", () => {
+      const gh1 = "https://boards.greenhouse.io/acme/jobs/1";
+
+      it("merges A into B across an exact key when A's edge passes rule 3", async () => {
+        const b = await matcher.matchSighting(greenhouse(1, full), { now: T0 });
+        const a = await matcher.matchSighting(
+          indeed({ title: "Software Developer II", ...full }),
+          { now: T0 },
+        );
+        expect(await postings()).toBe(2);
+
+        const bridge = await matcher.matchSighting(
+          draft({
+            jobSource: "alert-linkedin",
+            listingKey: "linkedin:9",
+            directUrl: gh1,
+            ...full,
+          }),
+          { now: T0 },
+        );
+
+        expect(bridge.posting.id).toBe(b.posting.id);
+        expect(a.posting.id).not.toBe(b.posting.id);
+        expect(await postings()).toBe(2);
+        expect(await lookalikes()).toHaveLength(1);
+      });
+
+      it("leaves A a Lookalike when A's edge is weak", async () => {
+        const b = await matcher.matchSighting(greenhouse(1, full), { now: T0 });
+        const a = await matcher.matchSighting(indeed(), { now: T0 });
+
+        const bridge = await matcher.matchSighting(
+          draft({
+            jobSource: "alert-linkedin",
+            listingKey: "linkedin:9",
+            directUrl: gh1,
+          }),
+          { now: T0 },
+        );
+
+        expect(bridge.posting.id).toBe(b.posting.id);
+        expect(await postings()).toBe(2);
+        const links = await lookalikes();
+        expect(links).toHaveLength(1);
+        expect([links[0].lowPostingId, links[0].highPostingId].sort()).toEqual(
+          [a.posting.id, b.posting.id].sort(),
+        );
+      });
+    });
+
+    it("keeps one Lookalike per pair when two Postings merge", async () => {
+      await matcher.matchSighting(greenhouse(1, full), { now: T0 });
+      const alert = await matcher.matchSighting(
+        draft({ jobSource: "alert-linkedin" }),
+        { now: T0 },
+      );
+      await matcher.matchSighting(indeed(), { now: T0 });
+      expect(await lookalikes()).toHaveLength(3);
+
+      await matcher.matchSighting(indeed(full), { now: daysAfter(1) });
+
+      expect(await postings()).toBe(2);
+      const [link, ...rest] = await lookalikes();
+      expect(rest).toHaveLength(0);
+      expect([link.lowPostingId, link.highPostingId]).toContain(
+        alert.posting.id,
+      );
+    });
+
+    it("fires the description upgrade when a text merge turns a bare Posting full", async () => {
+      await matcher.matchSighting(indeed(), { now: T0 });
+      await matcher.matchSighting(draft(full), { now: T0 });
+      upgrades.length = 0;
+
+      await matcher.matchSighting(indeed(full), { now: daysAfter(1) });
+
+      expect(await postings()).toBe(1);
+      expect(upgrades).toHaveLength(1);
+    });
+
+    it("makes zero false merges on same-title, different-opening pairs", async () => {
+      const boilerplate = words("eeo", 45);
+      const roles = [
+        "Software Developer",
+        "Data Analyst",
+        "Product Manager",
+        "Support Specialist",
+      ];
+      let pairs = 0;
+      for (const [i, title] of roles.entries()) {
+        const company = `Fixture Co ${String.fromCharCode(97 + i)}`;
+        const body = (seed: string) => `${words(seed, 90)} ${boilerplate}`;
+        await matcher.matchSighting(
+          draft({
+            listingKey: `linkedin:f${i}1`,
+            companyName: company,
+            title,
+            description: body(`x${i}`),
+            descriptionKind: "full",
+          }),
+          { now: T0 },
+        );
+        await matcher.matchSighting(
+          indeed({
+            listingKey: `indeed:f${i}2`,
+            companyName: company,
+            title,
+            description: body(`y${i}`),
+            descriptionKind: "full",
+          }),
+          { now: T0 },
+        );
+        await matcher.matchSighting(
+          greenhouse(i + 10, { companyName: company, title }),
+          { now: T0 },
+        );
+        pairs++;
+      }
+      expect(await postings()).toBe(pairs * 3);
+      expect(await prisma.mergeLogEntry.count()).toBe(0);
+    });
+  });
 });
