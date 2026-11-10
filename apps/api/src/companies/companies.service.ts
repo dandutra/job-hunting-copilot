@@ -10,6 +10,12 @@ import { normalizeName } from "./normalize-name";
 import { similarity } from "./similarity";
 
 const SIMILAR_AT_LEAST = 0.8;
+
+// "Deloitte" against "Deloitte LLP" scores 0.78 on bigrams, so a whole-word prefix counts as similar too.
+function startsWithWords(a: string, b: string): boolean {
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 3 && long.startsWith(`${short} `);
+}
 const UNIQUE_VIOLATION = "P2002";
 
 function isUniqueViolation(error: unknown): boolean {
@@ -84,7 +90,8 @@ export class CompaniesService {
     for (const alias of aliases) {
       if (alias.companyId === ownerOfExact) continue;
       if (
-        similarity(normalizedName, alias.normalizedName) >= SIMILAR_AT_LEAST
+        similarity(normalizedName, alias.normalizedName) >= SIMILAR_AT_LEAST ||
+        startsWithWords(normalizedName, alias.normalizedName)
       ) {
         similar.set(alias.companyId, alias.company);
       }

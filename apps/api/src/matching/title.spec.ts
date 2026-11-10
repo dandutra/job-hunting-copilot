@@ -26,6 +26,15 @@ describe("normalizeTitle", () => {
     );
   });
 
+  it("keeps the employment type, so full time never equals part time", () => {
+    expect(normalizeTitle("Cashier - Full Time")).not.toBe(
+      normalizeTitle("Cashier - Part Time"),
+    );
+    expect(normalizeTitle("Engineer (Contract)")).not.toBe(
+      normalizeTitle("Engineer (Permanent)"),
+    );
+  });
+
   it("keeps the level, so a level never equals none", () => {
     expect(normalizeTitle("Software Engineer II")).not.toBe(
       normalizeTitle("Software Engineer"),

@@ -1,7 +1,7 @@
 import { similarity } from "../companies/similarity";
 import { CITIES } from "../ingestion/search-area";
 
-// A dash or bracket part that only names a place, a work mode or a requisition id carries no role.
+// A dash or bracket part that only names a place or a work mode carries no role. Employment type stays, because one employer can paste one text onto a full-time and a part-time requisition.
 const NOISE_WORDS = new Set([
   ...CITIES.flatMap((city) => city.split(" ")),
   "ontario",
@@ -18,14 +18,6 @@ const NOISE_WORDS = new Set([
   "site",
   "office",
   "wfh",
-  "contract",
-  "permanent",
-  "temporary",
-  "full",
-  "part",
-  "time",
-  "fulltime",
-  "parttime",
 ]);
 
 const ABBREVIATIONS: Record<string, string> = {

@@ -58,6 +58,18 @@ function textEvidence(a: SightingFacts, b: SightingFacts): TextEvidence {
   return { kind: "none", similarity: null };
 }
 
+// Checks two Sightings already sitting on the Postings about to merge, so one snippet can't bridge two openings.
+export function textAgreement(
+  a: SightingFacts,
+  b: SightingFacts,
+): "clash" | "doubt" | "agree" {
+  if (a.descriptionKind !== "full" || b.descriptionKind !== "full")
+    return "agree";
+  const similarity = shingleSimilarity(a.description, b.description);
+  if (similarity === null || similarity >= MERGE_AT_LEAST) return "agree";
+  return similarity < VETO_BELOW ? "clash" : "doubt";
+}
+
 // Rule 3 and the five Lookalike cases for two Sightings that sit on different Postings.
 export function judgePair(
   a: SightingFacts,

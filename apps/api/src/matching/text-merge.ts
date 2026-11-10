@@ -1,6 +1,11 @@
 import { Prisma, Sighting } from "@prisma/client";
 import { conflicts, keysOf } from "./key-conflicts";
-import { judgePair, LookalikeReason, PairVerdict } from "./pair-verdict";
+import {
+  judgePair,
+  LookalikeReason,
+  PairVerdict,
+  textAgreement,
+} from "./pair-verdict";
 import { absorbPosting } from "./posting-absorb";
 import { atsSources } from "./sighting-draft";
 
@@ -60,14 +65,18 @@ async function candidatesFor(tx: Tx, input: TextRuleInput) {
     orderBy: { id: "asc" },
   });
   const best = new Map<number, Candidate>();
+  // One clearly different Sighting keeps its whole Posting apart, whatever its other Sightings say.
+  const vetoed = new Set<number>();
   for (const other of others) {
     const relation =
       other.companyId === sighting.companyId ? "same" : "similar";
     const verdict = judgePair(sighting, other, relation);
+    if (verdict.kind === "veto") vetoed.add(other.postingId);
     if (verdict.kind === "none" || verdict.kind === "veto") continue;
     if (better(verdict, best.get(other.postingId)?.verdict))
       best.set(other.postingId, { postingId: other.postingId, other, verdict });
   }
+  for (const postingId of vetoed) best.delete(postingId);
   return [...best.values()].sort((a, b) => a.postingId - b.postingId);
 }
 
@@ -118,11 +127,16 @@ export async function applyTextRules(
       );
       continue;
     }
-    const held = keysOf(
-      await tx.sighting.findMany({ where: { postingId: homeId } }),
+    const ours = await tx.sighting.findMany({ where: { postingId: homeId } });
+    const theirs = await tx.sighting.findMany({ where: { postingId } });
+    const agreements = ours.flatMap((a) =>
+      theirs.map((b) => textAgreement(a, b)),
     );
-    const theirs = keysOf(await tx.sighting.findMany({ where: { postingId } }));
-    if (conflicts(held, theirs)) {
+    if (agreements.includes("clash")) continue;
+    if (
+      conflicts(keysOf(ours), keysOf(theirs)) ||
+      agreements.includes("doubt")
+    ) {
       lookalikes.push({
         ...candidate,
         verdict: {

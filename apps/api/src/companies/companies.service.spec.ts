@@ -117,6 +117,22 @@ describe("CompaniesService", () => {
       );
     });
 
+    it("returns a Company whose name starts with every word of the other", async () => {
+      const deloitte = await companies.resolveCompany("Deloitte");
+
+      const similar = await companies.findSimilarCompanies("Deloitte LLP");
+
+      expect(similar.map((c) => c.id)).toEqual([deloitte.id]);
+    });
+
+    it("does not match a part of a word", async () => {
+      await companies.resolveCompany("Deloitte");
+
+      expect(await companies.findSimilarCompanies("Deloittech Labs")).toEqual(
+        [],
+      );
+    });
+
     it("lists a Company once however many of its aliases are similar", async () => {
       const a = await companies.resolveCompany("Wealthsimple");
       await companies.addAlias(a.id, "Wealthsimple Financial");
