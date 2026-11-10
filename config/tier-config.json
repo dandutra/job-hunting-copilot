@@ -1,0 +1,27 @@
+{
+  "scoreWeight": 0.6,
+  "rolePoints": {
+    "full_stack": 0.15,
+    "back_end": 0.1,
+    "front_end": 0.05,
+    "cloud_ops": 0.02,
+    "support": 0,
+    "other": 0
+  },
+  "workPoints": {
+    "hybrid": 0.1,
+    "remote": 0.05,
+    "on_site": 0
+  },
+  "capThresholds": {
+    "closed_to_juniors": 0.7,
+    "outside_gta": 0.5,
+    "us_only": 0.7,
+    "security_clearance": 0.7,
+    "requires_french": 0.7
+  },
+  "thresholds": {
+    "a": 0.9,
+    "b": 0.6
+  }
+}

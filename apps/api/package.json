@@ -12,6 +12,7 @@
     "test": "jest",
     "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm test",
     "seed": "prisma db seed",
+    "tier:recompute": "tsx scripts/tier-recompute.ts",
     "jev:sample": "tsx scripts/jev-sample.ts",
     "generate:spec": "ts-node --transpile-only -O '{\"rootDir\":\".\"}' scripts/write-openapi.ts",
     "generate:types": "openapi-typescript ../jobspy/openapi.json -o src/ingestion/jobspy/schema.d.ts"

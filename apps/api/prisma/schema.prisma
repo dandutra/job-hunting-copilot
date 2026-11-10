@@ -46,6 +46,7 @@ model Posting {
   mergeLog        MergeLogEntry[]
   tailoredResumes TailoredResume[]
   jevJudgements   JevJudgement[]
+  tier            PostingTier?
   lookalikesLow   Lookalike[]      @relation("LookalikeLow")
   lookalikesHigh  Lookalike[]      @relation("LookalikeHigh")
 
@@ -181,9 +182,29 @@ model JevJudgement {
   answers            Json
   inputTokens        Int?                 @map("input_tokens")
   outputTokens       Int?                 @map("output_tokens")
+  tiers              PostingTier[]
   createdAt          DateTime             @default(now()) @map("created_at")
 
   @@index([postingId, createdAt])
   @@index([profileVersionId])
   @@map("jev_judgement")
+}
+
+// Derived from the newest JevJudgement and the committed tier config, so a recompute overwrites it and a merge can drop it.
+model PostingTier {
+  postingId     Int          @id @map("posting_id")
+  posting       Posting      @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  judgementId   Int          @map("judgement_id")
+  judgement     JevJudgement @relation(fields: [judgementId], references: [id], onDelete: Restrict)
+  // SHA-256 of config/tier-config.json when this row was computed.
+  configVersion String       @map("config_version")
+  // A, B or C.
+  tier          String
+  total         Float
+  // The Tier caps that held the Posting at C; empty when none applied.
+  capsApplied   String[]     @map("caps_applied")
+  computedAt    DateTime     @default(now()) @map("computed_at")
+
+  @@index([judgementId])
+  @@map("posting_tier")
 }

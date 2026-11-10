@@ -56,6 +56,7 @@ Glossary: [glossary.md](glossary.md)
 - [The /tailor skill](gotchas/tailor-skill.md): `fetch-input.sh` stops on a profile hash mismatch with exit 3, `summary` is one line per Highlight, and `/tailor` passes its API base to the forked review.
 - [Backups](gotchas/backups.md): `backup.sh` signs uploads itself and needs the payload hash, the test server skips signature checks, the pre-deploy dump keys off the `copilot_pgdata` volume, and the drill counts only listed tables.
 - [Jev judgement of a Posting](gotchas/jev-judgement.md): the runner reads the tables after each poll, judges what has no judgement or moved to a full description or an older profile, stores raw answers with the returned model, retries only 429 and 529, and logs no profile content.
+- [Tier scoring and recompute](gotchas/tier-scoring.md): the total, caps that hold a Posting at C, the config order check and SHA-256 version, no row for an unjudged Posting, and `tier:recompute` with `--seed-thresholds`.
 
 ## Job sources
 

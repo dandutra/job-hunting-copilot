@@ -11,6 +11,7 @@
     "generate:check": "node scripts/check-generated.mjs",
     "check": "node --test scripts/check-generated.test.mjs scripts/backup.test.mjs && pnpm generate:check && pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check",
     "profile:check": "pnpm --filter master-profile run profile:check",
+    "tier:recompute": "pnpm --filter api run tier:recompute --",
     "profile:import": "pnpm --filter master-profile run profile:import"
   },
   "devDependencies": {

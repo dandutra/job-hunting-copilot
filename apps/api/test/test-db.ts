@@ -8,8 +8,9 @@ export function testDatabaseUrl(): string {
   return url.toString();
 }
 
-// Tailored resumes, Jev judgements and Postings reference their parents without cascade, so they go first.
+// Tiers, Tailored resumes, Jev judgements and Postings reference their parents without cascade, so they go first.
 export async function resetTestDb(prisma: PrismaService): Promise<void> {
+  await prisma.postingTier.deleteMany();
   await prisma.tailoredResume.deleteMany();
   await prisma.jevJudgement.deleteMany();
   await prisma.ingestCursor.deleteMany();
