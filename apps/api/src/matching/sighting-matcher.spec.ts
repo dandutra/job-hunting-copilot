@@ -690,6 +690,44 @@ describe("SightingMatcher", () => {
       );
     });
 
+    it("moves Jev judgements to the surviving Posting and keeps every row", async () => {
+      const a = await matcher.matchSighting(
+        draft({ listingKey: "linkedin:100" }),
+        { now: T0 },
+      );
+      const b = await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      await prisma.masterProfileVersion.create({
+        data: { id: "v1", rawYaml: "" },
+      });
+      for (const postingId of [a.posting.id, b.posting.id])
+        await prisma.jevJudgement.create({
+          data: {
+            postingId,
+            profileVersionId: "v1",
+            questionSetVersion: "1",
+            descriptionKind: "none",
+            model: "jev-1.14.0",
+            answers: {},
+          },
+        });
+
+      const bridge = await matcher.matchSighting(
+        draft({
+          jobSource: "jobspy-indeed",
+          listingKey: "linkedin:100",
+          directUrl: "https://boards.greenhouse.io/acme/jobs/1",
+        }),
+        { now: T0 },
+      );
+
+      const rows = await prisma.jevJudgement.findMany();
+      expect(rows).toHaveLength(2);
+      expect(rows.every((r) => r.postingId === bridge.posting.id)).toBe(true);
+    });
+
     it("never merges Postings whose Sightings hold different listings of one board", async () => {
       await matcher.matchSighting(
         draft({ directUrl: "https://boards.greenhouse.io/acme/jobs/1" }),

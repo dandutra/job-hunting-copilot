@@ -14,7 +14,7 @@ for name in BACKUP_S3_ENDPOINT BACKUP_S3_REGION BACKUP_BUCKET RESTORE_KEY_ID RES
 done
 [ -f "$RESTORE_AGE_IDENTITY_FILE" ] || { echo "FAIL: $RESTORE_AGE_IDENTITY_FILE does not exist" >&2; exit 2; }
 # Labels and Applications have no table yet; add them here when they do.
-read -r -a tables <<<"${DRILL_TABLES:-master_profile_version merge_log_entry tailored_resume}"
+read -r -a tables <<<"${DRILL_TABLES:-master_profile_version merge_log_entry tailored_resume jev_judgement}"
 image="${DRILL_POSTGRES_IMAGE:-postgres:17}"
 endpoint="${BACKUP_S3_ENDPOINT%/}"
 

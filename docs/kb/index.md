@@ -54,6 +54,7 @@ Glossary: [glossary.md](glossary.md)
 - [Workday resume parsing](gotchas/workday-resume-parsing.md): Workday read the "(CPP)" in a program name as the college, never fills Skills from a resume, hyphenated line breaks extract joined, and every autofilled field needs a manual check.
 - [The /tailor skill](gotchas/tailor-skill.md): `fetch-input.sh` stops on a profile hash mismatch with exit 3, `summary` is one line per Highlight, and `/tailor` passes its API base to the forked review.
 - [Backups](gotchas/backups.md): `backup.sh` signs uploads itself and needs the payload hash, the test server skips signature checks, the pre-deploy dump keys off the `copilot_pgdata` volume, and the drill counts only listed tables.
+- [Jev judgement of a Posting](gotchas/jev-judgement.md): the runner reads the tables after each poll, judges what has no judgement or moved to a full description or an older profile, stores raw answers with the returned model, retries only 429 and 529, and logs no profile content.
 
 ## Job sources
 

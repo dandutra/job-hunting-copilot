@@ -76,6 +76,7 @@ services:
     environment:
       <<: *app-env
       HEARTBEAT_URL: ${HEARTBEAT_URL:-}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
     # Covers JobSpy's 5-minute timeout, so a run in progress finishes on SIGTERM.
     stop_grace_period: 6m
     depends_on:
