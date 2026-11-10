@@ -20,4 +20,6 @@ generated:
 - Thin is not stored. It is `descriptionKind !== "full"` (`isThin`), computed when a screen reads the Posting.
 - `pnpm tier:recompute` prints found, processed, skipped and failed, and exits 1 when it processed none. `--seed-thresholds` first rewrites `thresholds` by rank (top 10% of totals A, next 30% B) over Postings with no cap, because a capped Posting never reaches A or B. It refuses when the totals are too few or too alike to separate A from B.
 - `--seed-thresholds` rewrites `config/tier-config.json` in place and does not commit it. The shipped thresholds (0.9 and 0.6) are placeholders until a seed run on real judgements.
+- Only `tier:recompute` writes `posting_tier`. The Jev runner and a merge do not, so a new judgement leaves a Posting with no Tier or a stale one until the next recompute. A screen that reads Tiers needs a recompute after each judgement batch first.
+- A relative `--config` path resolves from `apps/api`, because pnpm runs the script there.
 - `posting_tier` cascades with its Posting and restricts deletion of its judgement. A test that deletes judgements must delete tiers first.

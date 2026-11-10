@@ -1,6 +1,5 @@
 // Recomputes every Tier from stored judgements. Usage: pnpm tier:recompute [--seed-thresholds] [--config path]
-// --seed-thresholds first rewrites thresholds in the config by rank (top 10% A, next 30% B), then recomputes.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { PrismaService } from "../src/prisma/prisma.service";
 import {
   recomputeTiers,
@@ -22,7 +21,9 @@ async function main() {
       const thresholds = thresholdsByRank(await uncappedTotals(prisma, config));
       raw = `${JSON.stringify({ ...JSON.parse(raw), thresholds }, null, 2)}\n`;
       ({ config, version } = loadTierConfig(raw));
-      writeFileSync(path, raw);
+      // Rename over the config so a crash mid-write never leaves it truncated.
+      writeFileSync(`${path}.tmp`, raw);
+      renameSync(`${path}.tmp`, path);
       console.log(`Thresholds set: a=${thresholds.a} b=${thresholds.b}`);
     }
     const c = await recomputeTiers(prisma, config, version, console.error);

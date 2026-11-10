@@ -190,7 +190,7 @@ model JevJudgement {
   @@map("jev_judgement")
 }
 
-// Derived from the newest JevJudgement and the committed tier config, so a recompute overwrites it and a merge can drop it.
+// Derived from the newest JevJudgement and the committed tier config; only tier:recompute writes it, so it can lag a new judgement or a merge.
 model PostingTier {
   postingId     Int          @id @map("posting_id")
   posting       Posting      @relation(fields: [postingId], references: [id], onDelete: Cascade)
