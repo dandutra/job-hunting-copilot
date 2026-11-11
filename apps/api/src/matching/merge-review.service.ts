@@ -150,7 +150,7 @@ export class MergeReviewService {
       const link = await this.findLookalike(tx, id);
       if (await isNotSameAsAny(tx, link.lowPostingId, [link.highPostingId]))
         throw new ConflictException(
-          "The user already said these Postings are different openings.",
+          "These Postings were split or dismissed as different openings, so they can't be merged.",
         );
       const survivor = await tx.posting.findUniqueOrThrow({
         where: { id: link.lowPostingId },

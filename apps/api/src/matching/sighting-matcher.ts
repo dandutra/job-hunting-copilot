@@ -61,15 +61,11 @@ export class SightingMatcher {
 
     const outcome = await this.prisma.$transaction(async (tx) => {
       await lockMatcher(tx);
-      // A hand merge may have deleted the Company resolved above while this match waited for the lock.
-      const live = await tx.company.findUnique({ where: { id: companyId } });
       return this.matchInTransaction(tx, {
         draft,
         listingKey,
         directKey,
-        companyId: live
-          ? companyId
-          : (await this.companies.resolveCompany(draft.companyName)).id,
+        companyId: await this.liveCompanyId(tx, companyId, draft.companyName),
         similarCompanyIds,
         now,
       });
@@ -77,6 +73,24 @@ export class SightingMatcher {
 
     if (outcome.upgraded) await this.hooks.descriptionUpgraded(outcome.posting);
     return { posting: outcome.posting, sighting: outcome.sighting };
+  }
+
+  // A hand merge may delete the resolved Company while this match waits for the lock; its names then belong to the kept Company.
+  private async liveCompanyId(
+    tx: Tx,
+    companyId: number,
+    name: string,
+  ): Promise<number> {
+    if (await tx.company.findUnique({ where: { id: companyId } }))
+      return companyId;
+    const alias = await tx.companyAlias.findUnique({
+      where: { normalizedName: normalizeName(name) },
+    });
+    if (!alias)
+      throw new Error(
+        `Company ${companyId} vanished and "${name}" has no alias`,
+      );
+    return alias.companyId;
   }
 
   // A directUrl on the draft's own board would link two listings of one board.
