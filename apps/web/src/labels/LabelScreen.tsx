@@ -195,6 +195,7 @@ export function LabelScreen() {
       <main className="page">
         <h1>Label queue</h1>
         <p role="alert">{state.message}</p>
+        {notice && <p>{notice}</p>}
         <button
           type="button"
           onClick={() => {
@@ -215,8 +216,7 @@ export function LabelScreen() {
         <p className="muted">Nothing to label right now.</p>
         {count > 0 && (
           <p>
-            {count} {count === 1 ? "Label" : "Labels"} stored this session. The
-            batch is not complete.
+            {count} {count === 1 ? "Label" : "Labels"} stored this session.
           </p>
         )}
       </main>
