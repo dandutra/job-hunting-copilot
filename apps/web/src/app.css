@@ -1,0 +1,44 @@
+:root {
+  --bg: #fafaf9;
+  --fg: #1c1917;
+  --muted: #78716c;
+  --line: #e7e5e4;
+  font:
+    14px/1.45 system-ui,
+    -apple-system,
+    sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+body {
+  margin: 0;
+}
+.muted {
+  color: var(--muted);
+}
+.page {
+  padding: 16px;
+}
+.topnav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  position: sticky;
+  top: 0;
+}
+.topnav b {
+  margin-right: 12px;
+}
+.topnav a {
+  color: inherit;
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.topnav a.active {
+  background: var(--fg);
+  color: #fff;
+}

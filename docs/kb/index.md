@@ -57,6 +57,7 @@ Glossary: [glossary.md](glossary.md)
 - [Backups](gotchas/backups.md): `backup.sh` signs uploads itself and needs the payload hash, the test server skips signature checks, the pre-deploy dump keys off the `copilot_pgdata` volume, and the drill counts only listed tables.
 - [Jev judgement of a Posting](gotchas/jev-judgement.md): the runner reads the tables after each poll, judges what has no judgement or moved to a full description or an older profile, stores raw answers with the returned model, retries only 429 and 529, and logs no profile content.
 - [Tier scoring and recompute](gotchas/tier-scoring.md): the total, caps that hold a Posting at C, the config order check and SHA-256 version, no row for an unjudged Posting, and `tier:recompute` with `--seed-thresholds`.
+- [Web app shell and Tier colors](gotchas/web-shell.md): `App` takes its router from `main.tsx`, deep links rely on the nginx fallback, Tier colors are tokens plus `TierBadge`, and tests need an explicit `cleanup`.
 
 ## Job sources
 
