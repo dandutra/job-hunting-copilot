@@ -47,6 +47,9 @@ model Posting {
   tailoredResumes TailoredResume[]
   jevJudgements   JevJudgement[]
   tier            PostingTier?
+  labels          Label[]
+  labelDraw       LabelDraw?
+  feedCorrections FeedCorrection[]
   lookalikesLow   Lookalike[]      @relation("LookalikeLow")
   lookalikesHigh  Lookalike[]      @relation("LookalikeHigh")
   notSameLow      NotSamePair[]    @relation("NotSameLow")
@@ -227,4 +230,60 @@ model PostingTier {
 
   @@index([judgementId])
   @@map("posting_tier")
+}
+
+// Calibration data from the Label queue only: rows are inserted, and the only delete is the undo of the current batch.
+model Label {
+  id            Int      @id @default(autoincrement())
+  // Restrict: a merge must move Labels, never delete them with the absorbed Posting.
+  postingId     Int      @map("posting_id")
+  posting       Posting  @relation(fields: [postingId], references: [id], onDelete: Restrict)
+  // A, B, C or cant_tell.
+  label         String
+  // The Tier the Posting had when it was drawn. It is never sent to the client.
+  tierAtDraw    String   @map("tier_at_draw")
+  // The Tier slot of the batch this draw was for; null for a repeat, which fills none. A test-phase cant_tell keeps its slot but does not fill it.
+  slot          String?
+  // PostingTier.configVersion at draw time.
+  configVersion String   @map("config_version")
+  // tuning, test, repeat or spot_check.
+  phase         String
+  batch         Int
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([postingId])
+  @@index([batch])
+  @@map("label")
+}
+
+// The one Posting the Label queue is showing, so a reload or an undo shows the same Posting again. At most one row.
+model LabelDraw {
+  postingId     Int      @id @map("posting_id")
+  posting       Posting  @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  tierAtDraw    String   @map("tier_at_draw")
+  slot          String?
+  configVersion String   @map("config_version")
+  phase         String
+  drawnAt       DateTime @default(now()) @map("drawn_at")
+
+  @@map("label_draw")
+}
+
+// The user's Tier from the feed, with Jev's Tier in view. It never counts toward calibration, so it is not a Label.
+model FeedCorrection {
+  id        Int       @id @default(autoincrement())
+  // Restrict: a merge must move corrections, never delete them with the absorbed Posting.
+  postingId Int       @map("posting_id")
+  posting   Posting   @relation(fields: [postingId], references: [id], onDelete: Restrict)
+  // The user's Tier, A, B or C.
+  tier      String
+  // The Tier the feed showed.
+  jevTier   String    @map("jev_tier")
+  // Set on the correction that called the alert hook; one per 7-day window.
+  alertedAt DateTime? @map("alerted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([postingId])
+  @@index([createdAt])
+  @@map("feed_correction")
 }

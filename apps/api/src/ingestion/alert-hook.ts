@@ -1,8 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 
 export interface Alert {
-  // "blocked" is a board refusing us, "fault" is the scraper or network failing.
-  kind: "blocked" | "fault";
+  // "blocked" is a board refusing us, "fault" is the scraper or network failing, "tier_drift" is repeated C-to-A Feed corrections.
+  kind: "blocked" | "fault" | "tier_drift";
   adapter: string;
   // The Company whose board failed, for board adapters.
   company?: string;

@@ -48,6 +48,14 @@ export async function absorbPosting(tx: Tx, fromId: number, intoId: number) {
     where: { postingId: fromId },
     data: { postingId: intoId },
   });
+  await tx.label.updateMany({
+    where: { postingId: fromId },
+    data: { postingId: intoId },
+  });
+  await tx.feedCorrection.updateMany({
+    where: { postingId: fromId },
+    data: { postingId: intoId },
+  });
   await moveLookalikes(tx, fromId, intoId);
   await moveNotSame(tx, fromId, intoId);
   // A Posting has at most one open draft and one approved resume, so the newest of each wins.
