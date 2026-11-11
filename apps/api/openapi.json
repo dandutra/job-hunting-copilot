@@ -734,6 +734,85 @@
           "Labels"
         ]
       }
+    },
+    "/postings": {
+      "get": {
+        "operationId": "FeedController_list",
+        "parameters": [
+          {
+            "name": "include",
+            "required": false,
+            "in": "query",
+            "description": "closed adds the Closed and Stale Postings.",
+            "schema": {
+              "enum": [
+                "closed"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grouped A, B, C, newest Posted at first within a Tier. A Posting with no Tier yet is left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Feed"
+        ]
+      }
+    },
+    "/postings/{id}": {
+      "get": {
+        "operationId": "FeedController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Answers for a Closed or Stale Posting too.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Feed"
+        ]
+      }
     }
   },
   "info": {
@@ -1991,6 +2070,356 @@
         },
         "required": [
           "id"
+        ]
+      },
+      "FeedItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The earliest Sighting's date."
+          },
+          "sightingCount": {
+            "type": "number"
+          },
+          "thin": {
+            "type": "boolean",
+            "description": "True when the Posting has no full description yet."
+          },
+          "capsApplied": {
+            "description": "The Tier caps that hold the Posting at C: closed_to_juniors, outside_gta, us_only, security_clearance or requires_french. Empty when none applies.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasLookalike": {
+            "type": "boolean",
+            "description": "True when the Posting has an open Lookalike."
+          },
+          "feedCorrection": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "nullable": true,
+            "description": "The user's newest Feed correction, or null. It is never a Label."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed",
+              "stale"
+            ],
+            "description": "Closed and Stale Postings come only with include=closed."
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "company",
+          "location",
+          "postedAt",
+          "sightingCount",
+          "thin",
+          "capsApplied",
+          "hasLookalike",
+          "feedCorrection",
+          "state",
+          "tier"
+        ]
+      },
+      "ThresholdsDto": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number"
+          },
+          "b": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ]
+      },
+      "FactorDto": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "string",
+            "enum": [
+              "skills_covered",
+              "level_match",
+              "role_family",
+              "work_arrangement"
+            ]
+          },
+          "answer": {
+            "type": "string",
+            "description": "What Jev answered, as text."
+          },
+          "points": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "factor",
+          "answer",
+          "points"
+        ]
+      },
+      "WhyDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "The points before any Tier cap."
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/ThresholdsDto"
+          },
+          "factors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FactorDto"
+            }
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "True when the tier config changed after this Tier was computed, so the points may not match the Tier until tier:recompute runs."
+          }
+        },
+        "required": [
+          "total",
+          "thresholds",
+          "factors",
+          "stale"
+        ]
+      },
+      "LinkDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "jobSources": {
+            "description": "Every Job source that reported this URL.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "url",
+          "jobSources"
+        ]
+      },
+      "LookalikeOtherDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "company",
+          "location",
+          "tier"
+        ]
+      },
+      "LookalikeHintDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "The id the merge and dismiss endpoints take."
+          },
+          "reason": {
+            "type": "string",
+            "description": "similar_title, similar_company, board_tie or same_title."
+          },
+          "other": {
+            "$ref": "#/components/schemas/LookalikeOtherDto"
+          }
+        },
+        "required": [
+          "id",
+          "reason",
+          "other"
+        ]
+      },
+      "PostingDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The earliest Sighting's date."
+          },
+          "sightingCount": {
+            "type": "number"
+          },
+          "thin": {
+            "type": "boolean",
+            "description": "True when the Posting has no full description yet."
+          },
+          "capsApplied": {
+            "description": "The Tier caps that hold the Posting at C: closed_to_juniors, outside_gta, us_only, security_clearance or requires_french. Empty when none applies.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasLookalike": {
+            "type": "boolean",
+            "description": "True when the Posting has an open Lookalike."
+          },
+          "feedCorrection": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "nullable": true,
+            "description": "The user's newest Feed correction, or null. It is never a Label."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed",
+              "stale"
+            ],
+            "description": "Closed and Stale Postings come only with include=closed."
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "nullable": true,
+            "description": "Null when no Tier has been computed yet."
+          },
+          "workArrangement": {
+            "type": "string",
+            "nullable": true
+          },
+          "roleFamily": {
+            "type": "string",
+            "nullable": true
+          },
+          "why": {
+            "nullable": true,
+            "description": "Null when the stored answers or the tier config cannot be read. Computed with the config as it is now; see stale.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhyDto"
+              }
+            ]
+          },
+          "descriptionKind": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Empty when the Posting has no text."
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkDto"
+            }
+          },
+          "lookalikes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LookalikeHintDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "company",
+          "location",
+          "postedAt",
+          "sightingCount",
+          "thin",
+          "capsApplied",
+          "hasLookalike",
+          "feedCorrection",
+          "state",
+          "tier",
+          "workArrangement",
+          "roleFamily",
+          "why",
+          "descriptionKind",
+          "description",
+          "links",
+          "lookalikes"
         ]
       }
     }

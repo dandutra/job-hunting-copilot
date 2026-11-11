@@ -34,6 +34,10 @@ export interface SeedOptions {
   lastSeenAt?: Date;
   closedAt?: Date;
   title?: string;
+  location?: string;
+  company?: string;
+  postedAt?: Date;
+  answers?: object;
 }
 
 let seq = 0;
@@ -48,17 +52,17 @@ export async function seedPosting(prisma: PrismaService, o: SeedOptions) {
     update: {},
   });
   const company = await prisma.company.create({
-    data: { name: `Company ${seq}` },
+    data: { name: o.company ?? `Company ${seq}` },
   });
   const firstSeen = o.firstSeenAt ?? new Date("2026-11-20T12:00:00Z");
   const posting = await prisma.posting.create({
     data: {
       companyId: company.id,
       title: o.title ?? `Developer ${seq}`,
-      location: "Toronto, ON",
+      location: o.location ?? "Toronto, ON",
       description: `Full text ${seq}`,
       descriptionKind: o.kind ?? "full",
-      postedAt: firstSeen,
+      postedAt: o.postedAt ?? firstSeen,
     },
   });
   await prisma.sighting.create({
@@ -86,7 +90,7 @@ export async function seedPosting(prisma: PrismaService, o: SeedOptions) {
       questionSetVersion: QUESTION_SET_VERSION,
       descriptionKind: posting.descriptionKind,
       model: "jev-test",
-      answers: {},
+      answers: o.answers ?? {},
     },
   });
   await prisma.postingTier.create({

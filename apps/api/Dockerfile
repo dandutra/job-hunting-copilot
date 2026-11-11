@@ -10,6 +10,7 @@ COPY packages/master-profile/package.json packages/master-profile/
 RUN pnpm install --frozen-lockfile --filter api...
 COPY packages/master-profile packages/master-profile
 COPY apps/api apps/api
+COPY config config
 # Prisma 7 reads DATABASE_URL in its config even though generate never connects.
 RUN DATABASE_URL=postgresql://build:build@localhost/build pnpm --dir apps/api exec prisma generate \
  && pnpm --dir packages/master-profile build \
@@ -26,6 +27,8 @@ COPY --from=build --chown=node:node /repo/packages/master-profile/dist /repo/pac
 COPY --from=build --chown=node:node /repo/packages/master-profile/package.json /repo/packages/master-profile/package.json
 COPY --from=build --chown=node:node /repo/apps/api/node_modules node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist dist
+# The feed's "Why" reads the tier config at ../../config from here.
+COPY --from=build --chown=node:node /repo/config /repo/config
 COPY --from=build --chown=node:node /repo/apps/api/prisma prisma
 COPY --from=build --chown=node:node /repo/apps/api/prisma.config.ts /repo/apps/api/package.json ./
 USER node

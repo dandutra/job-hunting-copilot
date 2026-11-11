@@ -1,5 +1,6 @@
-import { NavLink, Route, Routes, useParams } from "react-router";
+import { NavLink, Route, Routes } from "react-router";
 import "./app.css";
+import { FeedScreen } from "./feed/FeedScreen";
 
 function Placeholder({ title }: { title: string }) {
   return (
@@ -8,11 +9,6 @@ function Placeholder({ title }: { title: string }) {
       <p className="muted">Not built yet.</p>
     </main>
   );
-}
-
-function PostingRoute() {
-  const { id } = useParams();
-  return <Placeholder title={`Posting ${id}`} />;
 }
 
 export function App() {
@@ -27,8 +23,10 @@ export function App() {
         <NavLink to="/merges">Merge log</NavLink>
       </nav>
       <Routes>
-        <Route path="/" element={<Placeholder title="Feed" />} />
-        <Route path="/postings/:id" element={<PostingRoute />} />
+        <Route element={<FeedScreen />}>
+          <Route path="/" />
+          <Route path="/postings/:id" />
+        </Route>
         <Route path="/labels" element={<Placeholder title="Label queue" />} />
         <Route path="/merges" element={<Placeholder title="Merge log" />} />
         <Route

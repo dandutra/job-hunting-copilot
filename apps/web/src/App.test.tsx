@@ -1,21 +1,30 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { ApiProvider } from "./api/ApiContext";
+import type { ApiClient } from "./api/client";
 import { TierBadge } from "./TierBadge";
 
 afterEach(cleanup);
 
+const emptyClient = {
+  GET: vi.fn(async (path: string) =>
+    path === "/postings" ? { data: [] } : { error: {} },
+  ),
+} as unknown as ApiClient;
+
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <App />
-    </MemoryRouter>,
+    <ApiProvider client={emptyClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <App />
+      </MemoryRouter>
+    </ApiProvider>,
   );
 }
 
 it.each([
-  ["/", "Feed"],
   ["/labels", "Label queue"],
   ["/merges", "Merge log"],
   ["/resumes/7", "Tailored resume review"],
@@ -23,12 +32,6 @@ it.each([
   renderAt(path);
 
   expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
-});
-
-it("opens a Posting directly from its deep link", () => {
-  renderAt("/postings/42");
-
-  expect(screen.getByRole("heading", { name: "Posting 42" })).toBeTruthy();
 });
 
 it("links the feed, the Label queue and the merge log in the top bar", () => {
