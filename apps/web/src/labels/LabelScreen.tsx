@@ -17,8 +17,11 @@ const CHOICES: { key: string; label: Choice; text: string }[] = [
 type State =
   | { kind: "loading" }
   | { kind: "empty" }
+  | { kind: "error"; message: string }
   | { kind: "card"; posting: Posting }
   | { kind: "done"; ms: number };
+
+type NextResult = { data?: Posting; response: Response };
 
 export function duration(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -33,84 +36,138 @@ function typing(target: EventTarget | null) {
   );
 }
 
+const UNREACHABLE = "Could not reach the API.";
+
 export function LabelScreen() {
   const api = useApi();
-  const [state, setState] = useState<State>({ kind: "loading" });
-  const [count, setCount] = useState(0);
+  const [state, setStateOnly] = useState<State>({ kind: "loading" });
+  const [count, setCountOnly] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
+  // The key listener reads these, so a key pressed before React re-subscribes still sees the card on screen.
+  const stateRef = useRef<State>(state);
+  const countRef = useRef(0);
   const busy = useRef(false);
   const startedAt = useRef<number | null>(null);
   const cardRef = useRef<HTMLElement>(null);
 
-  const showNext = useCallback(
-    async (answered: number) => {
-      const { data, response } = await api.GET("/label-queue/next");
-      // Release before the render, so a key pressed right after the card appears is not dropped.
-      busy.current = false;
+  const setState = useCallback((s: State) => {
+    stateRef.current = s;
+    setStateOnly(s);
+  }, []);
+  const setCount = useCallback((n: number) => {
+    countRef.current = n;
+    setCountOnly(n);
+  }, []);
+
+  const finish = useCallback(() => {
+    setState({
+      kind: "done",
+      ms: Date.now() - (startedAt.current ?? Date.now()),
+    });
+  }, [setState]);
+
+  const apply = useCallback(
+    ({ data, response }: NextResult) => {
       if (data) {
         startedAt.current ??= Date.now();
         setState({ kind: "card", posting: data });
-      } else if (answered > 0 && startedAt.current !== null) {
-        setState({ kind: "done", ms: Date.now() - startedAt.current });
+      } else if (response.status !== 204) {
+        setState({
+          kind: "error",
+          message: `The queue did not answer (HTTP ${response.status}).`,
+        });
+      } else if (countRef.current > 0) {
+        finish();
       } else {
         setState({ kind: "empty" });
       }
-      return response;
     },
-    [api],
+    [setState, finish],
   );
+
+  const showNext = useCallback(async () => {
+    try {
+      apply(await api.GET("/label-queue/next"));
+    } catch {
+      setState({ kind: "error", message: UNREACHABLE });
+    }
+  }, [api, apply, setState]);
 
   useEffect(() => {
     let live = true;
-    void api.GET("/label-queue/next").then(({ data }) => {
-      if (!live) return;
-      if (data) {
-        startedAt.current ??= Date.now();
-        setState({ kind: "card", posting: data });
-      } else setState({ kind: "empty" });
-    });
+    api.GET("/label-queue/next").then(
+      (r) => {
+        if (live) apply(r);
+      },
+      () => {
+        if (live) setState({ kind: "error", message: UNREACHABLE });
+      },
+    );
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, apply, setState]);
 
   const answer = useCallback(
     async (label: Choice) => {
-      if (busy.current || state.kind !== "card") return;
+      const shown = stateRef.current;
+      if (busy.current || shown.kind !== "card") return;
       busy.current = true;
+      setNotice(null);
       try {
-        const { data } = await api.POST("/label-queue/labels", {
-          body: { postingId: state.posting.postingId, label },
+        const { data, response } = await api.POST("/label-queue/labels", {
+          body: { postingId: shown.posting.postingId, label },
         });
-        if (!data) return;
-        const answered = count + 1;
-        setCount(answered);
-        if (data.batchDone) {
-          setState({
-            kind: "done",
-            ms: Date.now() - (startedAt.current ?? Date.now()),
-          });
-        } else {
-          await showNext(answered);
+        if (!data) {
+          if (response.status === 409) {
+            setNotice(
+              "That Posting was no longer in the queue, so nothing was stored. This is the one it shows now.",
+            );
+            await showNext();
+          } else {
+            setNotice(`The Label was not stored (HTTP ${response.status}).`);
+          }
+          return;
         }
+        setCount(countRef.current + 1);
+        if (data.batchDone) finish();
+        else await showNext();
+      } catch {
+        setNotice(`${UNREACHABLE} The Label was not stored.`);
       } finally {
         busy.current = false;
       }
     },
-    [api, state, count, showNext],
+    [api, showNext, setCount, finish],
   );
 
   const undo = useCallback(async () => {
-    if (busy.current || state.kind !== "card" || count === 0) return;
+    if (
+      busy.current ||
+      stateRef.current.kind !== "card" ||
+      countRef.current === 0
+    )
+      return;
     busy.current = true;
+    setNotice(null);
     try {
-      const { error } = await api.DELETE("/label-queue/labels/last");
-      if (error) return;
-      setCount(count - 1);
-      await showNext(count - 1);
+      const { error, response } = await api.DELETE("/label-queue/labels/last");
+      if (error !== undefined || !response.ok) {
+        setNotice(
+          response.status === 409
+            ? "Nothing to undo: the batch is done or its window has closed."
+            : `The undo failed (HTTP ${response.status}).`,
+        );
+        return;
+      }
+      setCount(countRef.current - 1);
+      await showNext();
+    } catch {
+      setNotice(`${UNREACHABLE} Nothing was undone.`);
     } finally {
       busy.current = false;
     }
-  }, [api, state, count, showNext]);
+  }, [api, showNext, setCount]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -132,6 +189,22 @@ export function LabelScreen() {
     return (
       <main className="page">
         <p className="muted">Loading…</p>
+      </main>
+    );
+  if (state.kind === "error")
+    return (
+      <main className="page">
+        <h1>Label queue</h1>
+        <p role="alert">{state.message}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setState({ kind: "loading" });
+            void showNext();
+          }}
+        >
+          Retry
+        </button>
       </main>
     );
   if (state.kind === "empty")
@@ -167,6 +240,11 @@ export function LabelScreen() {
           </button>
         )}
       </div>
+      {notice && (
+        <p className="label-notice" role="alert">
+          {notice}
+        </p>
+      )}
       <article className="label-card" ref={cardRef} tabIndex={-1}>
         <h1>{posting.title}</h1>
         <p className="muted">

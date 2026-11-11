@@ -54,3 +54,9 @@
 .label-buttons button:focus-visible {
   outline: 2px solid var(--fg);
 }
+.label-notice {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}

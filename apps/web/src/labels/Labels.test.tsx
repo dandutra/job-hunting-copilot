@@ -15,17 +15,30 @@ const posting = (id: number) => ({
   text: `Body ${id}`,
 });
 
-function stub(doneAt = 10) {
+interface Faults {
+  doneAt?: number;
+  // HTTP status for the nth GET (0-based) or the nth POST.
+  getStatus?: Record<number, number>;
+  postStatus?: Record<number, number>;
+}
+
+function stub({ doneAt = 10, getStatus = {}, postStatus = {} }: Faults = {}) {
   const calls: { method: string; path: string; body?: unknown }[] = [];
   let id = 1;
   let stored = 0;
+  let gets = 0;
+  let posts = 0;
   const client = {
     GET: vi.fn(async (path: string) => {
       calls.push({ method: "GET", path });
-      return { data: posting(id), response: { status: 200 } };
+      const status = getStatus[gets++];
+      if (status) return { error: {}, response: { status, ok: false } };
+      return { data: posting(id), response: { status: 200, ok: true } };
     }),
     POST: vi.fn(async (path: string, init: { body: unknown }) => {
       calls.push({ method: "POST", path, body: init.body });
+      const status = postStatus[posts++];
+      if (status) return { error: {}, response: { status, ok: false } };
       id++;
       stored++;
       return { data: { id, batchDone: stored >= doneAt } };
@@ -34,7 +47,7 @@ function stub(doneAt = 10) {
       calls.push({ method: "DELETE", path });
       id--;
       stored--;
-      return { response: { status: 204 } };
+      return { response: { status: 204, ok: true } };
     }),
   } as unknown as ApiClient;
   return { client, calls };
@@ -87,7 +100,7 @@ it("undoes only the last Label, and not before one is answered", async () => {
 });
 
 it("shows a done screen with the count after the batch is stored", async () => {
-  const s = stub(2);
+  const s = stub({ doneAt: 2 });
   renderLabels(s);
   await screen.findByText("Role 1");
   fireEvent.keyDown(window, { key: "1" });
@@ -105,4 +118,44 @@ it("renders no Tier letter, color class or Tier word", async () => {
 
   expect(container.innerHTML).not.toMatch(/tier/i);
   expect(container.querySelector("[class*='tier']")).toBeNull();
+});
+
+it("undoes from the Undo link as well as the u key", async () => {
+  const s = stub();
+  renderLabels(s);
+  await screen.findByText("Role 1");
+  fireEvent.click(
+    screen.getByRole("button", { name: "1 A: Tailor and apply on sight" }),
+  );
+  await screen.findByText("Role 2");
+
+  fireEvent.click(screen.getByRole("button", { name: "Undo (u)" }));
+
+  await screen.findByText("Role 1");
+  expect(s.calls.filter((c) => c.method === "DELETE")).toHaveLength(1);
+});
+
+it("refetches the card and says nothing was stored when a post gets 409", async () => {
+  const s = stub({ postStatus: { 0: 409 } });
+  renderLabels(s);
+  await screen.findByText("Role 1");
+
+  fireEvent.keyDown(window, { key: "1" });
+
+  await screen.findByText(/nothing was stored/);
+  expect(s.calls.filter((c) => c.method === "GET")).toHaveLength(2);
+  expect(screen.getByText("0 of 10")).toBeTruthy();
+});
+
+it("shows an error, not the done screen, when next fails mid-batch", async () => {
+  const s = stub({ getStatus: { 1: 500 } });
+  renderLabels(s);
+  await screen.findByText("Role 1");
+
+  fireEvent.keyDown(window, { key: "1" });
+
+  await screen.findByText("The queue did not answer (HTTP 500).");
+  expect(screen.queryByText("Batch done")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  await screen.findByText("Role 2");
 });
