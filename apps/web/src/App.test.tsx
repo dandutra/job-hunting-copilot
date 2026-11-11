@@ -60,6 +60,7 @@ it.each(["A", "B", "C"] as const)(
     const badge = container.firstElementChild!;
     expect(badge.className).toContain(`tier-${tier}`);
     expect(badge.textContent).toBe(`Tier ${tier}`);
+    expect(badge.querySelector(".visually-hidden")?.textContent).toBe("Tier ");
     expect(badge.hasAttribute("aria-label")).toBe(false);
   },
 );

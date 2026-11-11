@@ -1,3 +1,5 @@
+import "./tiers.css";
+
 export type Tier = "A" | "B" | "C";
 
 export function TierBadge({ tier }: { tier: Tier }) {
