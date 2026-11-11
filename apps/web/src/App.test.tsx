@@ -53,12 +53,13 @@ it("shows a not-found page for an unknown route", () => {
 });
 
 it.each(["A", "B", "C"] as const)(
-  "TierBadge shows Tier %s on its color class",
+  "TierBadge shows Tier %s on its color and names it in full",
   (tier) => {
-    render(<TierBadge tier={tier} />);
+    const { container } = render(<TierBadge tier={tier} />);
 
-    const badge = screen.getByText(tier);
+    const badge = container.firstElementChild!;
     expect(badge.className).toContain(`tier-${tier}`);
-    expect(badge.getAttribute("aria-label")).toBe(`Tier ${tier}`);
+    expect(badge.textContent).toBe(`Tier ${tier}`);
+    expect(badge.hasAttribute("aria-label")).toBe(false);
   },
 );

@@ -33,7 +33,6 @@
   color: var(--tier-c-ink);
 }
 
-/* Group headers in the feed. */
 .tier-tint-A {
   background: var(--tier-a-tint);
 }
