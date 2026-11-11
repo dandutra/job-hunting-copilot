@@ -25,7 +25,6 @@ function renderAt(path: string) {
 }
 
 it.each([
-  ["/labels", "Label queue"],
   ["/merges", "Merge log"],
   ["/resumes/7", "Tailored resume review"],
 ])("renders a placeholder at %s", (path, heading) => {
