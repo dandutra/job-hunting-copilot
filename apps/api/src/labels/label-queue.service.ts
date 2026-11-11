@@ -99,8 +99,13 @@ export class LabelQueueService {
   // Only a mis-key in the batch under way may go, so calibration never loses a finished batch.
   undoLast(): Promise<void> {
     return underLabelsLock(this.prisma, async (tx) => {
+      const now = this.clock.now();
+      const window = activeWindow(now);
       const last = await tx.label.findFirst({ orderBy: { id: "desc" } });
       if (!last) throw new ConflictException("There is no Label to undo.");
+      // A Label from a closed window could never be re-keyed into its own phase.
+      if (!window || last.createdAt < window.start)
+        throw new ConflictException("The batch is done.");
       const filled = await tx.label.count({
         where: { batch: last.batch, ...FILLS_A_SLOT },
       });
@@ -115,6 +120,7 @@ export class LabelQueueService {
           slot: last.slot,
           configVersion: last.configVersion,
           phase: last.phase,
+          drawnAt: now,
         },
       });
     });
@@ -154,7 +160,10 @@ export class LabelQueueService {
     } else {
       draw = await this.drawSlot(tx, window, batch.filled);
     }
-    if (draw) await tx.labelDraw.create({ data: draw });
+    if (draw)
+      await tx.labelDraw.create({
+        data: { ...draw, drawnAt: this.clock.now() },
+      });
     return draw;
   }
 
@@ -264,8 +273,15 @@ export class LabelQueueService {
   }
 }
 
-function drawBelongsTo(draw: { phase: string }, window: ActiveWindow) {
-  return (draw.phase === "repeat" ? "test" : draw.phase) === window.phase;
+// A draw left over from an earlier window, even of the same phase, would count toward the wrong window.
+function drawBelongsTo(
+  draw: { phase: string; drawnAt?: Date },
+  window: ActiveWindow,
+) {
+  return (
+    (draw.phase === "repeat" ? "test" : draw.phase) === window.phase &&
+    (!draw.drawnAt || draw.drawnAt >= window.start)
+  );
 }
 
 // The batch under way: the last Label's batch while it has room and falls in this window, else the next number.

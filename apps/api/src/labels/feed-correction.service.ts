@@ -49,9 +49,13 @@ export class FeedCorrectionService {
       let alerted = false;
       if (posting.tier.tier === "C" && body.tier === "A") {
         const since = { gt: new Date(now.getTime() - WINDOW_MS) };
-        const drift = await tx.feedCorrection.count({
-          where: { jevTier: "C", tier: "A", createdAt: since },
-        });
+        // Distinct Postings, so a double tap on one Posting is not drift.
+        const drift = (
+          await tx.feedCorrection.groupBy({
+            by: ["postingId"],
+            where: { jevTier: "C", tier: "A", createdAt: since },
+          })
+        ).length;
         const already = await tx.feedCorrection.count({
           where: { alertedAt: since },
         });

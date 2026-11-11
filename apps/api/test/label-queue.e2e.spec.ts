@@ -267,6 +267,30 @@ describe("Label queue", () => {
       ).toBe("C");
     });
 
+    it("refuses a Label from a window that has closed", async () => {
+      await seedMany(prisma, "A", 10);
+      await seedMany(prisma, "B", 10);
+      await seedMany(prisma, "C", 10);
+      for (let i = 0; i < 3; i++)
+        await label((await next()).body.postingId, "A");
+      clock.at = TEST;
+      expect((await undo()).status).toBe(409);
+      clock.at = new Date("2026-12-21T15:00:00Z");
+      expect((await undo()).status).toBe(409);
+      expect(await prisma.label.count()).toBe(3);
+    });
+
+    it("drops a draw left over from an earlier window of the same phase", async () => {
+      await seedMany(prisma, "A", 10);
+      await seedMany(prisma, "B", 10);
+      await seedMany(prisma, "C", 10);
+      clock.at = TEST;
+      const shown = (await next()).body.postingId;
+      clock.at = new Date("2026-12-24T15:00:00Z");
+      expect((await label(shown, "A")).status).toBe(409);
+      expect(await prisma.label.count()).toBe(0);
+    });
+
     it("refuses when there is nothing to undo", async () => {
       expect((await undo()).status).toBe(409);
     });

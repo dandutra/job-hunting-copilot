@@ -110,6 +110,17 @@ describe("Feed correction", () => {
     expect(hook.alerts).toHaveLength(1);
   });
 
+  it("counts a Posting corrected twice once", async () => {
+    const [x, y] = [
+      await seedPosting(prisma, { tier: "C" }),
+      await seedPosting(prisma, { tier: "C" }),
+    ];
+    await correct(x, { tier: "A" });
+    await correct(x, { tier: "A" });
+    await correct(y, { tier: "A" });
+    expect(hook.alerts).toHaveLength(0);
+  });
+
   it("keeps the correction when the alert channel fails", async () => {
     const ids = [];
     for (let i = 0; i < 3; i++)
