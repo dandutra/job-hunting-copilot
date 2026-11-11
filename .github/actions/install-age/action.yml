@@ -1,0 +1,17 @@
+name: Install age
+description: Installs age and age-keygen from the pinned GitHub release, checked against its SHA-256.
+runs:
+  using: composite
+  steps:
+    # Not apt: see docs/kb/gotchas/backups.md.
+    - shell: bash
+      env:
+        AGE_VERSION: v1.3.2
+        AGE_SHA256: cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
+      run: |
+        tarball="age-${AGE_VERSION}-linux-amd64.tar.gz"
+        curl -fsSL --retry 5 --retry-all-errors -o "$RUNNER_TEMP/$tarball" \
+          "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/${tarball}"
+        echo "${AGE_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum -c -
+        sudo tar -xzf "$RUNNER_TEMP/$tarball" -C /usr/local/bin --strip-components=1 age/age age/age-keygen
+        age --version
