@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { moveNotSame } from "./not-same";
 
 type Tx = Prisma.TransactionClient;
 
@@ -48,6 +49,7 @@ export async function absorbPosting(tx: Tx, fromId: number, intoId: number) {
     data: { postingId: intoId },
   });
   await moveLookalikes(tx, fromId, intoId);
+  await moveNotSame(tx, fromId, intoId);
   // A Posting has at most one open draft and one approved resume, so the newest of each wins.
   const newestFirst = {
     draft: [{ createdAt: "desc" }, { id: "desc" }],

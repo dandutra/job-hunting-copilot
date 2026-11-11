@@ -373,6 +373,228 @@
           "Tailoring"
         ]
       }
+    },
+    "/merge-log": {
+      "get": {
+        "operationId": "MergeReviewController_mergeLog",
+        "parameters": [
+          {
+            "name": "rule",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewed",
+            "required": false,
+            "in": "query",
+            "description": "Leave out for both.",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unreviewed entries first, then newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MergeLogEntryDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MergeReview"
+        ]
+      }
+    },
+    "/merge-log/{id}/review": {
+      "post": {
+        "operationId": "MergeReviewController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeLogEntryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MergeReview"
+        ]
+      }
+    },
+    "/sightings/{id}/split": {
+      "post": {
+        "operationId": "MergeReviewController_split",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The Sighting now sits on its own Posting. The pair is recorded as not the same, so no later poll rejoins or relinks them.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": "It is the only Sighting on its Posting."
+          }
+        },
+        "tags": [
+          "MergeReview"
+        ]
+      }
+    },
+    "/lookalikes": {
+      "get": {
+        "operationId": "MergeReviewController_lookalikes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LookalikeDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MergeReview"
+        ]
+      }
+    },
+    "/lookalikes/{id}/merge": {
+      "post": {
+        "operationId": "MergeReviewController_merge",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": "Both Companies are Watched companies."
+          }
+        },
+        "tags": [
+          "MergeReview"
+        ]
+      }
+    },
+    "/lookalikes/{id}/dismiss": {
+      "post": {
+        "operationId": "MergeReviewController_dismiss",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The pair is recorded as not the same."
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MergeReview"
+        ]
+      }
     }
   },
   "info": {
@@ -1361,6 +1583,181 @@
         },
         "required": [
           "note"
+        ]
+      },
+      "CompanySummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "SightingSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "jobSource": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "jobSource",
+          "url"
+        ]
+      },
+      "PostingSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "$ref": "#/components/schemas/CompanySummaryDto"
+          },
+          "location": {
+            "type": "string"
+          },
+          "sightings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SightingSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "company",
+          "location",
+          "sightings"
+        ]
+      },
+      "MergeLogEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "rule": {
+            "type": "string",
+            "description": "shared_listing_key, direct_url, text_similarity or manual_merge."
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "What the rule measured; the keys depend on the rule."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Null while the entry waits for review. Exact-key and manual merges are stored reviewed."
+          },
+          "sightingId": {
+            "type": "number",
+            "nullable": true
+          },
+          "absorbedPostingId": {
+            "type": "number",
+            "nullable": true
+          },
+          "posting": {
+            "description": "The merged Posting as it is now, with every Sighting it holds.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PostingSummaryDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "rule",
+          "evidence",
+          "createdAt",
+          "reviewedAt",
+          "sightingId",
+          "absorbedPostingId",
+          "posting"
+        ]
+      },
+      "SplitResultDto": {
+        "type": "object",
+        "properties": {
+          "postingId": {
+            "type": "number",
+            "description": "The new Posting that holds the Sighting."
+          },
+          "originalPostingId": {
+            "type": "number",
+            "description": "The Posting the Sighting left."
+          }
+        },
+        "required": [
+          "postingId",
+          "originalPostingId"
+        ]
+      },
+      "LookalikeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "description": "similar_title, similar_company, board_tie or same_title."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postings": {
+            "description": "The two Postings, the lower id first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostingSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "reason",
+          "createdAt",
+          "postings"
+        ]
+      },
+      "MergeResultDto": {
+        "type": "object",
+        "properties": {
+          "postingId": {
+            "type": "number",
+            "description": "The surviving Posting, the lower id."
+          }
+        },
+        "required": [
+          "postingId"
         ]
       }
     }

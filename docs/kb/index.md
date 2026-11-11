@@ -58,6 +58,7 @@ Glossary: [glossary.md](glossary.md)
 - [Jev judgement of a Posting](gotchas/jev-judgement.md): the runner reads the tables after each poll, judges what has no judgement or moved to a full description or an older profile, stores raw answers with the returned model, retries only 429 and 529, and logs no profile content.
 - [Tier scoring and recompute](gotchas/tier-scoring.md): the total, caps that hold a Posting at C, the config order check and SHA-256 version, no row for an unjudged Posting, and `tier:recompute` with `--seed-thresholds`.
 - [Web app shell and Tier colors](gotchas/web-shell.md): `App` takes its router from `main.tsx`, deep links rely on the nginx fallback, Tier colors are tokens plus `TierBadge`, the badge names its Tier through visually hidden text, and tests need an explicit `cleanup`.
+- [Merge review API](gotchas/merge-review-api.md): a split or a dismissal records a "not the same" pair between Postings that absorbs carry forward, only text merges wait for review, a Lookalike merge across two Companies joins them into one, and a split Posting starts with no judgement.
 
 ## Job sources
 

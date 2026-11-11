@@ -49,6 +49,8 @@ model Posting {
   tier            PostingTier?
   lookalikesLow   Lookalike[]      @relation("LookalikeLow")
   lookalikesHigh  Lookalike[]      @relation("LookalikeHigh")
+  notSameLow      NotSamePair[]    @relation("NotSameLow")
+  notSameHigh     NotSamePair[]    @relation("NotSameHigh")
 
   @@index([companyId])
   @@map("posting")
@@ -90,7 +92,7 @@ model Sighting {
 
 model MergeLogEntry {
   id                Int       @id @default(autoincrement())
-  // shared_listing_key, direct_url or text_similarity; the review screen filters on it.
+  // shared_listing_key, direct_url, text_similarity or manual_merge; the review screen filters on it.
   rule              String
   evidence          Json
   postingId         Int       @map("posting_id")
@@ -99,6 +101,8 @@ model MergeLogEntry {
   sightingId        Int?      @map("sighting_id")
   sighting          Sighting? @relation(fields: [sightingId], references: [id], onDelete: SetNull)
   absorbedPostingId Int?      @map("absorbed_posting_id")
+  // Exact-key and manual merges are stored reviewed; text merges wait for the user.
+  reviewedAt        DateTime? @map("reviewed_at")
   createdAt         DateTime  @default(now()) @map("created_at")
 
   @@index([rule])
@@ -121,6 +125,22 @@ model Lookalike {
   @@unique([lowPostingId, highPostingId])
   @@index([highPostingId])
   @@map("lookalike")
+}
+
+// Two Postings the user said are different openings, by a split or a dismissed Lookalike. The matcher never rejoins or relinks them; the lower Posting id is first.
+model NotSamePair {
+  id            Int      @id @default(autoincrement())
+  lowPostingId  Int      @map("low_posting_id")
+  lowPosting    Posting  @relation("NotSameLow", fields: [lowPostingId], references: [id], onDelete: Cascade)
+  highPostingId Int      @map("high_posting_id")
+  highPosting   Posting  @relation("NotSameHigh", fields: [highPostingId], references: [id], onDelete: Cascade)
+  // split or dismissed
+  reason        String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([lowPostingId, highPostingId])
+  @@index([highPostingId])
+  @@map("not_same_pair")
 }
 
 // lastPollAt is where each adapter's next window starts, so a restart or a long outage still covers the gap.
