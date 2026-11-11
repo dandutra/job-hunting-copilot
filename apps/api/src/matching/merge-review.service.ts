@@ -14,14 +14,12 @@ import {
   PostingSummaryDto,
   SplitResultDto,
 } from "./merge-review.dto";
-import { lockMatcher } from "./matcher-lock";
-import { recordNotSame } from "./not-same";
+import { LOCKED_TRANSACTION, lockMatcher } from "./matcher-lock";
+import { isNotSameAsAny, recordNotSame } from "./not-same";
 import { absorbPosting } from "./posting-absorb";
 import { refreshPosting } from "./posting-refresh";
 
 type Tx = Prisma.TransactionClient;
-
-const TRANSACTION_TIMEOUT_MS = 60_000;
 
 const postingInclude = {
   company: true,
@@ -54,17 +52,18 @@ export class MergeReviewService {
     rule?: string;
     reviewed?: string;
   }): Promise<MergeLogEntryDto[]> {
-    if (filter.reviewed && !["true", "false"].includes(filter.reviewed))
+    const reviewedFilter = {
+      true: { not: null },
+      false: null,
+    } as const;
+    const { reviewed } = filter;
+    if (reviewed !== undefined && reviewed !== "true" && reviewed !== "false")
       throw new BadRequestException("reviewed must be true or false");
     const entries = await this.prisma.mergeLogEntry.findMany({
       where: {
         rule: filter.rule || undefined,
         reviewedAt:
-          filter.reviewed === undefined
-            ? undefined
-            : filter.reviewed === "true"
-              ? { not: null }
-              : null,
+          reviewed === undefined ? undefined : reviewedFilter[reviewed],
       },
       orderBy: [
         { reviewedAt: { sort: "asc", nulls: "first" } },
@@ -77,56 +76,56 @@ export class MergeReviewService {
   }
 
   async markReviewed(id: number): Promise<MergeLogEntryDto> {
-    const found = await this.prisma.mergeLogEntry.findUnique({ where: { id } });
-    if (!found) throw new NotFoundException(`No merge log entry ${id}`);
-    const entry = await this.prisma.mergeLogEntry.update({
+    // Only an unreviewed row is written, so a second call keeps the first timestamp.
+    await this.prisma.mergeLogEntry.updateMany({
+      where: { id, reviewedAt: null },
+      data: { reviewedAt: new Date() },
+    });
+    const entry = await this.prisma.mergeLogEntry.findUnique({
       where: { id },
-      data: { reviewedAt: found.reviewedAt ?? new Date() },
       include: { posting: { include: postingInclude } },
     });
+    if (!entry) throw new NotFoundException(`No merge log entry ${id}`);
     return this.entryDto(entry, entry.posting);
   }
 
   async split(sightingId: number): Promise<SplitResultDto> {
-    return this.prisma.$transaction(
-      async (tx) => {
-        await lockMatcher(tx);
-        const sighting = await tx.sighting.findUnique({
-          where: { id: sightingId },
-        });
-        if (!sighting) throw new NotFoundException(`No Sighting ${sightingId}`);
-        const held = await tx.sighting.count({
-          where: { postingId: sighting.postingId },
-        });
-        if (held < 2)
-          throw new ConflictException(
-            "The Sighting is the only one on its Posting, so there is nothing to split.",
-          );
+    return this.prisma.$transaction(async (tx) => {
+      await lockMatcher(tx);
+      const sighting = await tx.sighting.findUnique({
+        where: { id: sightingId },
+      });
+      if (!sighting) throw new NotFoundException(`No Sighting ${sightingId}`);
+      const held = await tx.sighting.count({
+        where: { postingId: sighting.postingId },
+      });
+      if (held < 2)
+        throw new ConflictException(
+          "The Sighting is the only one on its Posting, so there is nothing to split.",
+        );
 
-        const detached = await tx.posting.create({
-          data: {
-            companyId: sighting.companyId,
-            title: sighting.title,
-            location: sighting.location,
-            description: sighting.description,
-            descriptionKind: sighting.descriptionKind,
-            postedAt: sighting.reportedAt,
-          },
-        });
-        await tx.sighting.update({
-          where: { id: sighting.id },
-          data: { postingId: detached.id },
-        });
-        await recordNotSame(tx, sighting.postingId, detached.id, "split");
-        await refreshPosting(tx, sighting.postingId);
-        await refreshPosting(tx, detached.id);
-        return {
-          postingId: detached.id,
-          originalPostingId: sighting.postingId,
-        };
-      },
-      { timeout: TRANSACTION_TIMEOUT_MS, maxWait: TRANSACTION_TIMEOUT_MS },
-    );
+      const detached = await tx.posting.create({
+        data: {
+          companyId: sighting.companyId,
+          title: sighting.title,
+          location: sighting.location,
+          description: sighting.description,
+          descriptionKind: sighting.descriptionKind,
+          postedAt: sighting.reportedAt,
+        },
+      });
+      await tx.sighting.update({
+        where: { id: sighting.id },
+        data: { postingId: detached.id },
+      });
+      await recordNotSame(tx, sighting.postingId, detached.id, "split");
+      await refreshPosting(tx, sighting.postingId);
+      await refreshPosting(tx, detached.id);
+      return {
+        postingId: detached.id,
+        originalPostingId: sighting.postingId,
+      };
+    }, LOCKED_TRANSACTION);
   }
 
   async listLookalikes(): Promise<LookalikeDto[]> {
@@ -146,61 +145,59 @@ export class MergeReviewService {
   }
 
   async mergeLookalike(id: number): Promise<MergeResultDto> {
-    return this.prisma.$transaction(
-      async (tx) => {
-        await lockMatcher(tx);
-        const link = await this.findLookalike(tx, id);
-        const survivor = await tx.posting.findUniqueOrThrow({
-          where: { id: link.lowPostingId },
-          include: { company: true },
-        });
-        const absorbed = await tx.posting.findUniqueOrThrow({
-          where: { id: link.highPostingId },
-          include: { company: true },
-        });
-        const crossed = survivor.companyId !== absorbed.companyId;
-        if (crossed)
-          await this.mergeCompanies(tx, survivor.companyId, absorbed.companyId);
+    return this.prisma.$transaction(async (tx) => {
+      await lockMatcher(tx);
+      const link = await this.findLookalike(tx, id);
+      if (await isNotSameAsAny(tx, link.lowPostingId, [link.highPostingId]))
+        throw new ConflictException(
+          "The user already said these Postings are different openings.",
+        );
+      const survivor = await tx.posting.findUniqueOrThrow({
+        where: { id: link.lowPostingId },
+        include: { company: true },
+      });
+      const absorbed = await tx.posting.findUniqueOrThrow({
+        where: { id: link.highPostingId },
+        include: { company: true },
+      });
+      const crossed = survivor.companyId !== absorbed.companyId;
+      if (crossed)
+        await this.mergeCompanies(tx, survivor.companyId, absorbed.companyId);
 
-        await absorbPosting(tx, absorbed.id, survivor.id);
-        await tx.mergeLogEntry.create({
-          data: {
-            rule: "manual_merge",
-            evidence: {
-              lookalikeId: link.id,
-              reason: link.reason,
-              companyNames: crossed
-                ? [survivor.company.name, absorbed.company.name]
-                : [survivor.company.name],
-            },
-            postingId: survivor.id,
-            absorbedPostingId: absorbed.id,
-            // The user made this merge by hand, so there is nothing left to review.
-            reviewedAt: new Date(),
+      await absorbPosting(tx, absorbed.id, survivor.id);
+      await tx.mergeLogEntry.create({
+        data: {
+          rule: "manual_merge",
+          evidence: {
+            lookalikeId: link.id,
+            reason: link.reason,
+            companyNames: crossed
+              ? [survivor.company.name, absorbed.company.name]
+              : [survivor.company.name],
           },
-        });
-        await refreshPosting(tx, survivor.id);
-        return { postingId: survivor.id };
-      },
-      { timeout: TRANSACTION_TIMEOUT_MS, maxWait: TRANSACTION_TIMEOUT_MS },
-    );
+          postingId: survivor.id,
+          absorbedPostingId: absorbed.id,
+          // The user made this merge by hand, so there is nothing left to review.
+          reviewedAt: new Date(),
+        },
+      });
+      await refreshPosting(tx, survivor.id);
+      return { postingId: survivor.id };
+    }, LOCKED_TRANSACTION);
   }
 
   async dismissLookalike(id: number): Promise<void> {
-    await this.prisma.$transaction(
-      async (tx) => {
-        await lockMatcher(tx);
-        const link = await this.findLookalike(tx, id);
-        await recordNotSame(
-          tx,
-          link.lowPostingId,
-          link.highPostingId,
-          "dismissed",
-        );
-        await tx.lookalike.delete({ where: { id } });
-      },
-      { timeout: TRANSACTION_TIMEOUT_MS, maxWait: TRANSACTION_TIMEOUT_MS },
-    );
+    await this.prisma.$transaction(async (tx) => {
+      await lockMatcher(tx);
+      const link = await this.findLookalike(tx, id);
+      await recordNotSame(
+        tx,
+        link.lowPostingId,
+        link.highPostingId,
+        "dismissed",
+      );
+      await tx.lookalike.delete({ where: { id } });
+    }, LOCKED_TRANSACTION);
   }
 
   private async findLookalike(tx: Tx, id: number) {

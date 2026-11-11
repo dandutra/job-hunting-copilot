@@ -128,6 +128,11 @@ describe("merge review", () => {
       expect((await get("/merge-log?reviewed=false")).body).toEqual([]);
     });
 
+    it("rejects a reviewed filter that is not true or false", async () => {
+      expect((await get("/merge-log?reviewed=")).status).toBe(400);
+      expect((await get("/merge-log?reviewed=yes")).status).toBe(400);
+    });
+
     it("answers 404 for an entry that does not exist", async () => {
       expect((await post("/merge-log/9999/review")).status).toBe(404);
     });
@@ -285,6 +290,53 @@ describe("merge review", () => {
       );
       expect(later.posting.companyId).toBe(survivor.companyId);
       expect(await prisma.company.count()).toBe(1);
+    });
+
+    it("does not bring a dismissed pair back when a merge moves a third Posting's Lookalike", async () => {
+      const a = await match(alert());
+      const b = await match(greenhouse());
+      const c = await match(
+        greenhouse({
+          listingKey: "greenhouse:acme:2",
+          url: "https://boards.greenhouse.io/acme/jobs/2",
+        }),
+      );
+      const links = (await get("/lookalikes")).body as {
+        id: number;
+        postings: { id: number }[];
+      }[];
+      const between = (x: number, y: number) =>
+        links.find((l) =>
+          [x, y].every((id) => l.postings.some((p) => p.id === id)),
+        )!;
+      await post(
+        `/lookalikes/${between(a.posting.id, c.posting.id).id}/dismiss`,
+      );
+
+      await post(`/lookalikes/${between(a.posting.id, b.posting.id).id}/merge`);
+
+      expect((await get("/lookalikes")).body).toEqual([]);
+    });
+
+    it("refuses to merge a Lookalike whose Postings were split apart", async () => {
+      await match(draft());
+      const joined = await match(alert());
+      const split = await post(`/sightings/${joined.sighting.id}/split`);
+      const [low, high] = [
+        split.body.originalPostingId,
+        split.body.postingId,
+      ].sort((x: number, y: number) => x - y);
+      const stale = await prisma.lookalike.create({
+        data: {
+          lowPostingId: low,
+          highPostingId: high,
+          reason: "same_title",
+          evidence: {},
+        },
+      });
+
+      expect((await post(`/lookalikes/${stale.id}/merge`)).status).toBe(409);
+      expect(await postings()).toBe(2);
     });
 
     it("answers 404 for a Lookalike that does not exist", async () => {

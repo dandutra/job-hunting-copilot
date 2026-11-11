@@ -6,7 +6,7 @@ import { normalizeName } from "../companies/normalize-name";
 import { boardOf, normalizeListingKey, parseListingKey } from "./listing-key";
 import { conflicts, keysOf } from "./key-conflicts";
 import { MatchingHooks } from "./matching-hooks";
-import { lockMatcher } from "./matcher-lock";
+import { LOCKED_TRANSACTION, lockMatcher } from "./matcher-lock";
 import { isNotSameAsAny } from "./not-same";
 import { absorbPosting } from "./posting-absorb";
 import { refreshPosting } from "./posting-refresh";
@@ -15,7 +15,6 @@ import { kindRank, SightingDraft } from "./sighting-draft";
 
 export const WINDOW_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const TRANSACTION_TIMEOUT_MS = 60_000;
 
 type Tx = Prisma.TransactionClient;
 
@@ -60,20 +59,21 @@ export class SightingMatcher {
           .filter((id) => id !== companyId)
       : [];
 
-    const outcome = await this.prisma.$transaction(
-      async (tx) => {
-        await lockMatcher(tx);
-        return this.matchInTransaction(tx, {
-          draft,
-          listingKey,
-          directKey,
-          companyId,
-          similarCompanyIds,
-          now,
-        });
-      },
-      { timeout: TRANSACTION_TIMEOUT_MS, maxWait: TRANSACTION_TIMEOUT_MS },
-    );
+    const outcome = await this.prisma.$transaction(async (tx) => {
+      await lockMatcher(tx);
+      // A hand merge may have deleted the Company resolved above while this match waited for the lock.
+      const live = await tx.company.findUnique({ where: { id: companyId } });
+      return this.matchInTransaction(tx, {
+        draft,
+        listingKey,
+        directKey,
+        companyId: live
+          ? companyId
+          : (await this.companies.resolveCompany(draft.companyName)).id,
+        similarCompanyIds,
+        now,
+      });
+    }, LOCKED_TRANSACTION);
 
     if (outcome.upgraded) await this.hooks.descriptionUpgraded(outcome.posting);
     return { posting: outcome.posting, sighting: outcome.sighting };
@@ -141,10 +141,10 @@ export class SightingMatcher {
     const absorbs: (PendingLog & { absorbedPostingId: number })[] = [];
     let joinLog: PendingLog | null = null;
     // The Postings this draft already joins; a "not the same" pair with any of them blocks a candidate.
-    const members: number[] = survivorId === null ? [] : [survivorId];
+    const joinedPostingIds: number[] = survivorId === null ? [] : [survivorId];
 
     for (const candidateId of candidateIds) {
-      if (await isNotSameAsAny(tx, candidateId, members)) continue;
+      if (await isNotSameAsAny(tx, candidateId, joinedPostingIds)) continue;
       const matched = matches.filter((s) => s.postingId === candidateId);
       const ownMatch = matched.some(viaListingKey);
       if (!ownMatch && !directKey) continue;
@@ -155,7 +155,7 @@ export class SightingMatcher {
         const joining = ownMatch ? [listingKey] : draftKeys();
         if (conflicts(joining, candidateKeys)) continue;
         survivorId = candidateId;
-        members.push(candidateId);
+        joinedPostingIds.push(candidateId);
         held.push(...candidateKeys);
         if (directKey && conflicts([directKey], held)) directKey = null;
         joinLog = evidence;
@@ -163,7 +163,7 @@ export class SightingMatcher {
       }
       if (conflicts([...held, ...draftKeys()], candidateKeys)) continue;
       held.push(...candidateKeys);
-      members.push(candidateId);
+      joinedPostingIds.push(candidateId);
       absorbs.push({ ...evidence, absorbedPostingId: candidateId });
     }
 
