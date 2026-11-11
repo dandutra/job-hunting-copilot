@@ -23,4 +23,4 @@ After the exact-key phase, `matchSighting` runs `applyTextRules` for the draft's
 - A board Sighting that passes rule 3 with two ATS Postings, or with one while its own Posting is an ATS Posting, joins none of them. Each gets a `board_tie` Lookalike. It joins the single ATS Posting that passes when the others do not.
 - The surviving Posting of a text merge is the one with the lower id. `absorbPosting` re-points the absorbed Posting's Lookalikes and keeps one row per pair, with the lower id first.
 - Every text merge writes a merge log entry with rule `text_similarity`, the method, the measured similarity (null for a snippet) and both Sighting ids.
-- A dismissed Lookalike comes back on the next poll until #25 records "not the same" pairs, and Lookalike case 4 arrives with Applications in #77.
+- A pair the user split or dismissed is never merged or linked again; see [Merge review API](merge-review-api.md). Lookalike case 4 arrives with Applications in #77.

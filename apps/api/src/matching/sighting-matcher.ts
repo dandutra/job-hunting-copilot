@@ -6,14 +6,15 @@ import { normalizeName } from "../companies/normalize-name";
 import { boardOf, normalizeListingKey, parseListingKey } from "./listing-key";
 import { conflicts, keysOf } from "./key-conflicts";
 import { MatchingHooks } from "./matching-hooks";
+import { LOCKED_TRANSACTION, lockMatcher } from "./matcher-lock";
+import { isNotSameAsAny } from "./not-same";
 import { absorbPosting } from "./posting-absorb";
+import { refreshPosting } from "./posting-refresh";
 import { applyTextRules } from "./text-merge";
-import { kindRank, precedenceOf, SightingDraft } from "./sighting-draft";
+import { kindRank, SightingDraft } from "./sighting-draft";
 
 export const WINDOW_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MATCHER_LOCK_ID = 2300023;
-const TRANSACTION_TIMEOUT_MS = 60_000;
 
 type Tx = Prisma.TransactionClient;
 
@@ -58,24 +59,38 @@ export class SightingMatcher {
           .filter((id) => id !== companyId)
       : [];
 
-    // Merges reach Postings beyond the draft's keys, so one lock serialises every match.
-    const outcome = await this.prisma.$transaction(
-      async (tx) => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${MATCHER_LOCK_ID}::bigint)`;
-        return this.matchInTransaction(tx, {
-          draft,
-          listingKey,
-          directKey,
-          companyId,
-          similarCompanyIds,
-          now,
-        });
-      },
-      { timeout: TRANSACTION_TIMEOUT_MS, maxWait: TRANSACTION_TIMEOUT_MS },
-    );
+    const outcome = await this.prisma.$transaction(async (tx) => {
+      await lockMatcher(tx);
+      return this.matchInTransaction(tx, {
+        draft,
+        listingKey,
+        directKey,
+        companyId: await this.liveCompanyId(tx, companyId, draft.companyName),
+        similarCompanyIds,
+        now,
+      });
+    }, LOCKED_TRANSACTION);
 
     if (outcome.upgraded) await this.hooks.descriptionUpgraded(outcome.posting);
     return { posting: outcome.posting, sighting: outcome.sighting };
+  }
+
+  // A hand merge may delete the resolved Company while this match waits for the lock; its names then belong to the kept Company.
+  private async liveCompanyId(
+    tx: Tx,
+    companyId: number,
+    name: string,
+  ): Promise<number> {
+    if (await tx.company.findUnique({ where: { id: companyId } }))
+      return companyId;
+    const alias = await tx.companyAlias.findUnique({
+      where: { normalizedName: normalizeName(name) },
+    });
+    if (!alias)
+      throw new Error(
+        `Company ${companyId} vanished and "${name}" has no alias`,
+      );
+    return alias.companyId;
   }
 
   // A directUrl on the draft's own board would link two listings of one board.
@@ -139,8 +154,11 @@ export class SightingMatcher {
 
     const absorbs: (PendingLog & { absorbedPostingId: number })[] = [];
     let joinLog: PendingLog | null = null;
+    // The Postings this draft already joins; a "not the same" pair with any of them blocks a candidate.
+    const joinedPostingIds: number[] = survivorId === null ? [] : [survivorId];
 
     for (const candidateId of candidateIds) {
+      if (await isNotSameAsAny(tx, candidateId, joinedPostingIds)) continue;
       const matched = matches.filter((s) => s.postingId === candidateId);
       const ownMatch = matched.some(viaListingKey);
       if (!ownMatch && !directKey) continue;
@@ -151,6 +169,7 @@ export class SightingMatcher {
         const joining = ownMatch ? [listingKey] : draftKeys();
         if (conflicts(joining, candidateKeys)) continue;
         survivorId = candidateId;
+        joinedPostingIds.push(candidateId);
         held.push(...candidateKeys);
         if (directKey && conflicts([directKey], held)) directKey = null;
         joinLog = evidence;
@@ -158,6 +177,7 @@ export class SightingMatcher {
       }
       if (conflicts([...held, ...draftKeys()], candidateKeys)) continue;
       held.push(...candidateKeys);
+      joinedPostingIds.push(candidateId);
       absorbs.push({ ...evidence, absorbedPostingId: candidateId });
     }
 
@@ -213,6 +233,8 @@ export class SightingMatcher {
           postingId: homeId,
           sightingId: log.absorbedPostingId ? null : sighting.id,
           absorbedPostingId: log.absorbedPostingId ?? null,
+          // An exact key is certain, so only text merges wait for review.
+          reviewedAt: now,
         },
       });
     }
@@ -225,7 +247,7 @@ export class SightingMatcher {
     });
     // The row is refreshed only below, so its kind is still what it was before this match.
     const before = await tx.posting.findUnique({ where: { id: text.homeId } });
-    const posting = await this.refreshPosting(tx, text.homeId);
+    const posting = await refreshPosting(tx, text.homeId);
     return {
       posting,
       sighting: await tx.sighting.findUniqueOrThrow({
@@ -305,35 +327,6 @@ export class SightingMatcher {
         lastSeenAt: now,
         // Seen again inside the key window, so the listing is back.
         closedAt: null,
-      },
-    });
-  }
-
-  // Text falls back past the top Sighting, so a bare alert never erases a description.
-  private async refreshPosting(tx: Tx, postingId: number): Promise<Posting> {
-    const sightings = await tx.sighting.findMany({ where: { postingId } });
-    const ranked = [...sightings].sort(
-      (a, b) =>
-        precedenceOf(a.jobSource) - precedenceOf(b.jobSource) || a.id - b.id,
-    );
-    const top = ranked[0];
-    const textSource =
-      ranked.find((s) => s.descriptionKind === "full") ??
-      ranked.find((s) => s.descriptionKind === "snippet") ??
-      top;
-    const postedAt = sightings.reduce(
-      (earliest, s) => (s.reportedAt < earliest ? s.reportedAt : earliest),
-      top.reportedAt,
-    );
-    return tx.posting.update({
-      where: { id: postingId },
-      data: {
-        companyId: top.companyId,
-        title: top.title,
-        location: top.location,
-        description: textSource.description,
-        descriptionKind: textSource.descriptionKind,
-        postedAt,
       },
     });
   }

@@ -1234,4 +1234,28 @@ describe("SightingMatcher", () => {
       expect(await prisma.mergeLogEntry.count()).toBe(0);
     });
   });
+
+  describe("a Company deleted while the match waits for the lock", () => {
+    it("files the Sighting under the Company that now owns the name", async () => {
+      const kept = await prisma.company.create({
+        data: {
+          name: "Acme Inc",
+          aliases: { create: { name: "Acme Inc", normalizedName: "acme" } },
+        },
+      });
+      const gone = await prisma.company.create({ data: { name: "Acme" } });
+      await prisma.company.delete({ where: { id: gone.id } });
+      // Stands in for a resolve that ran just before a hand merge deleted the Company.
+      const stale = new CompaniesService(prisma);
+      stale.resolveCompany = async () => gone;
+      const racing = new SightingMatcher(prisma, stale, {
+        descriptionUpgraded: async () => {},
+      });
+
+      const result = await racing.matchSighting(draft(), { now: T0 });
+
+      expect(result.posting.companyId).toBe(kept.id);
+      expect(result.sighting.companyId).toBe(kept.id);
+    });
+  });
 });

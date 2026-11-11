@@ -6,6 +6,7 @@ import {
   PairVerdict,
   textAgreement,
 } from "./pair-verdict";
+import { isNotSameAsAny, notSameAs } from "./not-same";
 import { absorbPosting } from "./posting-absorb";
 import { atsSources } from "./sighting-draft";
 
@@ -59,7 +60,7 @@ async function candidatesFor(tx: Tx, input: TextRuleInput) {
   const others = await tx.sighting.findMany({
     where: {
       lastSeenAt: { gte: cutoff },
-      postingId: { not: homeId },
+      postingId: { notIn: [homeId, ...(await notSameAs(tx, homeId))] },
       companyId: { in: [sighting.companyId, ...similarCompanyIds] },
     },
     orderBy: { id: "asc" },
@@ -115,6 +116,8 @@ export async function applyTextRules(
   const lookalikes: Candidate[] = [];
   for (const candidate of candidates) {
     const { verdict, other, postingId } = candidate;
+    // An earlier merge in this loop moved the survivor's "not the same" pairs, so ask again.
+    if (await isNotSameAsAny(tx, homeId, [postingId])) continue;
     const tied = ties && onAts.has(postingId);
     if (verdict.kind !== "merge" || tied) {
       lookalikes.push(
@@ -170,6 +173,7 @@ export async function applyTextRules(
 
   for (const { verdict, other, postingId } of lookalikes) {
     if (verdict.kind !== "lookalike") continue;
+    if (await isNotSameAsAny(tx, homeId, [postingId])) continue;
     await recordLookalike(tx, homeId, postingId, verdict.reason, {
       similarity: verdict.similarity,
       sightingId: sighting.id,
