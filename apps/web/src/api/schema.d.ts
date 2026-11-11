@@ -308,6 +308,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/postings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["FeedController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/postings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["FeedController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -644,6 +676,115 @@ export interface components {
         };
         FeedCorrectionStoredDto: {
             id: number;
+        };
+        FeedItemDto: {
+            id: number;
+            title: string;
+            company: string;
+            location: string;
+            /**
+             * Format: date-time
+             * @description The earliest Sighting's date.
+             */
+            postedAt: string;
+            sightingCount: number;
+            /** @description True when the Posting has no full description yet. */
+            thin: boolean;
+            /** @description The Tier caps that hold the Posting at C: closed_to_juniors, outside_gta, us_only, security_clearance or requires_french. Empty when none applies. */
+            capsApplied: string[];
+            /** @description True when the Posting has an open Lookalike. */
+            hasLookalike: boolean;
+            /**
+             * @description The user's newest Feed correction, or null. It is never a Label.
+             * @enum {string|null}
+             */
+            feedCorrection: "A" | "B" | "C" | null;
+            /**
+             * @description Closed and Stale Postings come only with include=closed.
+             * @enum {string}
+             */
+            state: "open" | "closed" | "stale";
+            /** @enum {string} */
+            tier: "A" | "B" | "C";
+        };
+        ThresholdsDto: {
+            a: number;
+            b: number;
+        };
+        FactorDto: {
+            /** @enum {string} */
+            factor: "skills_covered" | "level_match" | "role_family" | "work_arrangement";
+            /** @description What Jev answered, as text. */
+            answer: string;
+            points: number;
+        };
+        WhyDto: {
+            /** @description The points before any Tier cap. */
+            total: number;
+            thresholds: components["schemas"]["ThresholdsDto"];
+            factors: components["schemas"]["FactorDto"][];
+        };
+        LinkDto: {
+            url: string;
+            /** @description Every Job source that reported this URL. */
+            jobSources: string[];
+        };
+        LookalikeOtherDto: {
+            id: number;
+            title: string;
+            company: string;
+            location: string;
+            /** @enum {string|null} */
+            tier: "A" | "B" | "C" | null;
+        };
+        LookalikeHintDto: {
+            /** @description The id the merge and dismiss endpoints take. */
+            id: number;
+            /** @description similar_title, similar_company, board_tie or same_title. */
+            reason: string;
+            other: components["schemas"]["LookalikeOtherDto"];
+        };
+        PostingDetailDto: {
+            id: number;
+            title: string;
+            company: string;
+            location: string;
+            /**
+             * Format: date-time
+             * @description The earliest Sighting's date.
+             */
+            postedAt: string;
+            sightingCount: number;
+            /** @description True when the Posting has no full description yet. */
+            thin: boolean;
+            /** @description The Tier caps that hold the Posting at C: closed_to_juniors, outside_gta, us_only, security_clearance or requires_french. Empty when none applies. */
+            capsApplied: string[];
+            /** @description True when the Posting has an open Lookalike. */
+            hasLookalike: boolean;
+            /**
+             * @description The user's newest Feed correction, or null. It is never a Label.
+             * @enum {string|null}
+             */
+            feedCorrection: "A" | "B" | "C" | null;
+            /**
+             * @description Closed and Stale Postings come only with include=closed.
+             * @enum {string}
+             */
+            state: "open" | "closed" | "stale";
+            /**
+             * @description Null when no Tier has been computed yet.
+             * @enum {string|null}
+             */
+            tier: "A" | "B" | "C" | null;
+            workArrangement: string | null;
+            roleFamily: string | null;
+            /** @description Null when the stored answers or the tier config cannot be read. Computed with the config as it is now, so it can differ from the stored Tier until the next recompute. */
+            why: components["schemas"]["WhyDto"] | null;
+            descriptionKind: string;
+            /** @description Empty when the Posting has no text. */
+            description: string;
+            links: components["schemas"]["LinkDto"][];
+            lookalikes: components["schemas"]["LookalikeHintDto"][];
         };
     };
     responses: never;
@@ -1354,6 +1495,75 @@ export interface operations {
             };
             /** @description The Posting has no Tier, or the Tier is already that one. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FeedController_list: {
+        parameters: {
+            query?: {
+                /** @description closed adds the Closed and Stale Postings. */
+                include?: "closed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Grouped A, B, C, newest Posted at first within a Tier. A Posting with no Tier yet is left out. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedItemDto"][];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FeedController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Answers for a Closed or Stale Posting too. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostingDetailDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

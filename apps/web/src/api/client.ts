@@ -12,3 +12,5 @@ export function createApiClient(
     fetch: fetchImpl,
   });
 }
+
+export type ApiClient = ReturnType<typeof createApiClient>;
