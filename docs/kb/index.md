@@ -61,7 +61,7 @@ Glossary: [glossary.md](glossary.md)
 - [Feed and Posting detail](gotchas/feed-and-posting-detail.md): the feed leaves out untiered Postings, "Why" is computed from the config as it is now, the API image carries `config/`, a Feed correction toggle-off only clears the mark in the browser, and screens take their client from `useApi()`.
 - [Merge review API](gotchas/merge-review-api.md): a split or a dismissal records a "not the same" pair between Postings that absorbs carry forward, only text merges wait for review, a Lookalike merge across two Companies joins them into one, and a split Posting starts with no judgement.
 - [Label queue and Feed correction API](gotchas/label-queue-api.md): phase dates sit in code, `label_draw` keeps the Posting on screen, a batch is 10 slot-filling Labels, a test-phase `cant_tell` does not fill its slot, undo works only in the open batch, and the third C-to-A correction alerts once per 7 days.
-- [Label queue screen](gotchas/label-queue-screen.md): the progress count is browser-side and resets on reload, the done screen counts the session's Labels, a failed `next` is an error and never "Batch done", keys read the card from refs, and nothing Tier-derived renders.
+- [Label queue screen](gotchas/label-queue-screen.md): the progress count is browser-side and resets on reload, only `batchDone` opens the done screen, a failed `next` is an error, keys read the card from refs, and nothing Tier-derived renders.
 
 ## Job sources
 

@@ -159,3 +159,25 @@ it("shows an error, not the done screen, when next fails mid-batch", async () =>
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   await screen.findByText("Role 2");
 });
+
+it("does not call a batch done when next answers 204 mid-batch", async () => {
+  const s = stub({ getStatus: { 1: 204 } });
+  renderLabels(s);
+  await screen.findByText("Role 1");
+  fireEvent.keyDown(window, { key: "1" });
+
+  await screen.findByText("Nothing to label right now.");
+  expect(screen.queryByText("Batch done")).toBeNull();
+  expect(screen.getByText(/1 Label stored this session/)).toBeTruthy();
+});
+
+it("keeps the nothing-stored notice when a 409 ends the phase", async () => {
+  const s = stub({ getStatus: { 1: 204 }, postStatus: { 0: 409 } });
+  renderLabels(s);
+  await screen.findByText("Role 1");
+  fireEvent.keyDown(window, { key: "1" });
+
+  await screen.findByText("Nothing to label right now.");
+  expect(screen.getByRole("alert").textContent).toMatch(/nothing was stored/);
+  expect(screen.queryByText("Batch done")).toBeNull();
+});

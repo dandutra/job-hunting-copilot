@@ -76,13 +76,12 @@ export function LabelScreen() {
           kind: "error",
           message: `The queue did not answer (HTTP ${response.status}).`,
         });
-      } else if (countRef.current > 0) {
-        finish();
       } else {
+        // Only batchDone ends a batch; a 204 mid-batch means the phase closed or stock ran out.
         setState({ kind: "empty" });
       }
     },
-    [setState, finish],
+    [setState],
   );
 
   const showNext = useCallback(async () => {
@@ -155,7 +154,7 @@ export function LabelScreen() {
       if (error !== undefined || !response.ok) {
         setNotice(
           response.status === 409
-            ? "Nothing to undo: the batch is done or its window has closed."
+            ? "Nothing to undo: the batch is done, its window has closed or the Label is already gone."
             : `The undo failed (HTTP ${response.status}).`,
         );
         return;
@@ -199,6 +198,7 @@ export function LabelScreen() {
         <button
           type="button"
           onClick={() => {
+            setNotice(null);
             setState({ kind: "loading" });
             void showNext();
           }}
@@ -211,7 +211,14 @@ export function LabelScreen() {
     return (
       <main className="page">
         <h1>Label queue</h1>
+        {notice && <p role="alert">{notice}</p>}
         <p className="muted">Nothing to label right now.</p>
+        {count > 0 && (
+          <p>
+            {count} {count === 1 ? "Label" : "Labels"} stored this session. The
+            batch is not complete.
+          </p>
+        )}
       </main>
     );
   if (state.kind === "done")
