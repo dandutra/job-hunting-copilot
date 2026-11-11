@@ -1,0 +1,56 @@
+:root {
+  --tier-a: #15803d;
+  --tier-a-ink: #fff;
+  --tier-a-tint: #dcfce7;
+  --tier-b: #ca8a04;
+  --tier-b-ink: #1c1917;
+  --tier-b-tint: #fef9c3;
+  --tier-c: #dc2626;
+  --tier-c-ink: #fff;
+  --tier-c-tint: #fee2e2;
+}
+
+.tier {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 12px;
+  flex: none;
+}
+.tier-A {
+  background: var(--tier-a);
+  color: var(--tier-a-ink);
+}
+.tier-B {
+  background: var(--tier-b);
+  color: var(--tier-b-ink);
+}
+.tier-C {
+  background: var(--tier-c);
+  color: var(--tier-c-ink);
+}
+
+.tier-tint-A {
+  background: var(--tier-a-tint);
+}
+.tier-tint-B {
+  background: var(--tier-b-tint);
+}
+.tier-tint-C {
+  background: var(--tier-c-tint);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
