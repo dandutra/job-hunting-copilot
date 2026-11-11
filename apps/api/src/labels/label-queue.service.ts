@@ -43,13 +43,15 @@ export class LabelQueueService {
 
   next(): Promise<QueuePostingDto | null> {
     return underLabelsLock(this.prisma, async (tx) => {
-      const window = activeWindow(this.clock.now());
-      let draw: Draw | null = await tx.labelDraw.findFirst();
-      if (draw && !(window && drawBelongsTo(draw, window))) {
+      const now = this.clock.now();
+      const window = activeWindow(now);
+      const pending = await tx.labelDraw.findFirst();
+      let draw: Draw | null = pending;
+      if (pending && !(window && drawBelongsTo(pending, window))) {
         await tx.labelDraw.deleteMany();
         draw = null;
       }
-      if (!draw && window) draw = await this.draw(tx, window);
+      if (!draw && window) draw = await this.draw(tx, window, now);
       if (!draw) return null;
       const p = await tx.posting.findUniqueOrThrow({
         where: { id: draw.postingId },
@@ -67,7 +69,8 @@ export class LabelQueueService {
 
   submit(body: SubmitLabelDto): Promise<{ id: number; batchDone: boolean }> {
     return underLabelsLock(this.prisma, async (tx) => {
-      const window = activeWindow(this.clock.now());
+      const now = this.clock.now();
+      const window = activeWindow(now);
       const draw = await tx.labelDraw.findFirst();
       if (!draw || draw.postingId !== body.postingId)
         throw new ConflictException("The queue is not showing that Posting.");
@@ -85,7 +88,7 @@ export class LabelQueueService {
           configVersion: draw.configVersion,
           phase: draw.phase,
           batch: batch.number,
-          createdAt: this.clock.now(),
+          createdAt: now,
         },
       });
       await tx.labelDraw.deleteMany();
@@ -105,7 +108,7 @@ export class LabelQueueService {
       if (!last) throw new ConflictException("There is no Label to undo.");
       // A Label from a closed window could never be re-keyed into its own phase.
       if (!window || last.createdAt < window.start)
-        throw new ConflictException("The batch is done.");
+        throw new ConflictException("That Label's window has closed.");
       const filled = await tx.label.count({
         where: { batch: last.batch, ...FILLS_A_SLOT },
       });
@@ -126,7 +129,11 @@ export class LabelQueueService {
     });
   }
 
-  private async draw(tx: Tx, window: ActiveWindow): Promise<Draw | null> {
+  private async draw(
+    tx: Tx,
+    window: ActiveWindow,
+    now: Date,
+  ): Promise<Draw | null> {
     const batch = await openBatch(tx, window);
     let draw: Draw | null = null;
     if (window.phase === "test") {
@@ -162,7 +169,7 @@ export class LabelQueueService {
     }
     if (draw)
       await tx.labelDraw.create({
-        data: { ...draw, drawnAt: this.clock.now() },
+        data: { ...draw, drawnAt: now },
       });
     return draw;
   }
@@ -275,12 +282,12 @@ export class LabelQueueService {
 
 // A draw left over from an earlier window, even of the same phase, would count toward the wrong window.
 function drawBelongsTo(
-  draw: { phase: string; drawnAt?: Date },
+  draw: { phase: string; drawnAt: Date },
   window: ActiveWindow,
 ) {
   return (
     (draw.phase === "repeat" ? "test" : draw.phase) === window.phase &&
-    (!draw.drawnAt || draw.drawnAt >= window.start)
+    draw.drawnAt >= window.start
   );
 }
 
