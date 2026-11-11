@@ -59,6 +59,7 @@ Glossary: [glossary.md](glossary.md)
 - [Tier scoring and recompute](gotchas/tier-scoring.md): the total, caps that hold a Posting at C, the config order check and SHA-256 version, no row for an unjudged Posting, and `tier:recompute` with `--seed-thresholds`.
 - [Web app shell and Tier colors](gotchas/web-shell.md): `App` takes its router from `main.tsx`, deep links rely on the nginx fallback, Tier colors are tokens plus `TierBadge`, the badge names its Tier through visually hidden text, and tests need an explicit `cleanup`.
 - [Merge review API](gotchas/merge-review-api.md): a split or a dismissal records a "not the same" pair between Postings that absorbs carry forward, only text merges wait for review, a Lookalike merge across two Companies joins them into one, and a split Posting starts with no judgement.
+- [Label queue and Feed correction API](gotchas/label-queue-api.md): phase dates sit in code, `label_draw` keeps the Posting on screen, a batch is 10 slot-filling Labels, a test-phase `cant_tell` does not fill its slot, undo works only in the open batch, and the third C-to-A correction alerts once per 7 days.
 
 ## Job sources
 

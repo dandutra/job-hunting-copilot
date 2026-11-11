@@ -595,6 +595,145 @@
           "MergeReview"
         ]
       }
+    },
+    "/label-queue/next": {
+      "get": {
+        "operationId": "LabelsController_next",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Posting to label. It carries nothing derived from its Tier. The same Posting comes back until it is labelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuePostingDto"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Nothing is due: no phase is open, the quota is met or no Posting is eligible."
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Labels"
+        ]
+      }
+    },
+    "/label-queue/labels": {
+      "post": {
+        "operationId": "LabelsController_submit",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitLabelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelStoredDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "409": {
+            "description": "The queue is not showing that Posting."
+          }
+        },
+        "tags": [
+          "Labels"
+        ]
+      }
+    },
+    "/label-queue/labels/last": {
+      "delete": {
+        "operationId": "LabelsController_undo",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "The last Label of the batch under way is gone and its Posting comes next."
+          },
+          "401": {
+            "description": ""
+          },
+          "409": {
+            "description": "No Label to undo, or the batch is done."
+          }
+        },
+        "tags": [
+          "Labels"
+        ]
+      }
+    },
+    "/postings/{id}/feed-correction": {
+      "post": {
+        "operationId": "LabelsController_correct",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedCorrectionBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedCorrectionStoredDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": "The Posting has no Tier, or the Tier is already that one."
+          }
+        },
+        "tags": [
+          "Labels"
+        ]
+      }
     }
   },
   "info": {
@@ -1758,6 +1897,100 @@
         },
         "required": [
           "postingId"
+        ]
+      },
+      "QueuePostingDto": {
+        "type": "object",
+        "properties": {
+          "postingId": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "description": "The full description."
+          }
+        },
+        "required": [
+          "postingId",
+          "title",
+          "company",
+          "location",
+          "text"
+        ]
+      },
+      "SubmitLabelDto": {
+        "type": "object",
+        "properties": {
+          "postingId": {
+            "type": "number",
+            "description": "The Posting the queue is showing."
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "cant_tell"
+            ]
+          }
+        },
+        "required": [
+          "postingId",
+          "label"
+        ]
+      },
+      "LabelStoredDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "batchDone": {
+            "type": "boolean",
+            "description": "True when the batch is complete, so the undo is closed."
+          }
+        },
+        "required": [
+          "id",
+          "batchDone"
+        ]
+      },
+      "FeedCorrectionBodyDto": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "description": "The user's own Tier."
+          }
+        },
+        "required": [
+          "tier"
+        ]
+      },
+      "FeedCorrectionStoredDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id"
         ]
       }
     }
