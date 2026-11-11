@@ -723,6 +723,8 @@ export interface components {
             total: number;
             thresholds: components["schemas"]["ThresholdsDto"];
             factors: components["schemas"]["FactorDto"][];
+            /** @description True when the tier config changed after this Tier was computed, so the points may not match the Tier until tier:recompute runs. */
+            stale: boolean;
         };
         LinkDto: {
             url: string;
@@ -778,7 +780,7 @@ export interface components {
             tier: "A" | "B" | "C" | null;
             workArrangement: string | null;
             roleFamily: string | null;
-            /** @description Null when the stored answers or the tier config cannot be read. Computed with the config as it is now, so it can differ from the stored Tier until the next recompute. */
+            /** @description Null when the stored answers or the tier config cannot be read. Computed with the config as it is now; see stale. */
             why: components["schemas"]["WhyDto"] | null;
             descriptionKind: string;
             /** @description Empty when the Posting has no text. */

@@ -51,6 +51,7 @@ const detail = (it: Item, over: Partial<Detail> = {}): Detail => ({
       { factor: "role_family", answer: "back_end", points: 0.1 },
       { factor: "work_arrangement", answer: "hybrid", points: 0.1 },
     ],
+    stale: false,
   },
   descriptionKind: "full",
   description: `Body of ${it.title}`,
@@ -384,4 +385,26 @@ it("says so when the feed is empty", async () => {
   renderAt("/", stub({ items: () => [] }));
 
   expect(await screen.findByText(/No Postings/)).toBeTruthy();
+});
+
+it("warns when the points come from a newer tier config than the Tier", async () => {
+  const it3 = item(3, "B");
+  const d = detail(it3);
+  renderAt(
+    "/postings/3",
+    stub({ details: { 3: { ...d, why: { ...d.why!, stale: true } } } }),
+  );
+
+  expect(await screen.findByText(/tier:recompute/)).toBeTruthy();
+});
+
+it("keeps j working after the Closed and stale checkbox takes focus", async () => {
+  renderAt("/postings/1", stub());
+  await screen.findByRole("heading", { name: "Title 1" });
+  const box = screen.getByRole("checkbox", { name: "Closed and stale" });
+  box.focus();
+
+  fireEvent.keyDown(box, { key: "j" });
+
+  await screen.findByRole("heading", { name: "Title 2" });
 });

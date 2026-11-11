@@ -1,9 +1,13 @@
 import { Link } from "react-router";
-import { age, capReason, type FeedItem, type TierLetter } from "./format";
+import {
+  age,
+  capReason,
+  TIERS,
+  type FeedItem,
+  type TierLetter,
+} from "./format";
 
 export type GroupKey = TierLetter | "closed";
-
-const TIERS: TierLetter[] = ["A", "B", "C"];
 
 function Row({
   item,

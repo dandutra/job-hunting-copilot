@@ -90,7 +90,10 @@ export class FeedService {
           where: { id: p.tier.judgementId },
         })
       : null;
-    const breakdown = judgement ? this.breakdown(judgement.answers) : null;
+    const breakdown =
+      judgement && p.tier
+        ? this.breakdown(judgement.answers, p.tier.configVersion)
+        : null;
     return {
       ...this.core(p, now, lookalikes.length > 0),
       tier: (p.tier?.tier as TierValue | undefined) ?? null,
@@ -122,9 +125,9 @@ export class FeedService {
   }
 
   // A stale or unreadable input costs the "Why" list, not the whole Posting.
-  private breakdown(answers: unknown) {
+  private breakdown(answers: unknown, tierConfigVersion: string) {
     try {
-      const config = this.tierConfig.load();
+      const { config, version } = this.tierConfig.load();
       const b = tierBreakdown(answers, config);
       if (!b) return null;
       const { thresholds } = config;
@@ -132,6 +135,7 @@ export class FeedService {
         total: b.total,
         thresholds,
         factors: b.factors,
+        stale: version !== tierConfigVersion,
       };
       return {
         why,

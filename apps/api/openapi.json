@@ -2209,12 +2209,17 @@
             "items": {
               "$ref": "#/components/schemas/FactorDto"
             }
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "True when the tier config changed after this Tier was computed, so the points may not match the Tier until tier:recompute runs."
           }
         },
         "required": [
           "total",
           "thresholds",
-          "factors"
+          "factors",
+          "stale"
         ]
       },
       "LinkDto": {
@@ -2367,7 +2372,7 @@
           },
           "why": {
             "nullable": true,
-            "description": "Null when the stored answers or the tier config cannot be read. Computed with the config as it is now, so it can differ from the stored Tier until the next recompute.",
+            "description": "Null when the stored answers or the tier config cannot be read. Computed with the config as it is now; see stale.",
             "type": "object",
             "allOf": [
               {

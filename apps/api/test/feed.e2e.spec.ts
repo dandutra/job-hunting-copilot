@@ -7,7 +7,12 @@ import { FeedModule } from "../src/feed/feed.module";
 import { TierConfigSource } from "../src/feed/tier-config-source";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { loadTierConfig } from "../src/tiers/tier-config";
-import { FakeClock, LOGIN, seedPosting } from "./label-fixtures";
+import {
+  CONFIG_VERSION,
+  FakeClock,
+  LOGIN,
+  seedPosting,
+} from "./label-fixtures";
 import { openTestDb, resetTestDb } from "./test-db";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -53,6 +58,10 @@ describe("feed endpoints", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const clock = new FakeClock();
+  const source = {
+    version: CONFIG_VERSION,
+    load: () => ({ config, version: source.version }),
+  };
 
   beforeAll(async () => {
     prisma = await openTestDb();
@@ -64,7 +73,7 @@ describe("feed endpoints", () => {
       .overrideProvider(Clock)
       .useValue(clock)
       .overrideProvider(TierConfigSource)
-      .useValue({ load: () => config })
+      .useValue(source)
       .compile();
     app = moduleRef.createNestApplication();
     await app.init();
@@ -77,6 +86,7 @@ describe("feed endpoints", () => {
   beforeEach(async () => {
     await resetTestDb(prisma);
     clock.at = NOW;
+    source.version = CONFIG_VERSION;
   });
 
   const get = (path: string) =>
@@ -263,6 +273,16 @@ describe("feed endpoints", () => {
         "work_arrangement",
       ]);
       expect(res.body.why.total).toBeCloseTo(1.2);
+      expect(res.body.why.stale).toBe(false);
+    });
+
+    it("marks the points stale when the config changed since the Tier was computed", async () => {
+      const id = await seedPosting(prisma, { tier: "A", answers });
+      source.version = "cfg-2";
+
+      const res = await get(`/postings/${id}`);
+
+      expect(res.body.why.stale).toBe(true);
     });
 
     it("has no points when the stored answers no longer validate", async () => {

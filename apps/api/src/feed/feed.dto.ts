@@ -65,6 +65,11 @@ export class WhyDto {
   total!: number;
   @ApiProperty({ type: ThresholdsDto }) thresholds!: ThresholdsDto;
   @ApiProperty({ type: [FactorDto] }) factors!: FactorDto[];
+  @ApiProperty({
+    description:
+      "True when the tier config changed after this Tier was computed, so the points may not match the Tier until tier:recompute runs.",
+  })
+  stale!: boolean;
 }
 
 export class LinkDto {
@@ -110,7 +115,7 @@ export class PostingDetailDto extends PostingCoreDto {
     type: WhyDto,
     nullable: true,
     description:
-      "Null when the stored answers or the tier config cannot be read. Computed with the config as it is now, so it can differ from the stored Tier until the next recompute.",
+      "Null when the stored answers or the tier config cannot be read. Computed with the config as it is now; see stale.",
   })
   why!: WhyDto | null;
   @ApiProperty() descriptionKind!: string;

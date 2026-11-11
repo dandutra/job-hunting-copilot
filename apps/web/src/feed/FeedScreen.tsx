@@ -13,7 +13,9 @@ type Overrides = Record<number, TierLetter | null>;
 
 function typing(target: EventTarget | null) {
   return (
-    target instanceof HTMLInputElement ||
+    (target instanceof HTMLInputElement &&
+      target.type !== "checkbox" &&
+      target.type !== "radio") ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement
   );

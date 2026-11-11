@@ -6,10 +6,9 @@ import {
   factorLabel,
   word,
   type PostingDetail as Detail,
+  TIERS,
   type TierLetter,
 } from "./format";
-
-const TIERS: TierLetter[] = ["A", "B", "C"];
 
 function CopyTailor({ id }: { id: number }) {
   const [copied, setCopied] = useState(false);
@@ -123,6 +122,12 @@ export function PostingDetail({
                 Total {why.total.toFixed(2)}. A from {why.thresholds.a}, B from{" "}
                 {why.thresholds.b}.
               </p>
+              {why.stale && (
+                <p role="note">
+                  The tier config changed after this Tier was computed, so these
+                  points may not match it until tier:recompute runs.
+                </p>
+              )}
             </>
           ) : (
             <p className="muted">The points are not available.</p>

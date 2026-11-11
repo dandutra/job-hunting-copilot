@@ -3,6 +3,7 @@ import type { components } from "../api/schema";
 export type FeedItem = components["schemas"]["FeedItemDto"];
 export type PostingDetail = components["schemas"]["PostingDetailDto"];
 export type TierLetter = FeedItem["tier"];
+export const TIERS: TierLetter[] = ["A", "B", "C"];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
