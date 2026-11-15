@@ -21,4 +21,4 @@ A single-user job-search app: it polls Job sources into Postings, tiers them, an
 
 ## A new env var
 
-A name must reach every place that uses it: `.env.example` always; root `compose.yaml` when a local container reads it; `deploy/compose.prod.yaml` when a production container reads it; the Deploy step of `deploy.yml` (its `env:` and its `printf` list) plus the `production` environment in GitHub, for any production value; `ci.yml` when the tests need it.
+A name must reach every place that uses it: `.env.example` always; root `compose.yaml` when a local container reads it; `deploy/compose.prod.yaml` when a production container reads it; the Deploy step of `deploy.yml` (its `env:` and its `printf` list) plus the `production` environment in GitHub, for any production value; `ci.yml` when the tests need it. `scripts/check-env.mjs`, part of `pnpm check`, fails on a name missing along that path except `ci.yml`. A name read only on the Mac or by `pnpm dev` goes on its `HOST_ONLY` list.
