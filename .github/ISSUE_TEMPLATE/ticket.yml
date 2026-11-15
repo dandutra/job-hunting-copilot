@@ -46,6 +46,29 @@ body:
     validations:
       required: true
   - type: textarea
+    id: risks
+    attributes:
+      label: Risks and checks
+      description: What could go wrong that tests at the seams would not catch, each with the check that handles it. A new env var or secret (it must reach `.env.example`, `compose.yaml` and the workflows), a Job source whose live response may differ from its recorded fixture, data a Prisma migration could lose, the shared test database. Write "none" only after thinking it through.
+    validations:
+      required: true
+  - type: textarea
+    id: live-check
+    attributes:
+      label: Live check
+      description: The command or manual step run against the real system before the PR opens (a dev API call, one real tenant or board, a screen in the browser), and what it must show. "none" when the change calls nothing external.
+      placeholder: "none"
+    validations:
+      required: true
+  - type: dropdown
+    id: review-tier
+    attributes:
+      label: Review tier
+      description: The floor for /review. tier.sh may raise it. 0 docs only, 1 small and tested, 2 feature work, 3 critical path (the list in REVIEW.md).
+      options: ["2", "0", "1", "3"]
+    validations:
+      required: true
+  - type: textarea
     id: acceptance
     attributes:
       label: Acceptance

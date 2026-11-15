@@ -16,7 +16,7 @@ Work lives in GitHub Issues on this repo. Knowledge lives in `docs/kb/`. Use the
 
 ## Build tickets
 
-A build ticket is what `/implement` builds and `/review` checks the Spec axis against. It follows the "Ticket" form in `.github/ISSUE_TEMPLATE/ticket.yml`. A ticket created from the CLI uses the form's headings in the same order, so both read the same:
+A build ticket is what `/ship` builds and `/review` checks the Spec axis against. It follows the "Ticket" form in `.github/ISSUE_TEMPLATE/ticket.yml`. A ticket created from the CLI uses the form's headings in the same order, so both read the same. Change the two together:
 
 ```markdown
 ### Source
@@ -25,8 +25,13 @@ A build ticket is what `/implement` builds and `/review` checks the Spec axis ag
 ### Read first
 ### Problem and change
 ### Seams under test
+### Risks and checks
+### Live check
+### Review tier
 ### Acceptance
 ```
+
+`/ship` reads the last three before it builds. Every risk names the test, live check or manual step that handles it; write "none" only after thinking it through. Live check is the command run against the real system and what it must show, or "none" when nothing external is called. Review tier is one digit, the floor `/review` starts from: 0 docs only, 1 small and tested, 2 feature work, 3 critical path (the list in [REVIEW.md](../../REVIEW.md)).
 
 - **Create**: `gh issue create --title "..." --label ticket --body-file -` with a heredoc body, or the form.
 - **Read**: `gh issue view <number> --comments`.

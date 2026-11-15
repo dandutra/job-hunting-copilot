@@ -37,6 +37,7 @@ Glossary: [glossary.md](glossary.md)
 - [Resumes follow Canadian conventions](decisions/resumes-follow-canadian-conventions.md): one rendered page, a bulleted Highlights of Qualifications, plain-language bullets in action, how, result form, an order set by the Posting's main theme, and the Workday form outputs.
 - [Only boards close a Posting](decisions/only-boards-close-a-posting.md): a Posting is Closed only on a Watched company board's evidence; any other Posting goes Stale after 30 days with no report and no board listing it, and both leave the feed without touching an Application.
 - [Postings stay inside the Search area](decisions/postings-stay-inside-the-search-area.md): every adapter drops rows outside Toronto, the GTA and remote-Canada before matching, so out-of-area jobs are never stored and a job that moves out of the area closes.
+- [Tickets name their risks when written](decisions/tickets-name-their-risks.md): a ticket lists its risks with their checks, a live check and a review tier at planning time, because the late risks on #31, #35, #37, #38 and #73 could have been foreseen then.
 
 ## Gotchas
 
