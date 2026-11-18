@@ -14,7 +14,7 @@ generated:
 ## Typst install
 
 - The pinned version is in `packages/resume-render/typst-version` (0.15.1). Download the release tarball from github.com/typst/typst/releases (`aarch64-apple-darwin` on the Mac) and put `typst` on `PATH`. `pnpm check` and the package tests need it and fail with a message naming the version otherwise.
-- `ci.yml` installs Typst from `typst-version` and checks the sha256 in `typst-linux-x64.sha256`. A version bump must update both files. Typst publishes no checksum file, so the checksum was computed from the downloaded release (trust on first use).
+- The composite action `.github/actions/install-typst` installs Typst from `typst-version` and checks the sha256 in `typst-linux-x64.sha256`. Both `ci.yml` and the `check` job of `deploy.yml` use it, because each runs `pnpm check`. #108 added it to `ci.yml` only, and the first deploy after the merge failed on it. A version bump must update both files. Typst publishes no checksum file, so the checksum was computed from the downloaded release (trust on first use).
 - Typst is pre-1.0, so an upgrade reruns the contract test and needs review.
 - `GITHUB_PATH` applies only to later steps, so a step that installs Typst cannot call it in the same step (found in review).
 

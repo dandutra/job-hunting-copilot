@@ -59,6 +59,7 @@ jobs:
       # scripts/backup.test.mjs needs age; Docker is already on the runner.
       - uses: ./.github/actions/install-age
       - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/install-typst
       - run: pnpm --dir apps/api exec prisma generate
       - run: pnpm check
 
