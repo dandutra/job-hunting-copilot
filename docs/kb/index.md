@@ -63,6 +63,7 @@ Glossary: [glossary.md](glossary.md)
 - [Merge review API](gotchas/merge-review-api.md): a split or a dismissal records a "not the same" pair between Postings that absorbs carry forward, only text merges wait for review, a Lookalike merge across two Companies joins them into one, and a split Posting starts with no judgement.
 - [Label queue and Feed correction API](gotchas/label-queue-api.md): phase dates sit in code, `label_draw` keeps the Posting on screen, a batch is 10 slot-filling Labels, a test-phase `cant_tell` does not fill its slot, undo works only in the open batch, and the third C-to-A correction alerts once per 7 days.
 - [Label queue screen](gotchas/label-queue-screen.md): the progress count is browser-side and resets on reload, only `batchDone` opens the done screen, a failed `next` is an error, keys read the card from refs, and nothing Tier-derived renders.
+- [Resume render package and Typst](gotchas/resume-render-typst.md): install the pinned Typst locally, CI checks its sha256, renderers read fields by name, dates share one function, and the package needs `src/resume.typ`, `fonts/` and `typst-version` beside `dist/`.
 
 ## Job sources
 
