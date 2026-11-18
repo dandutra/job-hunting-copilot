@@ -10,7 +10,16 @@ export async function readPdf(buf: Buffer) {
   const { text, totalPages } = await extractText(pdf, { mergePages: true });
   const meta = await getMeta(pdf);
   const page = await pdf.getPage(1);
+  // Text items grouped by baseline, so a test can tell a URL on one line from one that wrapped.
+  const content = await page.getTextContent();
+  const byY = new Map<number, string>();
+  for (const item of content.items) {
+    if (!("str" in item)) continue;
+    const y = Math.round(item.transform[5]);
+    byY.set(y, (byY.get(y) ?? "") + item.str);
+  }
   return {
+    lines: [...byY.values()],
     text: squash(text),
     pages: totalPages,
     info: meta.info as Record<string, unknown>,

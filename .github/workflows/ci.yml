@@ -59,7 +59,7 @@ jobs:
           mkdir "$RUNNER_TEMP/typst-bin"
           tar -xf "$RUNNER_TEMP/typst.tar.xz" --strip-components=1 -C "$RUNNER_TEMP/typst-bin" typst-x86_64-unknown-linux-musl/typst
           echo "$RUNNER_TEMP/typst-bin" >> "$GITHUB_PATH"
-          typst --version
+          "$RUNNER_TEMP/typst-bin/typst" --version
       # Prisma 7 does not generate on install, and typecheck needs the client.
       - run: pnpm --dir apps/api exec prisma generate
       - run: pnpm check

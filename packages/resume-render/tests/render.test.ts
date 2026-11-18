@@ -94,8 +94,8 @@ describe("template rules", () => {
     const want = [model.contact.name, model.contact.email, long, "Experience"];
     const pdf = await readPdf(await renderPdf(model));
     assertInOrder(pdf.text, want);
-    // The URL is the same run of characters on one line, so no reader splits it.
-    expect(pdf.text).toContain(long);
+    // Joined text hides a wrap, so the check is that one line holds the whole URL.
+    expect(pdf.lines.some((l) => l.includes(long))).toBe(true);
     assertInOrder((await readDocx(await renderDocx(model))).text, want);
   });
 
@@ -191,12 +191,20 @@ describe("template rules", () => {
     };
     expect(bad).toBeDefined();
     const model = planted as unknown as ResumeModel;
-    for (const text of [
-      (await readPdf(await renderPdf(model))).text,
-      (await readDocx(await renderDocx(model))).text,
-    ]) {
-      for (const secret of ["E9", "E1 ", "law degree", "secret-repo"]) {
-        expect(text).not.toContain(secret);
+    const pdf = await readPdf(await renderPdf(model));
+    const docx = await readDocx(await renderDocx(model));
+    // Body text, PDF metadata and the DOCX XML parts, each searched for every planted value.
+    const places = [
+      pdf.text,
+      JSON.stringify(pdf.info),
+      docx.text,
+      docx.coreXml,
+      docx.documentXml,
+    ];
+    for (const place of places) {
+      expect(place).not.toMatch(/\bE[19]\b/);
+      for (const secret of ["law degree", "secret-repo"]) {
+        expect(place).not.toContain(secret);
       }
     }
     for (const buf of [await renderPdf(model), await renderDocx(model)]) {
@@ -213,12 +221,11 @@ describe("template rules", () => {
 });
 
 describe("working folder", () => {
-  async function inEmptyTmp(fn: () => Promise<unknown>, path?: string) {
+  async function inEmptyTmp(fn: () => Promise<unknown>) {
     const tmp = await mkdtemp(join(tmpdir(), "rr-test-"));
     vi.stubEnv("TMPDIR", tmp);
-    if (path) vi.stubEnv("PATH", path);
     try {
-      await fn().catch(() => undefined);
+      await fn();
       return await readdir(tmp);
     } finally {
       await rm(tmp, { recursive: true, force: true });
@@ -232,9 +239,13 @@ describe("working folder", () => {
   it("is gone after a failed render", async () => {
     // A stand-in typst that reports the pinned version, then fails the compile.
     const bin = await mkdtemp(join(tmpdir(), "rr-bin-"));
+    const pinned = readFileSync(
+      join(__dirname, "../typst-version"),
+      "utf8",
+    ).trim();
     await writeFile(
       join(bin, "typst"),
-      '#!/bin/sh\n[ "$1" = "--version" ] && { echo "typst 0.15.1 (fake)"; exit 0; }\necho boom >&2\nexit 1\n',
+      `#!/bin/sh\n[ "$1" = "--version" ] && { echo "typst ${pinned} (fake)"; exit 0; }\necho boom >&2\nexit 1\n`,
     );
     await chmod(join(bin, "typst"), 0o755);
     try {
@@ -245,6 +256,10 @@ describe("working folder", () => {
           vi.stubEnv("PATH", `${bin}:${process.env.PATH}`);
           try {
             await renderPdf(fakeResume);
+          } catch (e) {
+            // The fake got as far as the compile, so the folder existed.
+            expect(String((e as Error).message)).toContain("boom");
+            throw e;
           } finally {
             expect(await readdir(tmp)).toEqual([]);
             await rm(tmp, { recursive: true, force: true });

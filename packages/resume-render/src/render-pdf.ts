@@ -38,16 +38,20 @@ export async function renderPdf(model: ResumeModel): Promise<Buffer> {
     await writeFile(join(dir, "resume.json"), JSON.stringify(viewOf(model)));
     await copyFile(TEMPLATE, join(dir, "resume.typ"));
     // No shell, no system fonts: the font is the one we ship, on every machine.
-    await run("typst", [
-      "compile",
-      "--ignore-system-fonts",
-      "--font-path",
-      FONTS,
-      "--pdf-standard",
-      "ua-1",
-      join(dir, "resume.typ"),
-      join(dir, "out.pdf"),
-    ]);
+    await run(
+      "typst",
+      [
+        "compile",
+        "--ignore-system-fonts",
+        "--font-path",
+        FONTS,
+        "--pdf-standard",
+        "ua-1",
+        join(dir, "resume.typ"),
+        join(dir, "out.pdf"),
+      ],
+      { timeout: 30_000 },
+    );
     return await readFile(join(dir, "out.pdf"));
   } finally {
     await rm(dir, { recursive: true, force: true });
