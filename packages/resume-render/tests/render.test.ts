@@ -10,6 +10,12 @@ import { assertInOrder, expectedStrings, readDocx, readPdf } from "./read";
 
 afterEach(() => vi.unstubAllEnvs());
 
+const pinnedPattern = new RegExp(
+  readFileSync(join(__dirname, "../typst-version"), "utf8")
+    .trim()
+    .replaceAll(".", "\\."),
+);
+
 describe("contract: every model string appears, in order", () => {
   for (const [name, model] of [
     ["one-page resume", fakeResume],
@@ -248,25 +254,15 @@ describe("working folder", () => {
       `#!/bin/sh\n[ "$1" = "--version" ] && { echo "typst ${pinned} (fake)"; exit 0; }\necho boom >&2\nexit 1\n`,
     );
     await chmod(join(bin, "typst"), 0o755);
+    const tmp = await mkdtemp(join(tmpdir(), "rr-test-"));
+    vi.stubEnv("TMPDIR", tmp);
+    vi.stubEnv("PATH", `${bin}:${process.env.PATH}`);
     try {
-      await expect(
-        (async () => {
-          const tmp = await mkdtemp(join(tmpdir(), "rr-test-"));
-          vi.stubEnv("TMPDIR", tmp);
-          vi.stubEnv("PATH", `${bin}:${process.env.PATH}`);
-          try {
-            await renderPdf(fakeResume);
-          } catch (e) {
-            // The fake got as far as the compile, so the folder existed.
-            expect(String((e as Error).message)).toContain("boom");
-            throw e;
-          } finally {
-            expect(await readdir(tmp)).toEqual([]);
-            await rm(tmp, { recursive: true, force: true });
-          }
-        })(),
-      ).rejects.toThrow();
+      // "boom" comes from the fake's compile, so the working folder existed when it failed.
+      await expect(renderPdf(fakeResume)).rejects.toThrow(/boom/);
+      expect(await readdir(tmp)).toEqual([]);
     } finally {
+      await rm(tmp, { recursive: true, force: true });
       await rm(bin, { recursive: true, force: true });
     }
   });
@@ -275,7 +271,7 @@ describe("working folder", () => {
 describe("the pinned Typst", () => {
   it("fails naming the pinned version when typst is missing", async () => {
     vi.stubEnv("PATH", "/nonexistent");
-    await expect(renderPdf(fakeResume)).rejects.toThrow(/0\.15\.1/);
+    await expect(renderPdf(fakeResume)).rejects.toThrow(pinnedPattern);
   });
 
   it("fails naming the pinned version when typst is another version", async () => {
@@ -287,7 +283,7 @@ describe("the pinned Typst", () => {
     await chmod(join(bin, "typst"), 0o755);
     vi.stubEnv("PATH", `${bin}:${process.env.PATH}`);
     try {
-      await expect(renderPdf(fakeResume)).rejects.toThrow(/0\.15\.1/);
+      await expect(renderPdf(fakeResume)).rejects.toThrow(pinnedPattern);
     } finally {
       await rm(bin, { recursive: true, force: true });
     }
