@@ -11,6 +11,8 @@ type Loaded<T> = { key: string; data: T } | { key: string; missing: true };
 // The newest Feed correction is on the server; a click that has not been reloaded yet, or a toggle-off, lives here.
 type Overrides = Record<number, TierLetter | null>;
 
+const RECENT_MS = 3 * 24 * 60 * 60 * 1000;
+
 function typing(target: EventTarget | null) {
   return (
     (target instanceof HTMLInputElement &&
@@ -26,6 +28,8 @@ export function FeedScreen() {
   const navigate = useNavigate();
   const { id: idParam } = useParams();
   const [showClosed, setShowClosed] = useState(false);
+  // Taken when the box is ticked, because a render must not read the clock.
+  const [cutoff, setCutoff] = useState<number | null>(null);
   const [version, setVersion] = useState(0);
   const [list, setList] = useState<{ key: string; items: FeedItem[] } | null>(
     null,
@@ -54,12 +58,17 @@ export function FeedScreen() {
     };
   }, [api, showClosed, listKey]);
 
-  const items = list?.items;
+  const loaded = list?.items;
+  const items = useMemo(
+    () =>
+      cutoff === null
+        ? (loaded ?? [])
+        : (loaded ?? []).filter((i) => Date.parse(i.postedAt) >= cutoff),
+    [loaded, cutoff],
+  );
   const visible = useMemo(
     () =>
-      (items ?? []).filter((i) =>
-        i.state === "open" ? open[i.tier] : open.closed,
-      ),
+      items.filter((i) => (i.state === "open" ? open[i.tier] : open.closed)),
     [items, open],
   );
   const parsed = idParam === undefined ? NaN : Number(idParam);
@@ -145,11 +154,24 @@ export function FeedScreen() {
           />
           Closed and stale
         </label>
+        <label className="closed-toggle">
+          <input
+            type="checkbox"
+            checked={cutoff !== null}
+            onChange={(e) =>
+              setCutoff(e.target.checked ? Date.now() - RECENT_MS : null)
+            }
+          />
+          Last 3 days
+        </label>
         {list && list.items.length === 0 && (
           <p className="muted page">No Postings yet.</p>
         )}
+        {list && list.items.length > 0 && items.length === 0 && (
+          <p className="muted page">No Postings in the last 3 days.</p>
+        )}
         <PostingList
-          items={list?.items ?? []}
+          items={items}
           open={open}
           toggle={(key) => setOpen((o) => ({ ...o, [key]: !o[key] }))}
           selectedId={selectedId}
