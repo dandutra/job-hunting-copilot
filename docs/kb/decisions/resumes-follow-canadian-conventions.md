@@ -1,7 +1,7 @@
 ---
 type: decision
 title: Resumes follow Canadian conventions
-description: A Tailored resume is one rendered page with a bulleted Highlights of Qualifications, plain-language bullets in action, how, result form, and an order set by the Posting's main theme.
+description: A Tailored resume is one page in Word with no text below 11 pt, with a bulleted Highlights of Qualifications, plain-language bullets in action, how, result form, and an order set by the Posting's main theme.
 tags: [tailoring, rendering]
 sources: ["#59", "docs/research/canadian-resume-conventions.md", "docs/research/workday-ats.md"]
 generated:
@@ -11,7 +11,7 @@ generated:
 
 The first hand-tailored resume took 5 drafts. The first 3 used resume conventions the model recalled, and the user rejected them. These rules come from the two research notes, and the user confirmed them on that resume.
 
-**One page, checked by rendering.** Canadian career centres allow one or two pages, and the only tech-specific source says one. The user requires one page on every resume, with no exceptions. Two estimates were wrong, by 7 lines and then by 2, so the page count comes from the rendered file. Overflow is fixed in this order: 10 pt body, tighter spacing, Skills on fewer lines, a one-line contact row. Content is cut only after that, and the user chooses what goes.
+**One page at 11 pt or more, counted by Word.** Canadian career centres allow one or two pages, and the only tech-specific source says one. The user requires one page on every resume, with no exceptions, and no text below 11 pt (#110). Two estimates were wrong, by 7 lines and then by 2, so the page count comes from Word, which the user exports the PDF from. Overflow is never fixed with a smaller font or tighter spacing: the weakest line goes, one at a time, each cut approved by the user. Bullets go before Highlights, and the Highlights never drop below 4. Earlier resumes went to 10.5 and 9.5 pt, and one shipped at 2 pages.
 
 **A bulleted Highlights of Qualifications, not a prose profile.** It has 4 to 6 bullets, and each one names where the skill came from. U of T, Seneca, Waterloo and York teach this format. A prose profile written as "I" sentences was rejected because it didn't read like a resume.
 
@@ -21,4 +21,4 @@ The first hand-tailored resume took 5 drafts. The first 3 used resume convention
 
 **The Posting's main theme sets the order.** The default order is Highlights, Experience, Projects, Skills, Education. The main theme leads the highlights and the bullets within each entry. Every skill listed has at least one bullet that shows it, because Waterloo names unsupported skills as a reason resumes are passed over.
 
-**The application form is part of the output.** Workday never fills Skills from a resume and asks for a plain-text role description for each Experience. A tailoring run also outputs the Skills list to type and a role description of about 1,500 characters for each chosen Experience, both citing Facts. See [Workday resume parsing](../gotchas/workday-resume-parsing.md).
+**The application form is part of the output.** Workday never fills Skills from a resume and asks for a plain-text role description for each Experience. A tailoring run also outputs the Skills list to type and a role description for each chosen Experience, both citing Facts. The description is prose about the work led by the Posting's theme, with no length target (#110). See [Workday resume parsing](../gotchas/workday-resume-parsing.md).

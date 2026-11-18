@@ -166,6 +166,12 @@ importers:
 
   .:
     devDependencies:
+      docx:
+        specifier: ^9.15.4
+        version: 9.15.4
+      jszip:
+        specifier: ^3.10.2
+        version: 3.10.2
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.9.3)
