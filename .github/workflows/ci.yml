@@ -49,6 +49,17 @@ jobs:
       # scripts/backup.test.mjs needs age; Docker is already on the runner.
       - uses: ./.github/actions/install-age
       - run: pnpm install --frozen-lockfile
+      # packages/resume-render tests run the Typst CLI. The version and the download's
+      # checksum come from files in that package, so a bump fails here until both change.
+      - name: Install the pinned Typst
+        run: |
+          v=$(cat packages/resume-render/typst-version)
+          curl -fsSL -o "$RUNNER_TEMP/typst.tar.xz" "https://github.com/typst/typst/releases/download/v${v}/typst-x86_64-unknown-linux-musl.tar.xz"
+          echo "$(cat packages/resume-render/typst-linux-x64.sha256)  $RUNNER_TEMP/typst.tar.xz" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/typst-bin"
+          tar -xf "$RUNNER_TEMP/typst.tar.xz" --strip-components=1 -C "$RUNNER_TEMP/typst-bin" typst-x86_64-unknown-linux-musl/typst
+          echo "$RUNNER_TEMP/typst-bin" >> "$GITHUB_PATH"
+          typst --version
       # Prisma 7 does not generate on install, and typecheck needs the client.
       - run: pnpm --dir apps/api exec prisma generate
       - run: pnpm check
