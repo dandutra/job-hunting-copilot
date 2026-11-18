@@ -408,3 +408,58 @@ it("keeps j working after the Closed and stale checkbox takes focus", async () =
 
   await screen.findByRole("heading", { name: "Title 2" });
 });
+
+const daysAgo = (d: number) =>
+  new Date(Date.now() - d * 86400000).toISOString();
+
+it("keeps only Postings from the last 3 days behind the toggle", async () => {
+  renderAt(
+    "/",
+    stub({
+      items: () => [
+        item(1, "A", { title: "Fresh one", postedAt: daysAgo(1) }),
+        item(2, "A", { title: "Old one", postedAt: daysAgo(5) }),
+      ],
+    }),
+  );
+  await screen.findByText("Old one");
+
+  fireEvent.click(screen.getByLabelText("Last 3 days"));
+
+  expect(rowOf("Fresh one")).toBeTruthy();
+  expect(screen.queryByText("Old one")).toBeNull();
+  expect(
+    within(screen.getByRole("button", { name: /Tier A/ })).getByText("(1)"),
+  ).toBeTruthy();
+});
+
+it("skips a filtered-out Posting with j", async () => {
+  renderAt(
+    "/postings/1",
+    stub({
+      items: () => [
+        item(1, "A", { postedAt: daysAgo(1) }),
+        item(2, "A", { postedAt: daysAgo(5) }),
+        item(3, "B", { postedAt: daysAgo(2) }),
+      ],
+    }),
+  );
+  await screen.findByRole("heading", { name: "Title 1" });
+  fireEvent.click(screen.getByLabelText("Last 3 days"));
+
+  fireEvent.keyDown(window, { key: "j" });
+
+  await screen.findByRole("heading", { name: "Title 3" });
+});
+
+it("says so when nothing was posted in the last 3 days", async () => {
+  renderAt(
+    "/",
+    stub({ items: () => [item(1, "A", { postedAt: daysAgo(5) })] }),
+  );
+  await screen.findByText("Title 1");
+
+  fireEvent.click(screen.getByLabelText("Last 3 days"));
+
+  expect(screen.getByText("No Postings in the last 3 days.")).toBeTruthy();
+});
