@@ -38,12 +38,22 @@ export class JevPollHooks extends PollHooks implements OnModuleInit {
     const started = Date.now();
     try {
       const { config, version } = this.tierConfig.load();
-      const c = await recomputeTiers(this.prisma, config, version, (line) =>
-        this.logger.warn(line),
+      // One line per failed Posting would repeat every hour, so only the first few are kept.
+      const failures: string[] = [];
+      const counts = await recomputeTiers(
+        this.prisma,
+        config,
+        version,
+        (line) => failures.push(line),
       );
-      this.logger.log(
-        `found=${c.found} processed=${c.processed} skipped=${c.skipped} failed=${c.failed} durationMs=${Date.now() - started}`,
-      );
+      const line = `found=${counts.found} processed=${counts.processed} skipped=${counts.skipped} filtered=${counts.filtered} failed=${counts.failed} durationMs=${Date.now() - started}`;
+      if (counts.failed > 0) {
+        this.logger.warn(
+          `${line}; first failures: ${failures.slice(0, 3).join(" | ")}`,
+        );
+      } else {
+        this.logger.log(line);
+      }
     } catch (err) {
       this.logger.error(
         `Tier recompute failed after ${Date.now() - started} ms: ${err instanceof Error ? err.message : String(err)}`,
