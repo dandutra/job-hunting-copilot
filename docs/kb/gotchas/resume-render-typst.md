@@ -3,7 +3,7 @@ type: gotcha
 title: Resume render package and Typst
 description: Installing the pinned Typst, how CI checks it, and what packages/resume-render does that its code does not explain, for the resume and the cover letter.
 tags: [resume, cover-letter, rendering, ci]
-sources: ["#41", "#60", "#43"]
+sources: ["#41", "#60", "#43", "#42"]
 generated:
   by: claude-sonnet-5-5
   at: 2026-11-19T12:00:00-05:00
@@ -14,7 +14,7 @@ generated:
 ## Typst install
 
 - The pinned version is in `packages/resume-render/typst-version` (0.15.1). Download the release tarball from github.com/typst/typst/releases (`aarch64-apple-darwin` on the Mac) and put `typst` on `PATH`. `pnpm check` and the package tests need it and fail with a message naming the version otherwise.
-- The composite action `.github/actions/install-typst` installs Typst from `typst-version` and checks the sha256 in `typst-linux-x64.sha256`. Both `ci.yml` and the `check` job of `deploy.yml` use it, because each runs `pnpm check`. #108 added it to `ci.yml` only, and the first deploy after the merge failed on it. A version bump must update both files. Typst publishes no checksum file, so the checksum was computed from the downloaded release (trust on first use).
+- The composite action `.github/actions/install-typst` installs Typst from `typst-version` and checks the sha256 in `typst-linux-x64.sha256`. Both `ci.yml` and the `check` job of `deploy.yml` use it, because each runs `pnpm check`. #108 added it to `ci.yml` only, and the first deploy after the merge failed on it. The `typst` stage of `apps/api/Dockerfile` reads the same two files, so a version bump or checksum change moves CI, the deploy check job and the image together, and a bump must update both files. The artifact URL and tar member are written twice, in the composite action and in the Dockerfile, so a release layout change needs both. Typst publishes no checksum file, so the checksum was computed from the downloaded release (trust on first use).
 - Typst is pre-1.0, so an upgrade reruns the contract test and needs review.
 - `GITHUB_PATH` applies only to later steps, so a step that installs Typst cannot call it in the same step (found in review).
 
@@ -47,4 +47,20 @@ generated:
 
 The package builds to CommonJS `dist/`, but reads `src/resume.typ`, `src/letter.typ`, `fonts/` and `typst-version` from the package folder. `compile(name, data)` in `render-pdf.ts` copies `src/<name>.typ` and writes `<name>.json`. A Docker image that copies only `dist/` must copy both templates too.
 
-`apps/api/Dockerfile` now builds the package and copies `dist/`, both templates, `fonts/`, `typst-version` and `package.json`. It does not copy the Typst binary, so Approve answers 500 on the server until #42 adds it. Merge order matters: do not deploy #43 ahead of #42 and expect Approve to work.
+`apps/api/Dockerfile` builds the package and copies `dist/`, both templates, `fonts/`, `typst-version` and `package.json`. Its `typst` stage reads `typst-version` and `typst-linux-x64.sha256`, downloads the x86_64 musl release, checks the sha256, and the runtime stage copies `/usr/local/bin/typst`. Approve therefore no longer answers 500 for lack of the binary (#42).
+
+The stage refuses to build on anything but x86_64 (`uname -m`), because only an x86_64 checksum exists. On an arm64 Mac build with `--platform linux/amd64`. Compose builds on the ubuntu-24.04 runner and the Droplet only pulls, so CI and deploy never hit the guard.
+
+## Render smoke in CI
+
+- The `smoke` job in `ci.yml` runs `scripts/smoke-render.sh <image>` after the compose build. It mounts `scripts/smoke-render.cjs` into the built API image, renders a fake resume and letter to PDF and DOCX, checks the magic bytes and size, and prints the container's peak memory from cgroup `memory.peak` (page cache included).
+- The model is inline in `smoke-render.cjs` because the image has no test fixtures. A change to the model must update it.
+- The build job of `deploy.yml` does not run this smoke. Only `ci.yml` does.
+
+## Measurements
+
+Dated 2026-11-19, with the x86_64 image under emulation on an arm64 Mac, not native:
+
+- Extracted text of the one-page resume, the two-page resume and the letter is identical between Typst 0.15.1 on arm64 macOS and on x86_64 Linux (compared with unpdf). The PDF bytes differ only by timestamps and document IDs.
+- Max RSS of one two-page resume render (`/usr/bin/time -v`): 47 MB in 0.23 s.
+- The in-image smoke (node plus Typst, four renders, page cache included) peaked at 135 MiB. The Droplet has 2 GiB, so a render is not a memory risk.

@@ -109,7 +109,7 @@ export function today(now = new Date()): string {
 // Characters a file name may not hold on a common file system.
 const safe = (name: string) => name.replace(/[\\/:*?"<>|\r\n]/g, "").trim();
 
-// A provider of its own so a test can make the render fail, and #42 can move it out of process.
+// A provider of its own so a test can make the render fail.
 @Injectable()
 export class ResumeFiles {
   // One file at a time: each PDF starts a Typst process, and the Droplet is small.

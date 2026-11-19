@@ -1,4 +1,15 @@
 # Build context is the repo root: docker build -f apps/api/Dockerfile .
+# Typst has only an x86_64 checksum (the Droplet's architecture), so build with --platform linux/amd64 on an arm64 Mac.
+FROM node:22.23.4-slim AS typst
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl xz-utils && rm -rf /var/lib/apt/lists/*
+# The same two files the CI action reads, so one edit moves local, CI and the image together.
+COPY packages/resume-render/typst-version packages/resume-render/typst-linux-x64.sha256 /typst/
+RUN test "$(uname -m)" = x86_64 || { echo "The Typst checksum is for x86_64; build with --platform linux/amd64" >&2; exit 1; } \
+ && v=$(cat /typst/typst-version) \
+ && curl -fsSL --retry 5 --retry-all-errors -o /typst/typst.tar.xz "https://github.com/typst/typst/releases/download/v${v}/typst-x86_64-unknown-linux-musl.tar.xz" \
+ && echo "$(cat /typst/typst-linux-x64.sha256)  /typst/typst.tar.xz" | sha256sum -c - \
+ && tar -xf /typst/typst.tar.xz --strip-components=1 -C /usr/local/bin typst-x86_64-unknown-linux-musl/typst
+
 FROM node:22.23.4-slim AS build
 # Prisma picks its engine by the OpenSSL it finds at install, so this must match the runtime stage.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
@@ -31,10 +42,10 @@ COPY --from=build --chown=node:node /repo/packages/master-profile/package.json /
 COPY --from=build --chown=node:node /repo/packages/resume-render/node_modules /repo/packages/resume-render/node_modules
 COPY --from=build --chown=node:node /repo/packages/resume-render/dist /repo/packages/resume-render/dist
 # The renderer reads its templates, fonts and pinned Typst version from the package folder, beside dist/.
-# The Typst binary is not here yet (#42), so Approve answers 500 on the server until it is.
 COPY --from=build --chown=node:node /repo/packages/resume-render/src/resume.typ /repo/packages/resume-render/src/letter.typ /repo/packages/resume-render/src/
 COPY --from=build --chown=node:node /repo/packages/resume-render/fonts /repo/packages/resume-render/fonts
 COPY --from=build --chown=node:node /repo/packages/resume-render/typst-version /repo/packages/resume-render/package.json /repo/packages/resume-render/
+COPY --from=typst /usr/local/bin/typst /usr/local/bin/typst
 COPY --from=build --chown=node:node /repo/apps/api/node_modules node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist dist
 # The feed's "Why" reads the tier config at ../../config from here.
