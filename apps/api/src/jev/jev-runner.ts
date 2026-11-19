@@ -8,6 +8,7 @@ import {
   judgementState,
   QUESTION_SET_VERSION,
 } from "./question-set";
+import { titleFiltered } from "./title-filter";
 
 // The batch runs under the ingest lock, so it must end well inside the hourly tick; the rest waits for the next poll.
 const RUN_BUDGET_MS = 20 * 60 * 1000;
@@ -32,6 +33,8 @@ export interface RunCounts {
   failed: number;
   // Due Postings left because the daily cap was reached.
   capped: number;
+  // Postings in the window or sample whose title the Title filter keeps away from Jev.
+  filtered: number;
 }
 
 // Said by name only; an error's own text can quote the request.
@@ -68,7 +71,13 @@ export class JevRunner {
     const now = options.now ?? new Date();
     const shouldStop = options.shouldStop ?? (() => false);
     const deadline = Date.now() + (options.budgetMs ?? RUN_BUDGET_MS);
-    const counts: RunCounts = { found: 0, judged: 0, failed: 0, capped: 0 };
+    const counts: RunCounts = {
+      found: 0,
+      judged: 0,
+      failed: 0,
+      capped: 0,
+      filtered: 0,
+    };
     const jev = this.jev;
     if (!jev) return counts;
     const profile = await this.prisma.masterProfileVersion.findFirst({
@@ -96,6 +105,7 @@ export class JevRunner {
           },
       select: {
         id: true,
+        title: true,
         postedAt: true,
         descriptionKind: true,
         sightings: {
@@ -112,6 +122,11 @@ export class JevRunner {
     });
 
     const due = postings.filter((p) => {
+      // Never judged, whatever the reason or the sample.
+      if (titleFiltered(p.title)) {
+        counts.filtered++;
+        return false;
+      }
       if (p._count.jevFailures >= MAX_POSTING_FAILURES) return false;
       // A manual sample is the user's pick, so it skips the open check along with the window.
       if (!sample && postingState(p.sightings, now) !== "open") return false;
@@ -154,7 +169,7 @@ export class JevRunner {
       }
     }
     this.logger.log(
-      `Jev run: ${counts.found} due, ${counts.judged} judged, ${counts.failed} failed, ${counts.capped} capped, ${counts.found - counts.judged - counts.failed - counts.capped} left for the next poll`,
+      `Jev run: ${counts.found} due, ${counts.judged} judged, ${counts.failed} failed, ${counts.capped} capped, ${counts.filtered} filtered, ${counts.found - counts.judged - counts.failed - counts.capped} left for the next poll`,
     );
     return counts;
   }

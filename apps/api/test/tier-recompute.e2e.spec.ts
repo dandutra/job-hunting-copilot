@@ -50,7 +50,9 @@ describe("pnpm tier:recompute", () => {
   it("exits non-zero and prints its counts when there is nothing to process", () => {
     const r = run();
     expect(r.status).toBe(1);
-    expect(r.stdout).toContain("found=0 processed=0 skipped=0 failed=0");
+    expect(r.stdout).toContain(
+      "found=0 processed=0 skipped=0 filtered=0 failed=0",
+    );
   });
 
   it("seeds thresholds by rank, rewrites the config and recomputes", async () => {
@@ -83,7 +85,9 @@ describe("pnpm tier:recompute", () => {
     }
     const r = run("--seed-thresholds");
     expect(r.status).toBe(0);
-    expect(r.stdout).toContain("found=10 processed=10 skipped=0 failed=0");
+    expect(r.stdout).toContain(
+      "found=10 processed=10 skipped=0 filtered=0 failed=0",
+    );
     const written = JSON.parse(readFileSync(config, "utf8"));
     expect(written.thresholds.a).toBeGreaterThan(written.thresholds.b);
     const tiers = await prisma.postingTier.groupBy({

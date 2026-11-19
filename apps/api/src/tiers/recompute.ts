@@ -1,3 +1,4 @@
+import { titleFiltered } from "../jev/title-filter";
 import { PrismaService } from "../prisma/prisma.service";
 import { capsApplied, computeTier, computeTotal } from "./compute-tier";
 import { TierConfig } from "./tier-config";
@@ -5,16 +6,21 @@ import { TierConfig } from "./tier-config";
 export interface RecomputeCounts {
   found: number;
   processed: number;
+  // Includes the filtered Postings.
   skipped: number;
+  // Postings the Title filter keeps out of the feed.
+  filtered: number;
   failed: number;
 }
 
-// The newest row per Posting is the live judgement.
-function latestJudgements(prisma: PrismaService) {
-  return prisma.jevJudgement.findMany({
+// The newest row per Posting is the live judgement. A Posting the Title filter now catches has none, even when it was judged before.
+async function latestJudgements(prisma: PrismaService) {
+  const rows = await prisma.jevJudgement.findMany({
     distinct: ["postingId"],
     orderBy: [{ postingId: "asc" }, { createdAt: "desc" }, { id: "desc" }],
+    include: { posting: { select: { title: true } } },
   });
+  return rows.filter((r) => !titleFiltered(r.posting.title));
 }
 
 // Reads stored judgements only; it has no Jev client, so a weight change never costs a call.
@@ -24,14 +30,24 @@ export async function recomputeTiers(
   configVersion: string,
   log: (line: string) => void = () => {},
 ): Promise<RecomputeCounts> {
-  const found = await prisma.posting.count();
+  const postings = await prisma.posting.findMany({
+    select: { id: true, title: true },
+  });
+  const filteredIds = postings
+    .filter((p) => titleFiltered(p.title))
+    .map((p) => p.id);
   const judgements = await latestJudgements(prisma);
   const counts: RecomputeCounts = {
-    found,
+    found: postings.length,
     processed: 0,
-    skipped: found - judgements.length,
+    skipped: postings.length - judgements.length,
+    filtered: filteredIds.length,
     failed: 0,
   };
+  // The judgements, Labels and Feed corrections stay; only the Tier goes.
+  await prisma.postingTier.deleteMany({
+    where: { postingId: { in: filteredIds } },
+  });
   for (const j of judgements) {
     try {
       const r = computeTier(j.answers, config);
