@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "pnpm --parallel --filter web --filter api run dev:all",
-    "generate": "pnpm --filter master-profile run build && pnpm --filter api run generate:spec && pnpm --dir apps/jobspy run generate:spec && pnpm --filter web run generate:types && pnpm --filter api run generate:types",
+    "generate": "pnpm --filter master-profile run build && pnpm --filter resume-render run build && pnpm --filter api run generate:spec && pnpm --dir apps/jobspy run generate:spec && pnpm --filter web run generate:types && pnpm --filter api run generate:types",
     "generate:check": "node scripts/check-generated.mjs",
     "check": "node --test scripts/check-generated.test.mjs scripts/check-env.test.mjs scripts/backup.test.mjs .claude/skills/tailor/scripts/docx.test.mjs && node scripts/check-env.mjs && pnpm generate:check && pnpm -r --workspace-concurrency=1 run check && pnpm --dir apps/jobspy run check",
     "profile:check": "pnpm --filter master-profile run profile:check",
