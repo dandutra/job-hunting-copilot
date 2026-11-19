@@ -40,3 +40,19 @@ export type ResumeModel = {
   // Experience of type volunteer, printed under its own last heading.
   volunteer: ResumeJob[];
 };
+
+// A Tailored cover letter's whole input. Like the resume model, it has no Entry IDs, `sources`,
+// `rules` or Do-not-claims, so those cannot print.
+export type LetterModel = {
+  // The document title in both files' metadata.
+  title: string;
+  contact: ResumeContact;
+  // YYYY-MM-DD. Both renderers print it through one function.
+  date: string;
+  // The employer, printed under the date.
+  company: string;
+  greeting: string;
+  paragraphs: string[];
+  // The closing phrase, such as "Sincerely,". The renderers print the contact name below it.
+  signOff: string;
+};

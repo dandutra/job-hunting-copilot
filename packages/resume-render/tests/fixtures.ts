@@ -1,4 +1,4 @@
-import type { ResumeJob, ResumeModel } from "../src/model";
+import type { LetterModel, ResumeJob, ResumeModel } from "../src/model";
 
 // Invented person and employers. Plausible names matter: Greenhouse's parser fails on "Company 1".
 export const fakeResume: ResumeModel = {
@@ -79,3 +79,18 @@ export function longFakeResume(): ResumeModel {
   }));
   return { ...fakeResume, experience: jobs };
 }
+
+// Invented, like the resume above. The Company is a made-up employer.
+export const fakeLetter: LetterModel = {
+  title: "Jordan Rivers - Cover letter",
+  contact: fakeResume.contact,
+  date: "2026-11-19",
+  company: "Fabrikam Analytics Inc.",
+  greeting: "Dear Hiring Manager,",
+  paragraphs: [
+    "I am applying for the Software Developer role at Fabrikam Analytics. I have spent two years moving slow reports onto queues, and your posting describes the same problem.",
+    "At Northwind Systems I cut a nightly report from 40 minutes to 6. I also added role checks to the admin screens after an access review.",
+    "I would welcome a conversation about how I can help your team.",
+  ],
+  signOff: "Sincerely,",
+};
