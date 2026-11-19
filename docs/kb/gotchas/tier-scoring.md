@@ -3,7 +3,7 @@ type: gotcha
 title: Tier scoring and recompute
 description: How a stored judgement becomes a Tier, what the config may not break, and what pnpm tier:recompute does and refuses.
 tags: [jev, tiers]
-sources: ["#30", "#114"]
+sources: ["#30", "#114", "#115"]
 generated:
   by: claude-sonnet-5-5
   at: 2026-11-10T19:00:00-05:00
@@ -21,6 +21,7 @@ generated:
 - Thin is not stored. It is `descriptionKind !== "full"` (`isThin`), computed when a screen reads the Posting.
 - `pnpm tier:recompute` prints found, processed, skipped, failed and `filtered`, and exits 1 when it processed none. `--seed-thresholds` first rewrites `thresholds` by rank (top 10% of totals A, next 30% B) over Postings with no cap, because a capped Posting never reaches A or B. It refuses when the totals are too few or too alike to separate A from B.
 - `--seed-thresholds` rewrites `config/tier-config.json` in place and does not commit it. The shipped thresholds (0.9 and 0.6) are placeholders until a seed run on real judgements.
-- Only `tier:recompute` writes `posting_tier`. The Jev runner and a merge do not, so a new judgement leaves a Posting with no Tier or a stale one until the next recompute. A screen that reads Tiers needs a recompute after each judgement batch first.
+- `recomputeTiers` writes `posting_tier`, from two callers: `JevPollHooks.pollFinished` at the end of every ingest poll, and `pnpm tier:recompute` by hand. The hook runs after the Jev batch, even when nothing was judged, so a config edit or Title filter change shows within the hour. It skips when `shouldStop()` is true. A config that fails to load or a recompute error is logged and does not throw, so the old Tiers stay. A merge still writes none. The hook runs inside the ingest lock and logs `found`, `processed`, `skipped`, `failed` and `durationMs`. On the local database (1,203 Postings, 88 judged) it took 87 ms on 2026-11-19. The production duration is not yet recorded. Read it from the Droplet's ingest log after the deploy and write it here.
+- The hook and a manual `tier:recompute` from the Mac can overlap. Both upsert from the same judgements, so the last one wins with the same result, unless the two configs differ. The Droplet reads the deployed `config/`, the Mac reads its own copy.
 - A relative `--config` path resolves from `apps/api`, because pnpm runs the script there.
 - `posting_tier` cascades with its Posting and restricts deletion of its judgement. A test that deletes judgements must delete tiers first.
