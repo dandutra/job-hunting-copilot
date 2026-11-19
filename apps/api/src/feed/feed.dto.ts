@@ -122,5 +122,11 @@ export class PostingDetailDto extends PostingCoreDto {
   @ApiProperty({ description: "Empty when the Posting has no text." })
   description!: string;
   @ApiProperty({ type: [LinkDto] }) links!: LinkDto[];
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: "The newest Tailored resume draft of any status, or null.",
+  })
+  tailoredResumeId!: number | null;
   @ApiProperty({ type: [LookalikeHintDto] }) lookalikes!: LookalikeHintDto[];
 }

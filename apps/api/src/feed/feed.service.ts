@@ -85,6 +85,11 @@ export class FeedService {
     });
     if (!p) throw new NotFoundException("Posting not found");
     const lookalikes = await this.lookalikeHints(id);
+    const draft = await this.prisma.tailoredResume.findFirst({
+      where: { postingId: id },
+      orderBy: { id: "desc" },
+      select: { id: true },
+    });
     const judgement = p.tier
       ? await this.prisma.jevJudgement.findUnique({
           where: { id: p.tier.judgementId },
@@ -103,6 +108,7 @@ export class FeedService {
       descriptionKind: p.descriptionKind,
       description: p.description,
       links: links(p.sightings),
+      tailoredResumeId: draft?.id ?? null,
       lookalikes,
     };
   }

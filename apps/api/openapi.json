@@ -183,6 +183,40 @@
         "tags": [
           "Tailoring"
         ]
+      },
+      "get": {
+        "operationId": "TailoringController_drafts",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingDraftsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
       }
     },
     "/tailored-resumes/{id}": {
@@ -214,6 +248,96 @@
           },
           "404": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
+    },
+    "/tailored-resumes/{id}/posting-text": {
+      "get": {
+        "operationId": "TailoringController_postingText",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingTextDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tailoring"
+        ]
+      }
+    },
+    "/tailored-resumes/{id}/files/{name}": {
+      "get": {
+        "operationId": "TailoringController_file",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "resume.pdf, resume.docx, cover-letter.pdf or cover-letter.docx of an approved draft.",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": "The draft was never approved."
           }
         },
         "tags": [
@@ -1418,6 +1542,68 @@
           "failures"
         ]
       },
+      "DraftSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved",
+              "superseded",
+              "rejected"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "createdAt",
+          "approvedAt"
+        ]
+      },
+      "PostingDraftsDto": {
+        "type": "object",
+        "properties": {
+          "ats": {
+            "type": "string",
+            "nullable": true,
+            "description": "The Posting's ATS, or null when the company is not Watched."
+          },
+          "uploadFormat": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "docx"
+            ],
+            "description": "The file to upload for the Posting's ATS."
+          },
+          "drafts": {
+            "description": "Oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "ats",
+          "uploadFormat",
+          "drafts"
+        ]
+      },
       "ContactViewDto": {
         "type": "object",
         "properties": {
@@ -1470,6 +1656,13 @@
           },
           "ownershipNote": {
             "type": "string"
+          },
+          "sources": {
+            "description": "Where the Fact came from. Set when the cited Entry is a Fact.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -1770,6 +1963,19 @@
           "education",
           "skills",
           "doNotClaims"
+        ]
+      },
+      "PostingTextDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "The text pasted for a Thin Posting. Null when the draft has none."
+          }
+        },
+        "required": [
+          "text"
         ]
       },
       "ReviewDto": {
@@ -2393,6 +2599,11 @@
               "$ref": "#/components/schemas/LinkDto"
             }
           },
+          "tailoredResumeId": {
+            "type": "number",
+            "nullable": true,
+            "description": "The newest Tailored resume draft of any status, or null."
+          },
           "lookalikes": {
             "type": "array",
             "items": {
@@ -2419,6 +2630,7 @@
           "descriptionKind",
           "description",
           "links",
+          "tailoredResumeId",
           "lookalikes"
         ]
       }

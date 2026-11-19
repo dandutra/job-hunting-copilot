@@ -59,6 +59,7 @@ export function formatLetterDate(date: string): string {
 }
 
 export const HEADINGS = {
+  highlights: "Highlights of Qualifications",
   experience: "Experience",
   projects: "Projects",
   education: "Education",
@@ -94,6 +95,7 @@ export function viewOf(m: ResumeModel) {
   return {
     title: m.title,
     ...contactView(m.contact),
+    highlights: [...m.highlights],
     experience: m.experience.map(jobView),
     projects: m.projects.map((p) => ({ name: p.name, links: [...p.links] })),
     education: m.education.map((e) => ({

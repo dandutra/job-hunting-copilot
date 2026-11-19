@@ -378,6 +378,25 @@ describe("feed endpoints", () => {
       expect((await get("/postings/abc")).status).toBe(400);
     });
 
+    it("names the newest Tailored resume draft of the Posting, or null", async () => {
+      const id = await seedPosting(prisma, { tier: "A" });
+      expect((await get(`/postings/${id}`)).body.tailoredResumeId).toBeNull();
+
+      await prisma.masterProfileVersion.create({
+        data: { id: "v1", rawYaml: "unused" },
+      });
+      const create = (status: string) =>
+        prisma.tailoredResume.create({
+          data: { postingId: id, profileVersionId: "v1", status, draft: {} },
+        });
+      await create("superseded");
+      const newest = await create("draft");
+
+      expect((await get(`/postings/${id}`)).body.tailoredResumeId).toBe(
+        newest.id,
+      );
+    });
+
     it("returns a null Tier for a Posting with none", async () => {
       const id = await seedPosting(prisma, { tier: "A" });
       await prisma.postingTier.deleteMany({ where: { postingId: id } });

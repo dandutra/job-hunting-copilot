@@ -3,10 +3,10 @@ type: gotcha
 title: Resume render package and Typst
 description: Installing the pinned Typst, how CI checks it, and what packages/resume-render does that its code does not explain, for the resume and the cover letter.
 tags: [resume, cover-letter, rendering, ci]
-sources: ["#41", "#60"]
+sources: ["#41", "#60", "#43"]
 generated:
   by: claude-sonnet-5-5
-  at: 2026-11-18T14:50:00-05:00
+  at: 2026-11-19T12:00:00-05:00
 ---
 
 `packages/resume-render` turns the typed resume model and the Tailored cover letter into a PDF (Typst CLI) and a DOCX (`docx` package).
@@ -31,7 +31,9 @@ generated:
 ## Model and template
 
 - `phone` is optional in the model.
-- Template section order is Experience, Projects, Education, Skills, Volunteer Experience. Highlights of Qualifications is not in the model yet.
+- Template section order is Experience, Projects, Education, Skills, Volunteer Experience. `ResumeModel.highlights` prints first under its own heading in both renderers.
+- Project bullets are not printed (template rule 4). A bullet the user reviews under a Project never reaches the file, although `/tailor` still writes 2 to 3 per Project.
+- Volunteer Experiences print under their own heading in the file, while the review screen lists them under Experience.
 
 ## Cover letter
 
@@ -43,4 +45,6 @@ generated:
 
 ## Docker
 
-The package builds to CommonJS `dist/`, but reads `src/resume.typ`, `src/letter.typ`, `fonts/` and `typst-version` from the package folder. `compile(name, data)` in `render-pdf.ts` copies `src/<name>.typ` and writes `<name>.json`. A Docker image that copies only `dist/` must copy both templates too (relevant to #42).
+The package builds to CommonJS `dist/`, but reads `src/resume.typ`, `src/letter.typ`, `fonts/` and `typst-version` from the package folder. `compile(name, data)` in `render-pdf.ts` copies `src/<name>.typ` and writes `<name>.json`. A Docker image that copies only `dist/` must copy both templates too.
+
+`apps/api/Dockerfile` now builds the package and copies `dist/`, both templates, `fonts/`, `typst-version` and `package.json`. It does not copy the Typst binary, so Approve answers 500 on the server until #42 adds it. Merge order matters: do not deploy #43 ahead of #42 and expect Approve to work.

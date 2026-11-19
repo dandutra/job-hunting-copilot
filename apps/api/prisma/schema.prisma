@@ -185,9 +185,27 @@ model TailoredResume {
   rejectLines      Json?                @map("reject_lines")
   createdAt        DateTime             @default(now()) @map("created_at")
   approvedAt       DateTime?            @map("approved_at")
+  renderedFiles    RenderedFile[]
 
   @@index([postingId, status])
   @@map("tailored_resume")
+}
+
+// The files of one approved draft, written in the approving transaction and never changed. A superseded draft keeps them.
+// Cascade, unlike its parent's Restrict: the files belong to the draft and mean nothing without it.
+model RenderedFile {
+  id               Int            @id @default(autoincrement())
+  tailoredResumeId Int            @map("tailored_resume_id")
+  tailoredResume   TailoredResume @relation(fields: [tailoredResumeId], references: [id], onDelete: Cascade)
+  // resume.pdf, resume.docx, cover-letter.pdf or cover-letter.docx.
+  name             String
+  // The name the browser saves it under.
+  filename         String
+  content          Bytes
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@unique([tailoredResumeId, name])
+  @@map("rendered_file")
 }
 
 // Never updated or deleted: tuning reads these rows, so it needs no second Jev call. The newest row per Posting is live.

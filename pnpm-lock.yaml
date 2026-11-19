@@ -211,6 +211,9 @@ importers:
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
+      resume-render:
+        specifier: workspace:*
+        version: link:../../packages/resume-render
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
@@ -242,6 +245,9 @@ importers:
       jest:
         specifier: ^30.5.2
         version: 30.5.2(@types/node@26.6.6)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@26.6.6)(typescript@6.0.3))
+      jszip:
+        specifier: ^3.10.2
+        version: 3.10.2
       prettier:
         specifier: ^3.9.10
         version: 3.9.10

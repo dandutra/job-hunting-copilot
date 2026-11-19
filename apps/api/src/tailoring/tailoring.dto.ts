@@ -170,6 +170,13 @@ export class CitedEntryDto {
   })
   ownership?: string;
   @ApiProperty({ required: false }) ownershipNote?: string;
+  @ApiProperty({
+    type: [String],
+    required: false,
+    description:
+      "Where the Fact came from. Set when the cited Entry is a Fact.",
+  })
+  sources?: string[];
 }
 
 export class LineViewDto {
@@ -270,4 +277,38 @@ export class TailoredResumeDto {
   @ApiProperty({ required: false }) rejectNote?: string;
   @ApiProperty({ type: [RejectLineDto], required: false })
   rejectLines?: RejectLineDto[];
+}
+
+export class DraftSummaryDto {
+  @ApiProperty() id!: number;
+  @ApiProperty({ enum: ["draft", "approved", "superseded", "rejected"] })
+  status!: string;
+  @ApiProperty() createdAt!: Date;
+  @ApiProperty({ nullable: true, type: Date }) approvedAt!: Date | null;
+}
+
+export class PostingDraftsDto {
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: "The Posting's ATS, or null when the company is not Watched.",
+  })
+  ats!: string | null;
+  @ApiProperty({
+    enum: ["pdf", "docx"],
+    description: "The file to upload for the Posting's ATS.",
+  })
+  uploadFormat!: string;
+  @ApiProperty({ type: [DraftSummaryDto], description: "Oldest first." })
+  drafts!: DraftSummaryDto[];
+}
+
+export class PostingTextDto {
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description:
+      "The text pasted for a Thin Posting. Null when the draft has none.",
+  })
+  text!: string | null;
 }

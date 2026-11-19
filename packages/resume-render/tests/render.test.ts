@@ -21,9 +21,10 @@ describe("contract: every model string appears, in order", () => {
     ["one-page resume", fakeResume],
     ["two-page resume", longFakeResume()],
     [
-      "resume with no phone, projects, volunteer or skills",
+      "resume with no phone, highlights, projects, volunteer or skills",
       {
         ...fakeResume,
+        highlights: [],
         contact: { ...fakeResume.contact, phone: undefined },
         projects: [],
         skills: [],

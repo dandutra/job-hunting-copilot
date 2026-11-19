@@ -13,6 +13,10 @@ export const fakeResume: ResumeModel = {
       "https://www.linkedin.com/in/example-jordan",
     ],
   },
+  highlights: [
+    "Five years of building and supporting business software for teams of up to 40 people.",
+    "Trained new hires and ran the weekly help desk for a logistics company.",
+  ],
   experience: [
     {
       title: "Software Developer",

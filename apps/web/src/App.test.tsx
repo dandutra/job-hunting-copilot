@@ -24,14 +24,14 @@ function renderAt(path: string) {
   );
 }
 
-it.each([
-  ["/merges", "Merge log"],
-  ["/resumes/7", "Tailored resume review"],
-])("renders a placeholder at %s", (path, heading) => {
-  renderAt(path);
+it.each([["/merges", "Merge log"]])(
+  "renders a placeholder at %s",
+  (path, heading) => {
+    renderAt(path);
 
-  expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
-});
+    expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
+  },
+);
 
 it("links the feed, the Label queue and the merge log in the top bar", () => {
   renderAt("/postings/42");

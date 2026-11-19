@@ -17,6 +17,10 @@
   #list(..j.lines.map(l => [#l]))
 ]
 
+#if r.highlights.len() > 0 [
+  == Highlights of Qualifications
+  #list(..r.highlights.map(h => [#h]))
+]
 #if r.experience.len() > 0 [
   == Experience
   #for j in r.experience { job(j) }
