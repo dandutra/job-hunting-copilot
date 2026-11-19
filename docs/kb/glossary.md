@@ -57,6 +57,10 @@ _Avoid_: Score, rank, match
 A rule that holds a Posting at C however strong its fit, such as a role closed to juniors, work outside the GTA, a US-only role, a required security clearance or required French. The Posting stays visible.
 _Avoid_: Filter, disqualifier, gate
 
+**Title filter**:
+The list of title words, such as Senior, Director and Intern, that keeps a Posting away from Jev. A filtered Posting has no Tier and is not in the feed.
+_Avoid_: Tier cap, which keeps a Posting visible at C
+
 **Label**:
 The user's own Tier for a Posting, set by what they would do with it: A means tailor and apply on sight, B means apply if time allows, C means skip. The user may also answer "can't tell".
 _Avoid_: Rating, annotation, ground truth
