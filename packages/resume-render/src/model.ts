@@ -33,6 +33,8 @@ export type ResumeModel = {
   // The document title in both files' metadata.
   title: string;
   contact: ResumeContact;
+  // One line per Highlight of Qualifications, printed first, as bullets under their own heading.
+  highlights: string[];
   experience: ResumeJob[];
   projects: ResumeProject[];
   education: ResumeEducation[];

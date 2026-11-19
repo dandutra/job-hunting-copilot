@@ -65,6 +65,7 @@ export function expectedStrings(m: ResumeModel): string[] {
     ...(m.contact.phone ? [m.contact.phone] : []),
     ...m.contact.links,
   ];
+  if (m.highlights.length) out.push(HEADINGS.highlights, ...m.highlights);
   if (m.experience.length) out.push(HEADINGS.experience, ...jobs(m.experience));
   if (m.projects.length) {
     out.push(
