@@ -4,10 +4,21 @@ import request from "supertest";
 import { AuthModule } from "../src/auth/auth.module";
 import { MasterProfileModule } from "../src/master-profile/master-profile.module";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { ResumeFiles } from "../src/tailoring/resume-files";
 import { TailoringModule } from "../src/tailoring/tailoring.module";
+import JSZip from "jszip";
 import { openTestDb, resetTestDb } from "./test-db";
 
 const LOGIN = "tester@example.com";
+
+// The text of a DOCX, read from its XML. The PDF's text is covered by the resume-render contract tests.
+async function docxText(content: Uint8Array): Promise<string> {
+  const zip = await JSZip.loadAsync(content);
+  const xml = await zip.file("word/document.xml")!.async("string");
+  return [...xml.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)]
+    .map((m) => m[1])
+    .join(" ");
+}
 const SENTINEL = "zq-sentinel-5512";
 const POSTING_SENTINEL = "zq-posting-9904";
 
@@ -273,6 +284,218 @@ describe("tailoring", () => {
     expect(
       await prisma.tailoredResume.count({ where: { status: "approved" } }),
     ).toBe(1);
+  });
+
+  it("approving stores the resume and cover letter as PDF and DOCX", async () => {
+    const v1 = await importProfile(profileYaml());
+    const { body } = await submit(goodDraft(v1));
+    const res = await act(body.id, "approve");
+
+    expect(res.status).toBe(200);
+    const files = await prisma.renderedFile.findMany({
+      orderBy: { name: "asc" },
+    });
+    expect(files.map((f) => f.name)).toEqual([
+      "cover-letter.docx",
+      "cover-letter.pdf",
+      "resume.docx",
+      "resume.pdf",
+    ]);
+    const resumePdf = files.find((f) => f.name === "resume.pdf")!;
+    expect(resumePdf.filename).toBe("Sam Sample - Resume.pdf");
+    expect(Buffer.from(resumePdf.content).subarray(0, 5).toString()).toBe(
+      "%PDF-",
+    );
+    const text = await docxText(
+      files.find((f) => f.name === "resume.docx")!.content,
+    );
+    // The Highlight, the bullet, the Skill and the contact fill all reach the file; no Entry ID does.
+    expect(text).toContain("A developer who builds reports.");
+    expect(text).toContain("Built a nightly report");
+    expect(text).toContain("TS");
+    expect(text).toContain("Northwind Example Inc.");
+    expect(text).not.toMatch(/\bF1\b|\bE1\b/);
+  });
+
+  it("leaves the draft open and stores nothing when the render fails", async () => {
+    const v1 = await importProfile(profileYaml());
+    const { body } = await submit(goodDraft(v1));
+    jest
+      .spyOn(app.get(ResumeFiles), "render")
+      .mockRejectedValueOnce(new Error(`Typst failed on ${SENTINEL}`));
+    const res = await act(body.id, "approve");
+
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(res.body)).not.toContain(SENTINEL);
+    expect(await statuses()).toEqual(["draft"]);
+    expect(await prisma.renderedFile.count()).toBe(0);
+    // The draft is still open, so a second approve renders and succeeds.
+    expect((await act(body.id, "approve")).status).toBe(200);
+    expect(await prisma.renderedFile.count()).toBe(4);
+  });
+
+  describe("downloading a rendered file", () => {
+    const download = (id: number, name: string) =>
+      authed(
+        request(app.getHttpServer())
+          .get(`/tailored-resumes/${id}/files/${name}`)
+          .buffer(true)
+          .parse((res, cb) => {
+            const chunks: Buffer[] = [];
+            res.on("data", (c: Buffer) => chunks.push(c));
+            res.on("end", () => cb(null, Buffer.concat(chunks)));
+          }),
+      );
+
+    it("serves each file of an approved draft with its type and file name", async () => {
+      const v1 = await importProfile(profileYaml());
+      const { body } = await submit(goodDraft(v1));
+      await act(body.id, "approve");
+
+      const pdf = await download(body.id, "resume.pdf");
+      expect(pdf.status).toBe(200);
+      expect(pdf.headers["content-type"]).toContain("application/pdf");
+      expect(pdf.headers["content-disposition"]).toBe(
+        'attachment; filename="Sam Sample - Resume.pdf"',
+      );
+      expect((pdf.body as Buffer).subarray(0, 5).toString()).toBe("%PDF-");
+
+      const docx = await download(body.id, "cover-letter.docx");
+      expect(docx.status).toBe(200);
+      expect(docx.headers["content-type"]).toContain(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      );
+      expect(await docxText(docx.body as Buffer)).toContain("I build reports.");
+    });
+
+    it("gives a name with accented letters an ASCII fallback and the UTF-8 form", async () => {
+      const v1 = await importProfile(
+        profileYaml().replace("Sam Sample", "Zoë Sample"),
+      );
+      const { body } = await submit(goodDraft(v1));
+      await act(body.id, "approve");
+
+      const res = await download(body.id, "resume.docx");
+      expect(res.status).toBe(200);
+      expect(res.headers["content-disposition"]).toBe(
+        `attachment; filename="Zo_ Sample - Resume.docx"; filename*=UTF-8''Zo%C3%AB%20Sample%20-%20Resume.docx`,
+      );
+    });
+
+    it("refuses a draft that is not approved and one that does not exist", async () => {
+      const v1 = await importProfile(profileYaml());
+      const { body } = await submit(goodDraft(v1));
+
+      expect((await download(body.id, "resume.pdf")).status).toBe(409);
+      expect((await download(999999, "resume.pdf")).status).toBe(404);
+    });
+
+    it("still serves a superseded approved draft, and answers 404 for a missing or unknown file", async () => {
+      const v1 = await importProfile(profileYaml());
+      const first = await submit(goodDraft(v1));
+      await act(first.body.id, "approve");
+      const draft = goodDraft(v1);
+      delete (draft as { coverLetter?: unknown }).coverLetter;
+      const second = await submit(draft);
+      await act(second.body.id, "approve");
+
+      expect(await statuses()).toEqual(["superseded", "approved"]);
+      expect((await download(first.body.id, "resume.docx")).status).toBe(200);
+      expect((await download(second.body.id, "cover-letter.pdf")).status).toBe(
+        404,
+      );
+      expect((await download(second.body.id, "notes.txt")).status).toBe(404);
+    });
+  });
+
+  describe("a Posting's drafts and the pasted text", () => {
+    const history = (id = postingId) =>
+      authed(
+        request(app.getHttpServer()).get(`/postings/${id}/tailored-resumes`),
+      );
+
+    it("lists the drafts oldest first with the format to upload for the Posting's ATS", async () => {
+      const v1 = await importProfile(profileYaml());
+      const first = await submit(goodDraft(v1));
+      await act(first.body.id, "approve");
+      const second = await submit(goodDraft(v1));
+      const res = await history();
+
+      expect(res.status).toBe(200);
+      expect(res.body.uploadFormat).toBe("pdf");
+      expect(res.body.ats).toBe("greenhouse");
+      expect(res.body.drafts).toEqual([
+        {
+          id: first.body.id,
+          status: "approved",
+          createdAt: expect.any(String),
+          approvedAt: expect.any(String),
+        },
+        {
+          id: second.body.id,
+          status: "draft",
+          createdAt: expect.any(String),
+          approvedAt: null,
+        },
+      ]);
+
+      await prisma.company.updateMany({ data: { ats: "workday" } });
+      expect((await history()).body.uploadFormat).toBe("docx");
+      expect((await history(postingId + 999)).status).toBe(404);
+    });
+
+    it("returns the pasted Posting text from its own route, never with the draft", async () => {
+      const v1 = await importProfile(profileYaml());
+      const withText = await submit(
+        goodDraft(v1, { postingText: `Pasted ${POSTING_SENTINEL}` }),
+      );
+      const without = await submit(goodDraft(v1));
+
+      const got = await authed(
+        request(app.getHttpServer()).get(
+          `/tailored-resumes/${withText.body.id}/posting-text`,
+        ),
+      );
+      expect(got.body).toEqual({ text: `Pasted ${POSTING_SENTINEL}` });
+      const none = await authed(
+        request(app.getHttpServer()).get(
+          `/tailored-resumes/${without.body.id}/posting-text`,
+        ),
+      );
+      expect(none.body).toEqual({ text: null });
+      expect(
+        (
+          await authed(
+            request(app.getHttpServer()).get(
+              `/tailored-resumes/${withText.body.id}`,
+            ),
+          )
+        ).text,
+      ).not.toContain(POSTING_SENTINEL);
+      expect(
+        (
+          await authed(
+            request(app.getHttpServer()).get(
+              "/tailored-resumes/999999/posting-text",
+            ),
+          )
+        ).status,
+      ).toBe(404);
+    });
+  });
+
+  it("stores no cover letter files when the draft has no cover letter", async () => {
+    const v1 = await importProfile(profileYaml());
+    const draft = goodDraft(v1);
+    delete (draft as { coverLetter?: unknown }).coverLetter;
+    const { body } = await submit(draft);
+    await act(body.id, "approve");
+
+    expect(
+      (await prisma.renderedFile.findMany({ orderBy: { name: "asc" } })).map(
+        (f) => f.name,
+      ),
+    ).toEqual(["resume.docx", "resume.pdf"]);
   });
 
   it("answers 409 when approving a draft that is no longer open", async () => {
@@ -546,12 +769,14 @@ describe("tailoring", () => {
         text: "Shipped weekly with a team of five.",
         ownership: "team",
         ownershipNote: "Wrote the release script.",
+        sources: ["user"],
       },
     ]);
     expect(res.body.experiences[0].bullets[0].cites[0]).toEqual({
       id: "F1",
       text: expect.any(String),
       ownership: "solo",
+      sources: ["user"],
     });
   });
 

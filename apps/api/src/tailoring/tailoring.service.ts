@@ -19,7 +19,11 @@ import {
   validateProfile,
 } from "master-profile";
 import { PrismaService } from "../prisma/prisma.service";
+import { ResumeFiles } from "./resume-files";
+import { uploadFormat } from "./upload-format";
 import type {
+  PostingDraftsDto,
+  PostingTextDto,
   RejectDto,
   RejectLineDto,
   ResumeStatusDto,
@@ -118,7 +122,10 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 export class TailoringService {
   private readonly logger = new Logger(TailoringService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly files: ResumeFiles,
+  ) {}
 
   async input(postingId: number): Promise<TailoringInputDto> {
     const posting = await this.findPosting(postingId);
@@ -253,7 +260,7 @@ export class TailoringService {
   }
 
   async approve(id: number): Promise<ResumeStatusDto> {
-    const { row } = await this.openDraft(id);
+    const { row, draft } = await this.openDraft(id);
     const latest = await this.latest();
     const failures: Failure[] = [];
     if (latest) {
@@ -268,6 +275,14 @@ export class TailoringService {
       );
       throw this.rejection(failures);
     }
+    // Rendering comes before the transaction, so a failed render leaves the draft open and the Posting unlocked.
+    // The latest version is the draft's own here: the check above failed otherwise.
+    const rendered = await this.render(
+      id,
+      latest!.profile,
+      draft,
+      row.postingId,
+    );
     await this.prisma.$transaction(async (tx) => {
       await lockPosting(tx, row.postingId);
       await tx.tailoredResume.updateMany({
@@ -280,6 +295,14 @@ export class TailoringService {
       });
       // A concurrent approve or reject won; the throw rolls the supersede back.
       if (moved.count === 0) throw new ConflictException(NOT_OPEN);
+      await tx.renderedFile.createMany({
+        // Prisma's Bytes wants a Uint8Array over a plain ArrayBuffer, which a Buffer's type does not promise.
+        data: rendered.map((f) => ({
+          ...f,
+          content: new Uint8Array(f.content),
+          tailoredResumeId: id,
+        })),
+      });
     });
     this.logger.log(`Approved draft ${id} for Posting ${row.postingId}`);
     return { id, status: "approved" };
@@ -357,6 +380,7 @@ export class TailoringService {
           ...(fact
             ? {
                 ownership: fact.ownership,
+                sources: fact.sources,
                 ...(fact.ownership_note
                   ? { ownershipNote: fact.ownership_note }
                   : {}),
@@ -447,6 +471,60 @@ export class TailoringService {
         ? { rejectLines: row.rejectLines as unknown as RejectLineDto[] }
         : {}),
     };
+  }
+
+  async drafts(postingId: number): Promise<PostingDraftsDto> {
+    const posting = await this.findPosting(postingId);
+    const rows = await this.prisma.tailoredResume.findMany({
+      where: { postingId },
+      select: { id: true, status: true, createdAt: true, approvedAt: true },
+      orderBy: { id: "asc" },
+    });
+    const { ats } = posting.company;
+    return { ats, uploadFormat: uploadFormat(ats), drafts: rows };
+  }
+
+  async postingText(id: number): Promise<PostingTextDto> {
+    const row = await this.prisma.tailoredResume.findUnique({
+      where: { id },
+      select: { postingText: true },
+    });
+    if (!row) throw new NotFoundException();
+    return { text: row.postingText };
+  }
+
+  // A superseded draft that was once approved still answers: its files are the Posting's history.
+  async file(id: number, name: string) {
+    const row = await this.prisma.tailoredResume.findUnique({
+      where: { id },
+      select: { approvedAt: true },
+    });
+    if (!row) throw new NotFoundException();
+    if (!row.approvedAt)
+      throw new ConflictException("The draft was never approved");
+    const file = await this.prisma.renderedFile.findUnique({
+      where: { tailoredResumeId_name: { tailoredResumeId: id, name } },
+    });
+    if (!file) throw new NotFoundException();
+    return file;
+  }
+
+  // Logs the draft's ID only: the renderer's error text can quote the draft's lines.
+  private async render(
+    id: number,
+    profile: Profile,
+    draft: StoredDraft,
+    postingId: number,
+  ) {
+    const posting = await this.findPosting(postingId);
+    try {
+      return await this.files.render(profile, draft, posting.company.name);
+    } catch {
+      this.logger.error(`Rendering draft ${id} failed`);
+      throw new InternalServerErrorException(
+        "The files could not be rendered, so the draft is still open",
+      );
+    }
   }
 
   private rejection(failures: Failure[]) {

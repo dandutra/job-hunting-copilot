@@ -75,7 +75,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["TailoringController_drafts"];
         put?: never;
         post: operations["TailoringController_submit"];
         delete?: never;
@@ -92,6 +92,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["TailoringController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tailored-resumes/{id}/posting-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TailoringController_postingText"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tailored-resumes/{id}/files/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TailoringController_file"];
         put?: never;
         post?: never;
         delete?: never;
@@ -496,6 +528,26 @@ export interface components {
         TraceRejectionDto: {
             failures: components["schemas"]["TraceFailureDto"][];
         };
+        DraftSummaryDto: {
+            id: number;
+            /** @enum {string} */
+            status: "draft" | "approved" | "superseded" | "rejected";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            approvedAt: string | null;
+        };
+        PostingDraftsDto: {
+            /** @description The Posting's ATS, or null when the company is not Watched. */
+            ats: string | null;
+            /**
+             * @description The file to upload for the Posting's ATS.
+             * @enum {string}
+             */
+            uploadFormat: "pdf" | "docx";
+            /** @description Oldest first. */
+            drafts: components["schemas"]["DraftSummaryDto"][];
+        };
         ContactViewDto: {
             name: string;
             city: string;
@@ -514,6 +566,8 @@ export interface components {
              */
             ownership?: "solo" | "paired" | "team" | "maintained";
             ownershipNote?: string;
+            /** @description Where the Fact came from. Set when the cited Entry is a Fact. */
+            sources?: string[];
         };
         LineViewDto: {
             /** @description The line's location in the draft. */
@@ -585,6 +639,10 @@ export interface components {
             verdicts?: components["schemas"]["VerdictDto"][];
             rejectNote?: string;
             rejectLines?: components["schemas"]["RejectLineDto"][];
+        };
+        PostingTextDto: {
+            /** @description The text pasted for a Thin Posting. Null when the draft has none. */
+            text: string | null;
         };
         ReviewDto: {
             verdicts: components["schemas"]["VerdictDto"][];
@@ -786,6 +844,8 @@ export interface components {
             /** @description Empty when the Posting has no text. */
             description: string;
             links: components["schemas"]["LinkDto"][];
+            /** @description The newest Tailored resume draft of any status, or null. */
+            tailoredResumeId: number | null;
             lookalikes: components["schemas"]["LookalikeHintDto"][];
         };
     };
@@ -918,6 +978,39 @@ export interface operations {
             };
         };
     };
+    TailoringController_drafts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostingDraftsDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TailoringController_submit: {
         parameters: {
             query?: never;
@@ -989,6 +1082,82 @@ export interface operations {
                 content?: never;
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TailoringController_postingText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostingTextDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TailoringController_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description resume.pdf, resume.docx, cover-letter.pdf or cover-letter.docx of an approved draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The draft was never approved. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
