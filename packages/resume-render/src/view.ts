@@ -120,5 +120,3 @@ export function letterViewOf(m: LetterModel) {
     signOff: m.signOff,
   };
 }
-
-export type LetterView = ReturnType<typeof letterViewOf>;

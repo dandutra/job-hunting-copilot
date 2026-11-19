@@ -61,8 +61,11 @@ async function compile(name: string, data: unknown): Promise<Buffer> {
   }
 }
 
-export const renderPdf = (model: ResumeModel) =>
-  compile("resume", viewOf(model));
+// `async`, so a bad date in the model rejects instead of throwing before a promise exists.
+export async function renderPdf(model: ResumeModel): Promise<Buffer> {
+  return compile("resume", viewOf(model));
+}
 
-export const renderLetterPdf = (model: LetterModel) =>
-  compile("letter", letterViewOf(model));
+export async function renderLetterPdf(model: LetterModel): Promise<Buffer> {
+  return compile("letter", letterViewOf(model));
+}

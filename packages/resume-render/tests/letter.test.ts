@@ -1,7 +1,16 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { renderLetterDocx, renderLetterPdf, type LetterModel } from "../src";
+import {
+  renderDocx,
+  renderLetterDocx,
+  renderLetterPdf,
+  renderPdf,
+  type LetterModel,
+  type ResumeModel,
+} from "../src";
 import { formatLetterDate } from "../src/view";
-import { fakeLetter } from "./fixtures";
+import { fakeLetter, fakeResume } from "./fixtures";
 import {
   assertInOrder,
   expectedLetterStrings,
@@ -56,6 +65,20 @@ describe("letter template rules", () => {
       expect(docx.documentXml).not.toContain(tag);
     }
     expect(docx.parts.filter((p) => /header|footer/.test(p))).toEqual([]);
+    // The same source scan as the resume's rule 1, because a PDF's columns can't be read from its text.
+    const template = readFileSync(join(__dirname, "../src/letter.typ"), "utf8");
+    for (const word of [
+      "table",
+      "grid",
+      "columns",
+      "image",
+      "place",
+      "header:",
+      "footer:",
+      "hide(",
+    ]) {
+      expect(template).not.toContain(word);
+    }
   });
 
   it("2. the contact block comes first, and a long URL stays whole", async () => {
@@ -123,7 +146,6 @@ describe("letter template rules", () => {
       sources: ["E1", "E2"],
       rules: ["R1"],
       doNotClaims: ["Never claim a law degree"],
-      paragraphs: fakeLetter.paragraphs.map((p) => p),
     } as unknown as LetterModel;
     const pdfBuf = await renderLetterPdf(model);
     const docxBuf = await renderLetterDocx(model);
@@ -148,5 +170,20 @@ describe("letter template rules", () => {
   it("9. each file is under 100 KB", async () => {
     expect((await renderLetterPdf(fakeLetter)).length).toBeLessThan(100_000);
     expect((await renderLetterDocx(fakeLetter)).length).toBeLessThan(100_000);
+  });
+});
+
+describe("a bad date", () => {
+  // A caller can `.catch()` or `Promise.all` the renderers only if every failure is a rejection.
+  it("rejects every renderer instead of throwing", async () => {
+    const letter = { ...fakeLetter, date: "2026-02-30" };
+    const resume = {
+      ...fakeResume,
+      experience: [{ ...fakeResume.experience[0], start: "2026-13" }],
+    } as ResumeModel;
+    await expect(renderLetterPdf(letter)).rejects.toThrow(/Bad letter date/);
+    await expect(renderLetterDocx(letter)).rejects.toThrow(/Bad letter date/);
+    await expect(renderPdf(resume)).rejects.toThrow(/Bad resume date/);
+    await expect(renderDocx(resume)).rejects.toThrow(/Bad resume date/);
   });
 });
