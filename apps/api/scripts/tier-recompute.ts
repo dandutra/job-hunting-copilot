@@ -29,7 +29,7 @@ async function main() {
     const c = await recomputeTiers(prisma, config, version, console.error);
     console.log(`config ${version.slice(0, 12)}`);
     console.log(
-      `found=${c.found} processed=${c.processed} skipped=${c.skipped} failed=${c.failed}`,
+      `found=${c.found} processed=${c.processed} skipped=${c.skipped} filtered=${c.filtered} failed=${c.failed}`,
     );
     if (c.processed === 0) process.exitCode = 1;
   } finally {

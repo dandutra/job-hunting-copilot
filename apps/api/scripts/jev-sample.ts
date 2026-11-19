@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { jevConfigFromEnv, TypeSafeJevClient } from "../src/jev/jev-client";
 import { JevRunner } from "../src/jev/jev-runner";
 import { CAP_NAMES } from "../src/jev/question-set";
+import { titleFiltered } from "../src/jev/title-filter";
 import { MasterProfileService } from "../src/master-profile/master-profile.service";
 import { PrismaService } from "../src/prisma/prisma.service";
 
@@ -18,13 +19,14 @@ async function main() {
     const imported = await new MasterProfileService(prisma).import(yaml);
     console.log(`Profile version ${imported.version.slice(0, 12)}`);
 
+    // A filtered Posting is never judged, so it would stay first in this order on every run.
     const postings = await prisma.posting.findMany({
       where: { descriptionKind: "full", jevJudgements: { none: {} } },
       orderBy: { id: "asc" },
-      take: count,
-      select: { id: true },
+      select: { id: true, title: true },
     });
-    const ids = postings.map((p) => p.id);
+    const unfiltered = postings.filter((p) => !titleFiltered(p.title));
+    const ids = unfiltered.slice(0, count).map((p) => p.id);
     const counts = await new JevRunner(
       prisma,
       new TypeSafeJevClient(config),
@@ -47,7 +49,7 @@ async function main() {
       );
     }
     console.log(
-      `\nfound=${counts.found} judged=${counts.judged} failed=${counts.failed}`,
+      `\nfound=${counts.found} judged=${counts.judged} failed=${counts.failed} filtered=${postings.length - unfiltered.length}`,
     );
     if (counts.judged === 0) process.exitCode = 1;
   } finally {

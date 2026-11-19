@@ -62,12 +62,12 @@ describe("recomputeTiers", () => {
     });
   });
 
-  async function posting(kind = "full") {
+  async function posting(kind = "full", title = `Dev ${seq + 1}`) {
     seq++;
     return prisma.posting.create({
       data: {
         companyId,
-        title: `Dev ${seq}`,
+        title,
         location: "Toronto",
         description: "x",
         descriptionKind: kind,
@@ -93,7 +93,13 @@ describe("recomputeTiers", () => {
     const p = await posting();
     const j = await judge(p.id, answers(3));
     const counts = await recomputeTiers(prisma, config, version);
-    expect(counts).toEqual({ found: 1, processed: 1, skipped: 0, failed: 0 });
+    expect(counts).toEqual({
+      found: 1,
+      processed: 1,
+      skipped: 0,
+      filtered: 0,
+      failed: 0,
+    });
     const row = await prisma.postingTier.findUniqueOrThrow({
       where: { postingId: p.id },
     });
@@ -120,10 +126,60 @@ describe("recomputeTiers", () => {
   it("gives a Posting with no judgement no Tier row and counts it skipped", async () => {
     const p = await posting("none");
     const counts = await recomputeTiers(prisma, config, version);
-    expect(counts).toEqual({ found: 1, processed: 0, skipped: 1, failed: 0 });
+    expect(counts).toEqual({
+      found: 1,
+      processed: 0,
+      skipped: 1,
+      filtered: 0,
+      failed: 0,
+    });
     expect(
       await prisma.postingTier.findUnique({ where: { postingId: p.id } }),
     ).toBeNull();
+  });
+
+  it("removes the Tier of a filtered Posting, keeps its label_draw, and counts it skipped and filtered", async () => {
+    const p = await posting("full", "Senior Developer");
+    const j = await judge(p.id, answers(3));
+    await prisma.postingTier.create({
+      data: {
+        postingId: p.id,
+        judgementId: j.id,
+        configVersion: "old",
+        tier: "A",
+        total: 1,
+        capsApplied: [],
+      },
+    });
+    await prisma.labelDraw.create({
+      data: {
+        postingId: p.id,
+        tierAtDraw: "A",
+        configVersion: "old",
+        phase: "test",
+      },
+    });
+    const counts = await recomputeTiers(prisma, config, version);
+    expect(counts).toEqual({
+      found: 1,
+      processed: 0,
+      skipped: 1,
+      filtered: 1,
+      failed: 0,
+    });
+    expect(
+      await prisma.postingTier.findUnique({ where: { postingId: p.id } }),
+    ).toBeNull();
+    expect(
+      await prisma.labelDraw.findUnique({ where: { postingId: p.id } }),
+    ).not.toBeNull();
+    expect(await prisma.jevJudgement.count()).toBe(1);
+  });
+
+  it("leaves a filtered Posting out of the threshold totals", async () => {
+    const p = await posting("full", "Director of Engineering");
+    await judge(p.id, answers(3));
+    expect(await uncappedTotals(prisma, config)).toEqual([]);
   });
 
   it("uses the newest judgement and moves the row to a new config version without a Jev call", async () => {
@@ -159,7 +215,13 @@ describe("recomputeTiers", () => {
     const counts = await recomputeTiers(prisma, config, version, (l) =>
       lines.push(l),
     );
-    expect(counts).toEqual({ found: 2, processed: 1, skipped: 0, failed: 1 });
+    expect(counts).toEqual({
+      found: 2,
+      processed: 1,
+      skipped: 0,
+      filtered: 0,
+      failed: 1,
+    });
     expect(lines).toHaveLength(1);
   });
 
@@ -168,6 +230,7 @@ describe("recomputeTiers", () => {
       found: 0,
       processed: 0,
       skipped: 0,
+      filtered: 0,
       failed: 0,
     });
   });

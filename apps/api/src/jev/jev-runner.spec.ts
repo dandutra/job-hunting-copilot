@@ -130,12 +130,13 @@ describe("JevRunner", () => {
     descriptionKind = "full",
     sighting: { lastSeenAt?: Date; closedAt?: Date; watched?: boolean } = {},
     postedAt = new Date(),
+    title = `Developer ${seq + 1}`,
   ) {
     seq++;
     const posting = await prisma.posting.create({
       data: {
         companyId,
-        title: `Developer ${seq}`,
+        title,
         location: "Toronto, ON",
         description: descriptionKind === "none" ? "" : `Build things ${seq}`,
         descriptionKind,
@@ -581,6 +582,20 @@ describe("JevRunner", () => {
       expect(await judgementsOf(old.id)).toHaveLength(1);
       expect(await judgementsOf(other.id)).toHaveLength(0);
     });
+  });
+
+  it("makes no call for a filtered title, including through postingIds", async () => {
+    await addProfile();
+    const senior = await addPosting("full", {}, new Date(), "Senior Developer");
+    const plain = await addPosting();
+    const counts = await runner.run();
+    expect(counts).toMatchObject({ found: 1, judged: 1, filtered: 1 });
+    expect(await judgementsOf(senior.id)).toHaveLength(0);
+    expect(await judgementsOf(plain.id)).toHaveLength(1);
+    requests = [];
+    const sample = await runner.run({ postingIds: [senior.id] });
+    expect(sample).toMatchObject({ found: 0, judged: 0, filtered: 1 });
+    expect(requests).toHaveLength(0);
   });
 
   it("never logs Master profile content", async () => {
