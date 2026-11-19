@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 import { extractText, getDocumentProxy, getMeta } from "unpdf";
-import type { ResumeModel } from "../src/model";
-import { HEADINGS, formatDates } from "../src/view";
+import type { LetterModel, ResumeModel } from "../src/model";
+import { HEADINGS, formatDates, formatLetterDate } from "../src/view";
 
 const squash = (s: string) => s.replace(/\s+/g, " ").trim();
 
@@ -85,6 +85,23 @@ export function expectedStrings(m: ResumeModel): string[] {
   if (m.skills.length) out.push(HEADINGS.skills, ...m.skills);
   if (m.volunteer.length) out.push(HEADINGS.volunteer, ...jobs(m.volunteer));
   return out;
+}
+
+// Every string the letter prints, in order. The name comes back after the sign-off.
+export function expectedLetterStrings(m: LetterModel): string[] {
+  return [
+    m.contact.name,
+    m.contact.city,
+    m.contact.email,
+    ...(m.contact.phone ? [m.contact.phone] : []),
+    ...m.contact.links,
+    formatLetterDate(m.date),
+    m.company,
+    m.greeting,
+    ...m.paragraphs,
+    m.signOff,
+    m.contact.name,
+  ];
 }
 
 // Throws naming the first string that is missing or out of order.

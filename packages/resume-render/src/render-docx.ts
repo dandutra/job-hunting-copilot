@@ -7,8 +7,8 @@ import {
   Paragraph,
   TextRun,
 } from "docx";
-import type { ResumeModel } from "./model";
-import { HEADINGS, viewOf, type JobView } from "./view";
+import type { LetterModel, ResumeModel } from "./model";
+import { HEADINGS, letterViewOf, viewOf, type JobView } from "./view";
 
 const FONT = "Arial";
 // docx sizes are half-points.
@@ -45,19 +45,27 @@ function jobParagraphs(j: JobView): Paragraph[] {
   ];
 }
 
-export async function renderDocx(model: ResumeModel): Promise<Buffer> {
-  const v = viewOf(model);
+// The name and the contact line that open both documents.
+function contactParagraphs(v: {
+  name: string;
+  details: string[];
+  links: string[];
+}): Paragraph[] {
   const contact = [v.details.join(" | "), v.links.join(" | ")]
     .filter((s) => s.length > 0)
     .join(" | ");
-
-  const body: Paragraph[] = [
+  return [
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
       children: [new TextRun({ text: v.name })],
     }),
     para([text(contact)]),
   ];
+}
+
+export async function renderDocx(model: ResumeModel): Promise<Buffer> {
+  const v = viewOf(model);
+  const body: Paragraph[] = contactParagraphs(v);
   if (v.experience.length > 0) {
     body.push(
       heading(HEADINGS.experience),
@@ -93,11 +101,29 @@ export async function renderDocx(model: ResumeModel): Promise<Buffer> {
     );
   }
 
+  return pack(v.title, v.name, body);
+}
+
+export async function renderLetterDocx(model: LetterModel): Promise<Buffer> {
+  const v = letterViewOf(model);
+  return pack(v.title, v.name, [
+    ...contactParagraphs(v),
+    para([text(v.date)], { spacingBefore: 240 }),
+    para([text(v.company)]),
+    para([text(v.greeting)], { spacingBefore: 160 }),
+    ...v.paragraphs.map((p) => para([text(p)], { spacingBefore: 160 })),
+    para([text(v.signOff)], { spacingBefore: 160 }),
+    para([text(v.name)]),
+  ]);
+}
+
+// The styles, margins and metadata both documents share.
+function pack(title: string, name: string, body: Paragraph[]): Promise<Buffer> {
   const doc = new Document({
-    title: v.title,
-    creator: v.name,
+    title,
+    creator: name,
     // docx writes "Un-named" here until told otherwise.
-    lastModifiedBy: v.name,
+    lastModifiedBy: name,
     styles: {
       default: { document: { run: { font: FONT, size: BODY } } },
       paragraphStyles: [

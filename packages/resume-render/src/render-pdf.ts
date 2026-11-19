@@ -3,14 +3,13 @@ import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import type { ResumeModel } from "./model";
-import { viewOf } from "./view";
+import type { LetterModel, ResumeModel } from "./model";
+import { letterViewOf, viewOf } from "./view";
 
 const run = promisify(execFile);
 
 // Resolves from both src/ and dist/.
 const PACKAGE = join(__dirname, "..");
-const TEMPLATE = join(PACKAGE, "src", "resume.typ");
 const FONTS = join(PACKAGE, "fonts");
 
 async function pinnedVersion(): Promise<string> {
@@ -30,13 +29,17 @@ async function assertPinnedTypst(want: string): Promise<void> {
   }
 }
 
-export async function renderPdf(model: ResumeModel): Promise<Buffer> {
+// `name` is the template's file stem: `src/<name>.typ` reads `<name>.json`.
+async function compile(name: string, data: unknown): Promise<Buffer> {
   await assertPinnedTypst(await pinnedVersion());
   // The folder holds personal data, so it goes away whether or not the render worked.
   const dir = await mkdtemp(join(tmpdir(), "resume-render-"));
   try {
-    await writeFile(join(dir, "resume.json"), JSON.stringify(viewOf(model)));
-    await copyFile(TEMPLATE, join(dir, "resume.typ"));
+    await writeFile(join(dir, `${name}.json`), JSON.stringify(data));
+    await copyFile(
+      join(PACKAGE, "src", `${name}.typ`),
+      join(dir, `${name}.typ`),
+    );
     // No shell, no system fonts: the font is the one we ship, on every machine.
     await run(
       "typst",
@@ -47,7 +50,7 @@ export async function renderPdf(model: ResumeModel): Promise<Buffer> {
         FONTS,
         "--pdf-standard",
         "ua-1",
-        join(dir, "resume.typ"),
+        join(dir, `${name}.typ`),
         join(dir, "out.pdf"),
       ],
       { timeout: 30_000 },
@@ -56,4 +59,13 @@ export async function renderPdf(model: ResumeModel): Promise<Buffer> {
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+}
+
+// `async`, so a bad date in the model rejects instead of throwing before a promise exists.
+export async function renderPdf(model: ResumeModel): Promise<Buffer> {
+  return compile("resume", viewOf(model));
+}
+
+export async function renderLetterPdf(model: LetterModel): Promise<Buffer> {
+  return compile("letter", letterViewOf(model));
 }
