@@ -11,6 +11,12 @@ import {
 
 // The batch runs under the ingest lock, so it must end well inside the hourly tick; the rest waits for the next poll.
 const RUN_BUDGET_MS = 20 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Each call is about 5,000 input tokens; see the "Jev judges a narrow set of Postings" decision.
+const WINDOW_DAYS = 14;
+const DAILY_CALL_CAP = 150;
+// A Posting that fails through its own fault this many times is left alone.
+const MAX_POSTING_FAILURES = 3;
 
 export interface RunOptions {
   now?: Date;
@@ -24,11 +30,26 @@ export interface RunCounts {
   found: number;
   judged: number;
   failed: number;
+  // Due Postings left because the daily cap was reached.
+  capped: number;
 }
 
 // Said by name only; an error's own text can quote the request.
 function why(err: unknown): string {
   return err instanceof JevCallError ? err.message : "unexpected error";
+}
+
+// The Posting's own fault: an unusable answer or a client error other than a rate limit. Anything else is Jev's.
+function isPostingFault(err: unknown): err is JevCallError {
+  if (!(err instanceof JevCallError)) return false;
+  if (err.kind === "invalid") return true;
+  return (
+    err.kind === "http" &&
+    err.status !== undefined &&
+    err.status >= 400 &&
+    err.status < 500 &&
+    err.status !== 429
+  );
 }
 
 // Reads what needs judging from the tables on every run, so a failed call retries on the next poll with no queue.
@@ -46,7 +67,7 @@ export class JevRunner {
     const now = options.now ?? new Date();
     const shouldStop = options.shouldStop ?? (() => false);
     const deadline = Date.now() + (options.budgetMs ?? RUN_BUDGET_MS);
-    const counts: RunCounts = { found: 0, judged: 0, failed: 0 };
+    const counts: RunCounts = { found: 0, judged: 0, failed: 0, capped: 0 };
     const jev = this.jev;
     if (!jev) return counts;
     const profile = await this.prisma.masterProfileVersion.findFirst({
@@ -65,10 +86,16 @@ export class JevRunner {
     }
     const summary = fitSummary(parsed.profile);
 
+    const sample = options.postingIds !== undefined;
     const postings = await this.prisma.posting.findMany({
-      where: options.postingIds ? { id: { in: options.postingIds } } : {},
+      where: sample
+        ? { id: { in: options.postingIds } }
+        : {
+            postedAt: { gte: new Date(now.getTime() - WINDOW_DAYS * DAY_MS) },
+          },
       select: {
         id: true,
+        postedAt: true,
         descriptionKind: true,
         sightings: {
           select: { watchedCompanyId: true, lastSeenAt: true, closedAt: true },
@@ -78,36 +105,65 @@ export class JevRunner {
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 1,
         },
+        _count: { select: { jevFailures: true } },
       },
-      orderBy: { id: "asc" },
+      orderBy: [{ postedAt: "desc" }, { id: "desc" }],
     });
 
     const due = postings.filter((p) => {
+      if (p._count.jevFailures >= MAX_POSTING_FAILURES) return false;
+      // A manual sample is the user's pick, so it skips the open check along with the window.
+      if (!sample && postingState(p.sightings, now) !== "open") return false;
       const latest = p.jevJudgements[0];
       if (!latest) return true;
       if (latest.descriptionKind !== "full" && p.descriptionKind === "full")
         return true;
-      return (
-        latest.profileVersionId !== profile.id &&
-        postingState(p.sightings, now) === "open"
-      );
+      return latest.profileVersionId !== profile.id;
     });
     counts.found = due.length;
 
-    for (const { id } of due) {
+    // Counts rows, so a call that stored nothing is not counted; see the gotcha.
+    let callsLeft = sample
+      ? Infinity
+      : DAILY_CALL_CAP -
+        (await this.callsSince(new Date(now.getTime() - DAY_MS)));
+
+    for (const [index, { id }] of due.entries()) {
       if (shouldStop() || Date.now() >= deadline) break;
+      if (callsLeft <= 0) {
+        counts.capped = due.length - index;
+        break;
+      }
       try {
         await this.judge(jev, id, profile.id, summary);
         counts.judged++;
+        callsLeft--;
       } catch (err) {
         counts.failed++;
         this.logger.warn(`Posting ${id} stays unjudged: ${why(err)}`);
+        if (!isPostingFault(err)) {
+          // Jev is down or limiting us; one more call per Posting would only repeat it.
+          this.logger.warn("Jev is unavailable; ending the run");
+          break;
+        }
+        await this.prisma.jevFailure.create({
+          data: { postingId: id, kind: err.kind, status: err.status },
+        });
+        callsLeft--;
       }
     }
     this.logger.log(
-      `Jev run: ${counts.found} due, ${counts.judged} judged, ${counts.failed} failed, ${counts.found - counts.judged - counts.failed} left for the next poll`,
+      `Jev run: ${counts.found} due, ${counts.judged} judged, ${counts.failed} failed, ${counts.capped} capped, ${counts.found - counts.judged - counts.failed - counts.capped} left for the next poll`,
     );
     return counts;
+  }
+
+  private async callsSince(since: Date): Promise<number> {
+    const [judged, failed] = await Promise.all([
+      this.prisma.jevJudgement.count({ where: { createdAt: { gt: since } } }),
+      this.prisma.jevFailure.count({ where: { createdAt: { gt: since } } }),
+    ]);
+    return judged + failed;
   }
 
   private async judge(
