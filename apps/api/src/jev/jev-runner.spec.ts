@@ -129,6 +129,7 @@ describe("JevRunner", () => {
   async function addPosting(
     descriptionKind = "full",
     sighting: { lastSeenAt?: Date; closedAt?: Date; watched?: boolean } = {},
+    postedAt = new Date(),
   ) {
     seq++;
     const posting = await prisma.posting.create({
@@ -138,7 +139,7 @@ describe("JevRunner", () => {
         location: "Toronto, ON",
         description: descriptionKind === "none" ? "" : `Build things ${seq}`,
         descriptionKind,
-        postedAt: new Date(),
+        postedAt,
       },
     });
     await prisma.sighting.create({
@@ -239,7 +240,7 @@ describe("JevRunner", () => {
   });
 
   it("rejudges Postings that are not Closed or Stale when a new profile version arrives", async () => {
-    await addProfile();
+    const first = await addProfile();
     const open = await addPosting("full");
     const closed = await addPosting("full", {
       watched: true,
@@ -249,8 +250,20 @@ describe("JevRunner", () => {
     const stale = await addPosting("full", {
       lastSeenAt: new Date(Date.now() - 40 * DAY),
     });
+    // Judged while open, before they closed.
+    for (const { id } of [closed, stale])
+      await prisma.jevJudgement.create({
+        data: {
+          postingId: id,
+          profileVersionId: first,
+          questionSetVersion: QUESTION_SET_VERSION,
+          descriptionKind: "full",
+          model: "jev-1.14.0",
+          answers: validAnswers() as object,
+        },
+      });
     await runner.run();
-    expect(requests).toHaveLength(3);
+    expect(requests).toHaveLength(1);
 
     const second = await addProfile(
       "  - id: S2\n    name: Go\n    evidence: [F1]\n",
@@ -258,7 +271,7 @@ describe("JevRunner", () => {
     );
     await runner.run();
 
-    expect(requests).toHaveLength(4);
+    expect(requests).toHaveLength(2);
     const rows = await judgementsOf(open.id);
     expect(rows).toHaveLength(2);
     expect(rows.map((r) => r.profileVersionId)).toContain(second);
@@ -321,17 +334,18 @@ describe("JevRunner", () => {
     expect(await judgementsOf(posting.id)).toHaveLength(0);
   });
 
-  it("does not stop the batch when one Posting fails", async () => {
+  it("does not stop the batch when one Posting fails through its own fault", async () => {
     await addProfile();
     const a = await addPosting();
     const b = await addPosting();
-    replies = [() => ({ status: 500, body: { detail: "boom" } })];
+    replies = [() => ({ status: 400, body: { detail: "bad" } })];
 
     const counts = await runner.run();
 
     expect(counts).toMatchObject({ found: 2, judged: 1, failed: 1 });
-    expect(await judgementsOf(a.id)).toHaveLength(0);
-    expect(await judgementsOf(b.id)).toHaveLength(1);
+    // Newest ID first among equal Posted at, so b goes first and fails.
+    expect(await judgementsOf(b.id)).toHaveLength(0);
+    expect(await judgementsOf(a.id)).toHaveLength(1);
   });
 
   it("stops between Postings on shutdown and leaves the rest for the next poll", async () => {
@@ -361,6 +375,212 @@ describe("JevRunner", () => {
     const counts = await runner.run();
     expect(counts.found).toBe(0);
     expect(requests).toHaveLength(0);
+  });
+
+  describe("window, cap and failures", () => {
+    const daysAgo = (n: number) => new Date(Date.now() - n * DAY);
+    const addJudgements = async (postingId: number, n: number) => {
+      const profileVersionId = (
+        await prisma.masterProfileVersion.findFirstOrThrow()
+      ).id;
+      await prisma.jevJudgement.createMany({
+        data: Array.from({ length: n }, () => ({
+          postingId,
+          profileVersionId,
+          questionSetVersion: QUESTION_SET_VERSION,
+          descriptionKind: "full",
+          model: "jev-1.14.0",
+          answers: validAnswers() as object,
+        })),
+      });
+    };
+
+    it("judges a Posting posted 13 days ago and not one posted 15 days ago", async () => {
+      await addProfile();
+      const recent = await addPosting("full", {}, daysAgo(13));
+      const old = await addPosting("full", {}, daysAgo(15));
+      await runner.run();
+      expect(await judgementsOf(recent.id)).toHaveLength(1);
+      expect(await judgementsOf(old.id)).toHaveLength(0);
+    });
+
+    it("applies the window to a description that moved to full and to a new profile", async () => {
+      await addProfile();
+      const snippet = await addPosting("snippet", {}, daysAgo(13));
+      await runner.run();
+      await prisma.posting.update({
+        where: { id: snippet.id },
+        data: { descriptionKind: "full", postedAt: daysAgo(15) },
+      });
+      await addProfile(
+        "  - id: S2\n    name: Go\n    evidence: [F1]\n",
+        new Date(Date.now() + 1000),
+      );
+      const counts = await runner.run();
+      expect(counts.found).toBe(0);
+      expect(await judgementsOf(snippet.id)).toHaveLength(1);
+    });
+
+    it("does not judge a Closed or Stale Posting that has no judgement", async () => {
+      await addProfile();
+      const closed = await addPosting("full", {
+        watched: true,
+        lastSeenAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        closedAt: new Date(Date.now() - 60 * 60 * 1000),
+      });
+      const stale = await addPosting("full", { lastSeenAt: daysAgo(40) });
+      await runner.run();
+      expect(requests).toHaveLength(0);
+      expect(await judgementsOf(closed.id)).toHaveLength(0);
+      expect(await judgementsOf(stale.id)).toHaveLength(0);
+    });
+
+    it("judges 150 of 151 due Postings, newest first", async () => {
+      await addProfile();
+      const oldest = await addPosting("full", {}, daysAgo(10));
+      for (let i = 0; i < 150; i++) await addPosting("full", {}, daysAgo(1));
+      const counts = await runner.run();
+      expect(counts).toMatchObject({ found: 151, judged: 150, capped: 1 });
+      expect(requests).toHaveLength(150);
+      expect(await judgementsOf(oldest.id)).toHaveLength(0);
+    });
+
+    it("judges nothing with 150 calls in the last 24 hours and one with 149", async () => {
+      await addProfile();
+      const done = await addPosting("full", {}, daysAgo(1));
+      await addJudgements(done.id, 150);
+      const a = await addPosting("full", {}, daysAgo(2));
+      expect(await runner.run()).toMatchObject({
+        found: 1,
+        judged: 0,
+        capped: 1,
+      });
+      expect(requests).toHaveLength(0);
+
+      await prisma.jevJudgement.deleteMany({
+        where: { id: (await prisma.jevJudgement.findFirstOrThrow()).id },
+      });
+      await runner.run();
+      expect(await judgementsOf(a.id)).toHaveLength(1);
+    });
+
+    it("counts a stored failure toward the cap, and ignores calls older than 24 hours", async () => {
+      await addProfile();
+      const done = await addPosting("full", {}, daysAgo(1));
+      await addJudgements(done.id, 149);
+      await prisma.jevFailure.create({
+        data: { postingId: done.id, kind: "invalid" },
+      });
+      await addPosting("full", {}, daysAgo(2));
+      expect(await runner.run()).toMatchObject({ judged: 0, capped: 1 });
+
+      await prisma.jevJudgement.updateMany({
+        data: { createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) },
+      });
+      expect(await runner.run()).toMatchObject({ judged: 1 });
+    });
+
+    it("stores a failure for an invalid answer and stops calling the Posting after the third", async () => {
+      await addProfile();
+      const posting = await addPosting();
+      const bad = () => ({
+        status: 200,
+        body: {
+          model: "jev-1.14.0",
+          answers: { ...validAnswers(), skills_covered: { score: 9 } },
+          usage: {},
+        },
+      });
+      replies = [() => bad(), () => bad(), () => bad()];
+      for (let i = 0; i < 3; i++) await runner.run();
+      expect(
+        await prisma.jevFailure.findMany({ where: { postingId: posting.id } }),
+      ).toMatchObject([
+        { kind: "invalid", status: null },
+        { kind: "invalid", status: null },
+        { kind: "invalid", status: null },
+      ]);
+      const counts = await runner.run();
+      expect(counts.found).toBe(0);
+      expect(requests).toHaveLength(3);
+    });
+
+    it("records a 4xx other than 429 as the Posting's fault, with no error text", async () => {
+      await addProfile();
+      const posting = await addPosting();
+      replies = [() => ({ status: 422, body: { detail: SENTINEL } })];
+      await runner.run();
+      const rows = await prisma.jevFailure.findMany({
+        where: { postingId: posting.id },
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ kind: "http", status: 422 });
+      expect(JSON.stringify(rows)).not.toContain(SENTINEL);
+    });
+
+    // A revoked key, a used-up quota or a retired model pin is not the Posting's fault.
+    it.each([503, 500, 401, 402, 403, 404])(
+      "ends the run after one call on a %s and stores nothing",
+      async (status) => {
+        await addProfile();
+        for (let i = 0; i < 3; i++) await addPosting();
+        replies = [() => ({ status, body: { detail: "down" } })];
+        const counts = await runner.run();
+        expect(requests).toHaveLength(1);
+        expect(counts).toMatchObject({ judged: 0, failed: 1 });
+        expect(await prisma.jevJudgement.count()).toBe(0);
+        expect(await prisma.jevFailure.count()).toBe(0);
+      },
+    );
+
+    it.each([400, 413])(
+      "records a %s as the Posting's fault and goes on",
+      async (status) => {
+        await addProfile();
+        for (let i = 0; i < 2; i++) await addPosting();
+        replies = [() => ({ status, body: { detail: "bad" } })];
+        const counts = await runner.run();
+        expect(counts).toMatchObject({ judged: 1, failed: 1 });
+        expect(await prisma.jevFailure.findMany()).toMatchObject([
+          { kind: "http", status },
+        ]);
+      },
+    );
+
+    it("ends the run on a reply with no model and stores nothing", async () => {
+      await addProfile();
+      for (let i = 0; i < 2; i++) await addPosting();
+      replies = [() => ({ status: 200, body: { answers: validAnswers() } })];
+      const counts = await runner.run();
+      expect(requests).toHaveLength(1);
+      expect(counts).toMatchObject({ judged: 0, failed: 1 });
+      expect(await prisma.jevFailure.count()).toBe(0);
+    });
+
+    it("ends the run when 429 never clears", async () => {
+      await addProfile();
+      await addPosting();
+      await addPosting();
+      replies = Array.from({ length: 4 }, () => () => ({
+        status: 429,
+        body: { detail: "slow" },
+      }));
+      await runner.run();
+      expect(requests).toHaveLength(4);
+      expect(await prisma.jevFailure.count()).toBe(0);
+    });
+
+    it("judges exactly the given Postings, ignoring the window and a used-up cap", async () => {
+      await addProfile();
+      const done = await addPosting("full", {}, daysAgo(1));
+      await addJudgements(done.id, 150);
+      const old = await addPosting("full", {}, daysAgo(30));
+      const other = await addPosting("full", {}, daysAgo(1));
+      const counts = await runner.run({ postingIds: [old.id] });
+      expect(counts).toMatchObject({ found: 1, judged: 1, capped: 0 });
+      expect(await judgementsOf(old.id)).toHaveLength(1);
+      expect(await judgementsOf(other.id)).toHaveLength(0);
+    });
   });
 
   it("never logs Master profile content", async () => {

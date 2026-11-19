@@ -8,7 +8,8 @@ const PINNED = /^jev-\d+\.\d+\.\d+$/;
 export class JevCallError extends Error {
   constructor(
     // Only the status and kind are kept: an SDK error message can quote the request body.
-    readonly kind: "http" | "invalid" | "network",
+    // "malformed" is a reply Jev shaped wrongly; "invalid" is an answer the runner cannot use.
+    readonly kind: "http" | "invalid" | "malformed" | "network",
     readonly status?: number,
   ) {
     super(`Jev ${kind}${status ? ` ${status}` : ""}`);
@@ -89,7 +90,8 @@ export class TypeSafeJevClient extends JevClient {
       answers?: unknown;
       usage?: { input_tokens?: unknown; output_tokens?: unknown };
     };
-    if (typeof model !== "string" || !model) throw new JevCallError("invalid");
+    if (typeof model !== "string" || !model)
+      throw new JevCallError("malformed");
     const count = (v: unknown) =>
       typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null;
     return {

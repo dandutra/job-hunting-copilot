@@ -48,6 +48,10 @@ export async function absorbPosting(tx: Tx, fromId: number, intoId: number) {
     where: { postingId: fromId },
     data: { postingId: intoId },
   });
+  await tx.jevFailure.updateMany({
+    where: { postingId: fromId },
+    data: { postingId: intoId },
+  });
   await tx.label.updateMany({
     where: { postingId: fromId },
     data: { postingId: intoId },

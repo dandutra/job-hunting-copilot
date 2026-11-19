@@ -46,6 +46,7 @@ model Posting {
   mergeLog        MergeLogEntry[]
   tailoredResumes TailoredResume[]
   jevJudgements   JevJudgement[]
+  jevFailures     JevFailure[]
   tier            PostingTier?
   labels          Label[]
   labelDraw       LabelDraw?
@@ -211,6 +212,20 @@ model JevJudgement {
   @@index([postingId, createdAt])
   @@index([profileVersionId])
   @@map("jev_judgement")
+}
+
+// A Jev call that failed through the Posting's own fault. It never stores an error message, because a message can quote the profile summary.
+model JevFailure {
+  id        Int      @id @default(autoincrement())
+  postingId Int      @map("posting_id")
+  posting   Posting  @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  kind      String
+  status    Int?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([postingId])
+  @@index([createdAt])
+  @@map("jev_failure")
 }
 
 // Derived from the newest JevJudgement and the committed tier config; only tier:recompute writes it, so it can lag a new judgement or a merge.

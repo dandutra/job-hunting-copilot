@@ -728,6 +728,35 @@ describe("SightingMatcher", () => {
       expect(rows.every((r) => r.postingId === bridge.posting.id)).toBe(true);
     });
 
+    // The rows feed the daily call cap and the three-failure limit, so a cascade delete would lose both.
+    it("moves Jev failures to the surviving Posting and keeps every row", async () => {
+      const a = await matcher.matchSighting(
+        draft({ listingKey: "linkedin:100" }),
+        { now: T0 },
+      );
+      const b = await matcher.matchSighting(
+        draft({ jobSource: "greenhouse", listingKey: "greenhouse:acme:1" }),
+        { now: T0 },
+      );
+      for (const postingId of [a.posting.id, b.posting.id])
+        await prisma.jevFailure.create({
+          data: { postingId, kind: "invalid" },
+        });
+
+      const bridge = await matcher.matchSighting(
+        draft({
+          jobSource: "jobspy-indeed",
+          listingKey: "linkedin:100",
+          directUrl: "https://boards.greenhouse.io/acme/jobs/1",
+        }),
+        { now: T0 },
+      );
+
+      const rows = await prisma.jevFailure.findMany();
+      expect(rows).toHaveLength(2);
+      expect(rows.every((r) => r.postingId === bridge.posting.id)).toBe(true);
+    });
+
     it("never merges Postings whose Sightings hold different listings of one board", async () => {
       await matcher.matchSighting(
         draft({ directUrl: "https://boards.greenhouse.io/acme/jobs/1" }),
