@@ -1,4 +1,8 @@
 import { Module } from "@nestjs/common";
+import {
+  FileTierConfigSource,
+  TierConfigSource,
+} from "../feed/tier-config-source";
 import { JevModule } from "../jev/jev.module";
 import { JevRunner } from "../jev/jev-runner";
 import { MatchingModule } from "../matching/matching.module";
@@ -27,13 +31,20 @@ const JOBSPY_SITES = ["linkedin", "indeed"] as const;
   providers: [
     IngestScheduler,
     { provide: AlertHook, useClass: LogAlertHook },
+    { provide: TierConfigSource, useClass: FileTierConfigSource },
     {
       provide: PollHooks,
-      inject: [JevRunner],
-      useFactory: (jev: JevRunner) =>
+      inject: [JevRunner, TierConfigSource, PrismaService],
+      useFactory: (
+        jev: JevRunner,
+        tierConfig: TierConfigSource,
+        prisma: PrismaService,
+      ) =>
         new JevPollHooks(
           new HeartbeatPollHooks(process.env.HEARTBEAT_URL ?? ""),
           jev,
+          tierConfig,
+          prisma,
         ),
     },
     {
