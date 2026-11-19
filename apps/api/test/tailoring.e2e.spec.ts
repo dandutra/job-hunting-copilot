@@ -370,7 +370,7 @@ describe("tailoring", () => {
 
     it("gives a name with accented letters an ASCII fallback and the UTF-8 form", async () => {
       const v1 = await importProfile(
-        profileYaml().replace("Sam Sample", "Zoë Sample"),
+        profileYaml().replace("Sam Sample", "Zoë O'Neil"),
       );
       const { body } = await submit(goodDraft(v1));
       await act(body.id, "approve");
@@ -378,7 +378,7 @@ describe("tailoring", () => {
       const res = await download(body.id, "resume.docx");
       expect(res.status).toBe(200);
       expect(res.headers["content-disposition"]).toBe(
-        `attachment; filename="Zo_ Sample - Resume.docx"; filename*=UTF-8''Zo%C3%AB%20Sample%20-%20Resume.docx`,
+        `attachment; filename="Zo_ O'Neil - Resume.docx"; filename*=UTF-8''Zo%C3%AB%20O%27Neil%20-%20Resume.docx`,
       );
     });
 

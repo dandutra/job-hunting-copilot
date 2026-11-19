@@ -34,12 +34,13 @@ const PDF = "application/pdf";
 const DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-// A header value is ASCII, so a name with other letters gets a fallback plus the RFC 5987 form.
+// A header value is ASCII, so a name with other letters gets a fallback plus the RFC 5987 form,
+// which does not allow a bare apostrophe: encodeURIComponent leaves it, so it is escaped here.
 function disposition(filename: string): string {
   const ascii = filename.replace(/[^\x20-\x7e]/g, "_");
   return ascii === filename
     ? `attachment; filename="${filename}"`
-    : `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+    : `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename).replace(/'/g, "%27")}`;
 }
 
 @Controller()

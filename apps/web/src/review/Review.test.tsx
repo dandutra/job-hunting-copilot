@@ -532,3 +532,39 @@ it("opens on the first flagged line even when it is not the first line", async (
   expect(pressed()).toEqual(["Cut the report time by half."]);
   expect(inspector().getByText("Too strong.")).toBeTruthy();
 });
+
+it("reloads the draft when approve answers 409, so the screen shows what it now is", async () => {
+  const s = stub({
+    approve: () => ({ error: {}, response: { status: 409 } }) as never,
+  });
+  renderReview(s);
+  await screen.findByText("Sam Sample");
+  const loads = () =>
+    s.calls.filter(
+      (c) => c.method === "GET" && c.path === "/tailored-resumes/{id}",
+    ).length;
+  expect(loads()).toBe(1);
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Approve resume and cover letter" }),
+  );
+
+  await waitFor(() => expect(loads()).toBe(2));
+});
+
+it("does not blame the render when approve fails for another reason", async () => {
+  renderReview(
+    stub({
+      approve: () => ({ error: {}, response: { status: 401 } }) as never,
+    }),
+  );
+  await screen.findByText("Sam Sample");
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Approve resume and cover letter" }),
+  );
+
+  const alert = await screen.findByRole("alert");
+  expect(alert.textContent).not.toContain("rendered");
+  expect(alert.textContent).toContain("did not go through");
+});

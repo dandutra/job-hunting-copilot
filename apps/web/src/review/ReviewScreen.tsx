@@ -119,12 +119,14 @@ function Review({ data, reload }: { data: Loaded; reload: () => void }) {
       setMessage(
         `The Trace check failed on ${count} lines, so nothing was approved. Run /tailor to submit a new draft.`,
       );
-    } else if (response?.status === 409)
-      setMessage("This draft is no longer open.");
-    else
+    } else if (response?.status === 409) {
+      // Someone else closed the draft; the reload shows what it is now.
+      reload();
+    } else if (response?.status === 500) {
       setMessage(
         "The files could not be rendered, so the draft is still open. Try again.",
       );
+    } else setMessage("Approve did not go through. Try again.");
   }
 
   async function reject() {
