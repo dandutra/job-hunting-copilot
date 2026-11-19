@@ -18,6 +18,7 @@ describe("titleFiltered", () => {
     "Engineering Manager",
     "Developer Internship",
     "Student Developer",
+    "Senior Member of Technical Staff",
   ])("matches %s", (title) => {
     expect(titleFiltered(title)).toBe(true);
   });
@@ -30,6 +31,8 @@ describe("titleFiltered", () => {
     "Lead Developer",
     "Software Architect",
     "Seniority Tracker Developer",
+    "Member of Technical Staff (Fullstack) (Toronto)",
+    "Member of Technical Staff - Forward Deployed Engineer",
   ])("does not match %s", (title) => {
     expect(titleFiltered(title)).toBe(false);
   });

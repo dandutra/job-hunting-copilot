@@ -23,6 +23,9 @@ const PATTERN = new RegExp(
   "i",
 );
 
+// AI labs title every level this way, so "Staff" in it names no level.
+const EXEMPT = /member of technical staff/gi;
+
 export function titleFiltered(title: string): boolean {
-  return PATTERN.test(title);
+  return PATTERN.test(title.replace(EXEMPT, ""));
 }
