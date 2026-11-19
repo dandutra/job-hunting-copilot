@@ -3,10 +3,10 @@ type: gotcha
 title: Merge review API
 description: How splits, "not the same" pairs, hand merges and the reviewed flag behave, and what the review screen must know.
 tags: [matching, api]
-sources: ["#25"]
+sources: ["#25", "#113"]
 generated:
   by: claude-opus-5-5
-  at: 2026-11-11T12:00:00-05:00
+  at: 2026-11-19T16:00:00-05:00
 ---
 
 The endpoints are in `apps/api/src/matching/merge-review.controller.ts`: `GET /merge-log`, `POST /merge-log/:id/review`, `POST /sightings/:id/split`, `GET /lookalikes`, `POST /lookalikes/:id/merge` and `POST /lookalikes/:id/dismiss`.
@@ -19,3 +19,4 @@ The endpoints are in `apps/api/src/matching/merge-review.controller.ts`: `GET /m
 - A Lookalike merge keeps the lower Posting id, like a text merge, and does not call the Jev hook. When it crosses two Companies, it moves every Posting, Sighting and alias of the other Company to the surviving one and deletes the other. That is how the second name becomes an alias. A Watched company always survives. If both are Watched, the merge answers 409. A Lookalike whose two Postings are a "not the same" pair also answers 409.
 - Because a hand merge can delete a Company, `matchSighting` checks inside the matcher lock that the Company it resolved still exists. If it is gone, it looks the name up in `company_alias` on the same transaction, so it never waits on a second pool connection while holding the lock. `sighting.company_id` has no foreign key, so a stale id would be stored silently.
 - A dismissed Lookalike is deleted. Only the pair remains.
+- `absorbPosting` (`apps/api/src/matching/posting-absorb.ts`) must move or delete every row of every table that references `posting`, because a merge deletes the absorbed Posting and a missed table cascade-deletes its rows or blocks the merge. #113 added `jev_failure` without it, and review caught the gap. A new table that references `posting` needs an `absorbPosting` change and a test that merges two Postings holding a row in that table.
