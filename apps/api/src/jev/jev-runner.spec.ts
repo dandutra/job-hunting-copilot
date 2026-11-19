@@ -518,7 +518,8 @@ describe("JevRunner", () => {
       expect(JSON.stringify(rows)).not.toContain(SENTINEL);
     });
 
-    it.each([503, 500])(
+    // A revoked key, a used-up quota or a retired model pin is not the Posting's fault.
+    it.each([503, 500, 401, 402, 403, 404])(
       "ends the run after one call on a %s and stores nothing",
       async (status) => {
         await addProfile();
@@ -531,6 +532,30 @@ describe("JevRunner", () => {
         expect(await prisma.jevFailure.count()).toBe(0);
       },
     );
+
+    it.each([400, 413])(
+      "records a %s as the Posting's fault and goes on",
+      async (status) => {
+        await addProfile();
+        for (let i = 0; i < 2; i++) await addPosting();
+        replies = [() => ({ status, body: { detail: "bad" } })];
+        const counts = await runner.run();
+        expect(counts).toMatchObject({ judged: 1, failed: 1 });
+        expect(await prisma.jevFailure.findMany()).toMatchObject([
+          { kind: "http", status },
+        ]);
+      },
+    );
+
+    it("ends the run on a reply with no model and stores nothing", async () => {
+      await addProfile();
+      for (let i = 0; i < 2; i++) await addPosting();
+      replies = [() => ({ status: 200, body: { answers: validAnswers() } })];
+      const counts = await runner.run();
+      expect(requests).toHaveLength(1);
+      expect(counts).toMatchObject({ judged: 0, failed: 1 });
+      expect(await prisma.jevFailure.count()).toBe(0);
+    });
 
     it("ends the run when 429 never clears", async () => {
       await addProfile();

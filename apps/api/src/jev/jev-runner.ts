@@ -39,16 +39,17 @@ function why(err: unknown): string {
   return err instanceof JevCallError ? err.message : "unexpected error";
 }
 
-// The Posting's own fault: an unusable answer or a client error other than a rate limit. Anything else is Jev's.
+// Statuses a bad request body explains. Any other 4xx (a revoked key, a used-up quota, a retired model pin) is Jev's or ours, and would retire every Posting it touched.
+const POSTING_FAULT_STATUSES = new Set([400, 413, 422]);
+
+// The Posting's own fault: an unusable answer or a request Jev rejected for its content. Anything else ends the run.
 function isPostingFault(err: unknown): err is JevCallError {
   if (!(err instanceof JevCallError)) return false;
   if (err.kind === "invalid") return true;
   return (
     err.kind === "http" &&
     err.status !== undefined &&
-    err.status >= 400 &&
-    err.status < 500 &&
-    err.status !== 429
+    POSTING_FAULT_STATUSES.has(err.status)
   );
 }
 
