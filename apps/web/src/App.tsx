@@ -2,6 +2,7 @@ import { NavLink, Route, Routes } from "react-router";
 import "./app.css";
 import { FeedScreen } from "./feed/FeedScreen";
 import { LabelScreen } from "./labels/LabelScreen";
+import { ReviewScreen } from "./review/ReviewScreen";
 
 function Placeholder({ title }: { title: string }) {
   return (
@@ -30,10 +31,7 @@ export function App() {
         </Route>
         <Route path="/labels" element={<LabelScreen />} />
         <Route path="/merges" element={<Placeholder title="Merge log" />} />
-        <Route
-          path="/resumes/:id"
-          element={<Placeholder title="Tailored resume review" />}
-        />
+        <Route path="/resumes/:id" element={<ReviewScreen />} />
         <Route path="*" element={<Placeholder title="Page not found" />} />
       </Routes>
     </>
