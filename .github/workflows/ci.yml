@@ -71,6 +71,8 @@ jobs:
         run: docker compose -f deploy/compose.prod.yaml build
       - name: No image holds personal data
         run: deploy/check-images-clean.sh
+      - name: The API image renders a resume with its own Typst
+        run: scripts/smoke-render.sh "ghcr.io/dandutra/copilot-api:${IMAGE_TAG}"
       - name: Exactly one published port, on 127.0.0.1
         run: |
           ports=$(docker compose -f deploy/compose.prod.yaml config --format json | jq -c '[.services[].ports // [] | .[] | [.host_ip, .published]]')
