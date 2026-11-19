@@ -66,6 +66,9 @@ function contactParagraphs(v: {
 export async function renderDocx(model: ResumeModel): Promise<Buffer> {
   const v = viewOf(model);
   const body: Paragraph[] = contactParagraphs(v);
+  if (v.highlights.length > 0) {
+    body.push(heading(HEADINGS.highlights), ...v.highlights.map(bullet));
+  }
   if (v.experience.length > 0) {
     body.push(
       heading(HEADINGS.experience),

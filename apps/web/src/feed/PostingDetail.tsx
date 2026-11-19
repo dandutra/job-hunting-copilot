@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { TierBadge } from "../TierBadge";
 import {
   age,
@@ -82,6 +83,9 @@ export function PostingDetail({
       </header>
       <div className="row">
         <CopyTailor id={posting.id} />
+        {posting.tailoredResumeId !== null && (
+          <Link to={`/resumes/${posting.tailoredResumeId}`}>Review draft</Link>
+        )}
       </div>
       {hints.map((l) => (
         <div key={l.id} className="lookalike">

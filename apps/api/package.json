@@ -29,6 +29,7 @@
     "pg": "^8.23.1",
     "prisma": "7.10.1",
     "reflect-metadata": "^0.2.2",
+    "resume-render": "workspace:*",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
@@ -41,6 +42,7 @@
     "@types/supertest": "^7.2.1",
     "eslint": "^10.14.0",
     "jest": "^30.5.2",
+    "jszip": "^3.10.2",
     "prettier": "^3.9.10",
     "supertest": "^7.3.1",
     "ts-jest": "^29.4.15",

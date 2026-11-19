@@ -56,6 +56,7 @@ const detail = (it: Item, over: Partial<Detail> = {}): Detail => ({
   descriptionKind: "full",
   description: `Body of ${it.title}`,
   links: [{ url: `https://example.com/${it.id}`, jobSources: ["greenhouse"] }],
+  tailoredResumeId: null,
   lookalikes: [],
   ...over,
 });
@@ -462,4 +463,27 @@ it("says so when nothing was posted in the last 3 days", async () => {
   fireEvent.click(screen.getByLabelText("Last 3 days"));
 
   expect(screen.getByText("No Postings in the last 3 days.")).toBeTruthy();
+});
+
+it("links a Posting's newest draft as Review draft, and shows no link when it has none", async () => {
+  const withDraft = item(1, "A");
+  const without = item(2, "A");
+  renderAt(
+    "/postings/1",
+    stub({
+      items: () => [withDraft, without],
+      details: {
+        1: detail(withDraft, { tailoredResumeId: 9 }),
+        2: detail(without),
+      },
+    }),
+  );
+  await screen.findByRole("heading", { name: "Title 1" });
+
+  const link = screen.getByRole("link", { name: "Review draft" });
+  expect(link.getAttribute("href")).toBe("/resumes/9");
+
+  fireEvent.click(rowOf("Title 2"));
+  await screen.findByRole("heading", { name: "Title 2" });
+  expect(screen.queryByRole("link", { name: "Review draft" })).toBeNull();
 });
