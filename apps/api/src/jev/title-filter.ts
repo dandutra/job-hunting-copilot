@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 const DEFAULT_PATH = "../../config/title-filter.json";
 
 export interface TitleFilter {
-  // A title passes when it holds an include phrase and no exclude word, once exempt phrases are removed.
+  // A title passes when it holds an include phrase and no exclude word; exempt phrases are removed before the exclude check only.
   passes(title: string): boolean;
 }
 
