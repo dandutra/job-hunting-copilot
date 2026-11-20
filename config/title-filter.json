@@ -50,5 +50,12 @@
     "machine learning",
     "ML"
   ],
-  "exempt": ["member of technical staff"]
+  "exempt": ["member of technical staff"],
+  "searchTerms": [
+    "software developer",
+    "software engineer",
+    "full stack developer",
+    "AI engineer",
+    "AI developer"
+  ]
 }

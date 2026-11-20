@@ -1,5 +1,10 @@
 import { readFileSync } from "node:fs";
-import { loadTitleFilter, readTitleFilter, titlePasses } from "./title-filter";
+import {
+  loadSearchTerms,
+  loadTitleFilter,
+  readTitleFilter,
+  titlePasses,
+} from "./title-filter";
 
 describe("titlePasses, with the committed config", () => {
   it.each([
@@ -58,6 +63,17 @@ describe("the committed config", () => {
   it("loads", () => {
     const text = readFileSync("../../config/title-filter.json", "utf8");
     expect(() => loadTitleFilter(text)).not.toThrow();
+  });
+
+  it("has search terms", () => {
+    const text = readFileSync("../../config/title-filter.json", "utf8");
+    expect(loadSearchTerms(text)).toEqual([
+      "software developer",
+      "software engineer",
+      "full stack developer",
+      "AI engineer",
+      "AI developer",
+    ]);
   });
 });
 
@@ -127,7 +143,45 @@ describe("loadTitleFilter", () => {
     );
   });
 
-  it("ignores other keys, such as #124's searchTerms", () => {
+  it("ignores searchTerms, which loadSearchTerms reads", () => {
     expect(() => load({ ...valid, searchTerms: ["x"] })).not.toThrow();
+  });
+});
+
+describe("loadSearchTerms", () => {
+  const load = (value: unknown) => loadSearchTerms(JSON.stringify(value));
+
+  it("rejects a term holding a double quote, which would unbalance the OR query", () => {
+    expect(() => load({ searchTerms: ["ok", 'say "hi"'] })).toThrow(
+      'title filter: searchTerms[1] must not contain "',
+    );
+  });
+
+  it("returns the terms trimmed, in file order, with their case kept", () => {
+    expect(
+      load({ searchTerms: [" AI engineer", "software developer "] }),
+    ).toEqual(["AI engineer", "software developer"]);
+  });
+
+  it("rejects invalid JSON", () => {
+    expect(() => loadSearchTerms("{nope")).toThrow(
+      "title filter: the file is not valid JSON",
+    );
+  });
+
+  it("rejects a missing list", () => {
+    expect(() => load({})).toThrow("title filter: searchTerms must be a list");
+  });
+
+  it("rejects an empty list", () => {
+    expect(() => load({ searchTerms: [] })).toThrow(
+      "title filter: searchTerms must not be empty",
+    );
+  });
+
+  it.each([3, "  "])("rejects the entry %j", (entry) => {
+    expect(() => load({ searchTerms: ["ok", entry] })).toThrow(
+      "title filter: searchTerms[1] must be a non-blank string",
+    );
   });
 });
