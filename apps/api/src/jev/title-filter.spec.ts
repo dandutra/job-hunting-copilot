@@ -16,6 +16,10 @@ describe("titlePasses, with the committed config", () => {
     "Lead Developer",
     "Back-end Developer",
     "Front End / Web Engineer",
+    "SRE",
+    "SRE II, Payments",
+    "Engineer, Software",
+    "Engineer, Software - Cloud Platform",
   ])("passes %s", (title) => {
     expect(titlePasses(title)).toBe(true);
   });
@@ -30,6 +34,8 @@ describe("titlePasses, with the committed config", () => {
     "(Senior) Developer",
     "Staff Engineer",
     "Senior Member of Technical Staff",
+    "Senior SRE",
+    "Staff Engineer, Software",
     // Machine learning is a different kind of work.
     "ML Software Engineer, Routing",
     "AI/ML Engineer",
