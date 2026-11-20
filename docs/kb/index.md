@@ -38,6 +38,7 @@ Glossary: [glossary.md](glossary.md)
 - [Only boards close a Posting](decisions/only-boards-close-a-posting.md): a Posting is Closed only on a Watched company board's evidence; any other Posting goes Stale after 30 days with no report and no board listing it, and both leave the feed without touching an Application.
 - [Postings stay inside the Search area](decisions/postings-stay-inside-the-search-area.md): every adapter drops rows outside Toronto, the GTA and remote-Canada before matching, so out-of-area jobs are never stored and a job that moves out of the area closes.
 - [Jev judges a narrow set of Postings](decisions/jev-judges-a-narrow-set.md): only open Postings posted in the last 14 days whose title passes the Title filter, newest first, at most 150 calls a day; a filtered Posting gets no Tier and leaves the feed.
+- [Titles are filtered at ingestion](decisions/titles-are-filtered-at-ingestion.md): every adapter's rows must hold an include phrase and no exclude word from `config/title-filter.json`, checked in the scheduler after the full read, so a failing row is never stored, a retitled board job closes, and AI-enabled developer is an include group, not yet a Role family.
 - [Tickets name their risks when written](decisions/tickets-name-their-risks.md): a ticket lists its risks with their checks, a live check and a review tier at planning time, because the late risks on #31, #35, #37, #38 and #73 could have been foreseen then.
 
 ## Gotchas

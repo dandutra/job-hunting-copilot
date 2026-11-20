@@ -58,8 +58,12 @@ A rule that holds a Posting at C however strong its fit, such as a role closed t
 _Avoid_: Filter, disqualifier, gate
 
 **Title filter**:
-The list of title words, such as Senior, Director and Intern, that keeps a Posting away from Jev. A filtered Posting has no Tier and is not in the feed.
+The include phrases and exclude words a Posting's title must pass to be stored and judged. A title passes when it holds an include phrase, such as "software engineer", and no exclude word, such as Senior or Intern. A row that fails is never stored, and a stored Posting that fails has no Tier and is not in the feed.
 _Avoid_: Tier cap, which keeps a Posting visible at C
+
+**AI-enabled developer**:
+A developer role that builds software on AI models, such as an AI engineer or LLM engineer. It is a group of include phrases in the Title filter, not a Role family. Machine learning roles are not part of it.
+_Avoid_: AI role, ML engineer
 
 **Label**:
 The user's own Tier for a Posting, set by what they would do with it: A means tailor and apply on sight, B means apply if time allows, C means skip. The user may also answer "can't tell".
