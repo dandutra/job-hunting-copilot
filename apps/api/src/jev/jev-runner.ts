@@ -8,7 +8,7 @@ import {
   judgementState,
   QUESTION_SET_VERSION,
 } from "./question-set";
-import { titleFiltered } from "./title-filter";
+import { titlePasses } from "./title-filter";
 
 // The batch runs under the ingest lock, so it must end well inside the hourly tick; the rest waits for the next poll.
 const RUN_BUDGET_MS = 20 * 60 * 1000;
@@ -123,7 +123,7 @@ export class JevRunner {
 
     const due = postings.filter((p) => {
       // Never judged, whatever the reason or the sample.
-      if (titleFiltered(p.title)) {
+      if (!titlePasses(p.title)) {
         counts.filtered++;
         return false;
       }

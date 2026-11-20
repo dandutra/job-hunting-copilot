@@ -28,9 +28,13 @@ interface Call {
   headers: Record<string, string>;
 }
 
-function row(n: number, locationsText = "Toronto, Ontario") {
+function row(
+  n: number,
+  locationsText = "Toronto, Ontario",
+  title: string | undefined = `Developer ${n}`,
+) {
   return {
-    title: `Job ${n}`,
+    title,
     externalPath: `/job/Toronto-Ontario/Job-${n}_JR${n}-1`,
     locationsText,
     postedOn: "Posted Today",
@@ -71,6 +75,12 @@ function tenant(
   };
   return { http, calls };
 }
+
+// The recorded rows are real titles, and some now fail the Title filter, so a test that needs a detail call renames the row.
+const recorded = (i: number, title = "Software Developer") => ({
+  ...fixtures.page.jobPostings[i],
+  title,
+});
 
 const lists = (calls: Call[]) => calls.filter((c) => c.method === "POST");
 const details = (calls: Call[]) => calls.filter((c) => c.method === "GET");
@@ -167,13 +177,13 @@ describe("WorkdayAdapter", () => {
   });
 
   it("builds a draft from the list row and the detail call", async () => {
-    const { http, calls } = tenant([fixtures.page.jobPostings[0]]);
+    const { http, calls } = tenant([recorded(0)]);
     const { adapter } = make(http);
 
     const { drafts } = await adapter.poll(window());
 
     expect(details(calls).map((c) => c.url)).toEqual([
-      `${BASE}${fixtures.page.jobPostings[0].externalPath}`,
+      `${BASE}${recorded(0).externalPath}`,
     ]);
     expect(drafts).toEqual([
       {
@@ -182,7 +192,7 @@ describe("WorkdayAdapter", () => {
         url: "https://manulife.wd3.myworkdayjobs.com/MFCJH_Jobs/job/Toronto-Ontario/Senior-Technology-Project-Manager--Group-Functions-Technology_JR26100844-1",
         reportedAt: new Date("2026-10-29T00:00:00Z"),
         companyName: "Manulife",
-        title: "Senior Technology Project Manager, Group Functions Technology",
+        title: "Software Developer",
         location: "Toronto, Ontario",
         description:
           "Working within Technology Business Management & Strategy.\nPlan\nDeliver",
@@ -211,8 +221,8 @@ describe("WorkdayAdapter", () => {
     expect(details(calls)).toHaveLength(0);
     // The list title is free and Workday retitles jobs, so it wins over the stored one.
     expect(drafts.map((d) => [d.title, d.description, d.url])).toEqual([
-      ["Job 1", "Stored text 1", "https://stored/1"],
-      ["Job 2", "Stored text 2", "https://stored/2"],
+      ["Developer 1", "Stored text 1", "https://stored/1"],
+      ["Developer 2", "Stored text 2", "https://stored/2"],
     ]);
     expect(drafts[0].reportedAt).toEqual(new Date("2026-10-01T00:00:00Z"));
     expect(completeBoards).toEqual([7]);
@@ -240,7 +250,7 @@ describe("WorkdayAdapter", () => {
   });
 
   it("makes one detail call for an out-of-area '3 Locations' row, and none on the second poll", async () => {
-    const rows = [fixtures.page.jobPostings[2]];
+    const rows = [recorded(2)];
     const { http, calls } = tenant(rows, {
       detail: () => fixtures.detailSingapore,
     });
@@ -259,7 +269,7 @@ describe("WorkdayAdapter", () => {
   });
 
   it("keeps a '3 Locations' row when one of its locations is in the area", async () => {
-    const { http } = tenant([fixtures.page.jobPostings[2]], {
+    const { http } = tenant([recorded(2)], {
       detail: () => fixtures.detailMultiToronto,
     });
     const { adapter } = make(http);
@@ -271,7 +281,7 @@ describe("WorkdayAdapter", () => {
   });
 
   it("drops a single-location row outside the area without a detail call", async () => {
-    const { http, calls } = tenant([fixtures.page.jobPostings[1]]);
+    const { http, calls } = tenant([recorded(1)]);
     const { adapter } = make(http);
 
     const result = await adapter.poll(window());
@@ -279,6 +289,40 @@ describe("WorkdayAdapter", () => {
     expect(details(calls)).toHaveLength(0);
     expect(result.drafts).toEqual([]);
     expect(result.completeBoards).toEqual([7]);
+  });
+
+  it("makes no detail call for a row whose list title fails, and still completes the tenant", async () => {
+    const log = jest.spyOn(Logger.prototype, "log");
+    const { http, calls } = tenant([
+      row(1),
+      row(2, "Toronto, Ontario", "Account Executive"),
+      row(3, "Toronto, Ontario", "Senior Developer"),
+    ]);
+    const { adapter } = make(http);
+
+    const result = await adapter.poll(window());
+
+    expect(details(calls).map((c) => c.url)).toEqual([
+      `${BASE}/job/Toronto-Ontario/Job-1_JR1-1`,
+    ]);
+    expect(result.drafts.map((d) => d.listingKey)).toEqual([
+      "workday:manulife:jr1",
+    ]);
+    expect(result.errors).toEqual([]);
+    expect(result.completeBoards).toEqual([7]);
+    expect(log).toHaveBeenCalledWith(
+      "Manulife: dropped 2 of 3 rows by title before the detail call",
+    );
+  });
+
+  it("makes a detail call for a row with no list title, and leaves the filtering to the scheduler", async () => {
+    const { http, calls } = tenant([row(1, "Toronto, Ontario", undefined)]);
+    const { adapter } = make(http);
+
+    const result = await adapter.poll(window());
+
+    expect(details(calls)).toHaveLength(1);
+    expect(result.drafts).toHaveLength(1);
   });
 
   it("leaves the tenant out of completeBoards when shouldStop turns true mid-tenant", async () => {

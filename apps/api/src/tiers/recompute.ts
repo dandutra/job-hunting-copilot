@@ -1,4 +1,4 @@
-import { titleFiltered } from "../jev/title-filter";
+import { titlePasses } from "../jev/title-filter";
 import { PrismaService } from "../prisma/prisma.service";
 import { capsApplied, computeTier, computeTotal } from "./compute-tier";
 import { TierConfig } from "./tier-config";
@@ -20,7 +20,7 @@ async function latestJudgements(prisma: PrismaService) {
     orderBy: [{ postingId: "asc" }, { createdAt: "desc" }, { id: "desc" }],
     include: { posting: { select: { title: true } } },
   });
-  return rows.filter((r) => !titleFiltered(r.posting.title));
+  return rows.filter((r) => titlePasses(r.posting.title));
 }
 
 // Reads stored judgements only; it has no Jev client, so a weight change never costs a call.
@@ -34,7 +34,7 @@ export async function recomputeTiers(
     select: { id: true, title: true },
   });
   const filteredIds = postings
-    .filter((p) => titleFiltered(p.title))
+    .filter((p) => !titlePasses(p.title))
     .map((p) => p.id);
   const judgements = await latestJudgements(prisma);
   const counts: RecomputeCounts = {

@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import { titlePasses } from "../../jev/title-filter";
 import { PrismaService } from "../../prisma/prisma.service";
 import { normalizeListingKey } from "../../matching/listing-key";
 import { SightingDraft } from "../../matching/sighting-draft";
@@ -229,6 +230,7 @@ export class WorkdayAdapter extends JobSourceAdapter {
     let readable = 0;
     let unreadable = false;
     let outside = 0;
+    let droppedByTitle = 0;
     const badRow = (message: string) => {
       unreadable = true;
       result.errors.push({
@@ -270,6 +272,13 @@ export class WorkdayAdapter extends JobSourceAdapter {
           continue;
         }
 
+        // A row with no list title goes on to the detail call; the scheduler filters its draft.
+        const listTitle = str(posting.title);
+        if (listTitle !== null && !titlePasses(listTitle)) {
+          droppedByTitle++;
+          continue;
+        }
+
         const detail = await this.detail(request, `${api}${path}`);
         if (typeof detail === "string") {
           badRow(detail);
@@ -294,6 +303,12 @@ export class WorkdayAdapter extends JobSourceAdapter {
       if (outside > 0) {
         this.logger.log(
           `${tenant.name}: dropped ${outside} of ${readable} rows outside the Search area`,
+        );
+      }
+      // The scheduler's count covers only the drafts it receives, so these rows would never show in the tuning log.
+      if (droppedByTitle > 0) {
+        this.logger.log(
+          `${tenant.name}: dropped ${droppedByTitle} of ${readable} rows by title before the detail call`,
         );
       }
       // Only a full, trusted walk with every row read may close a Sighting.

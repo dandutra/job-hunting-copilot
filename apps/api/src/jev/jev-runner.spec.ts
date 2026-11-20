@@ -598,6 +598,21 @@ describe("JevRunner", () => {
     expect(requests).toHaveLength(0);
   });
 
+  it("makes no call for a title that fails only the include list", async () => {
+    await addProfile();
+    const account = await addPosting(
+      "full",
+      {},
+      new Date(),
+      "Account Executive",
+    );
+    const plain = await addPosting();
+    const counts = await runner.run();
+    expect(counts).toMatchObject({ found: 1, judged: 1, filtered: 1 });
+    expect(await judgementsOf(account.id)).toHaveLength(0);
+    expect(await judgementsOf(plain.id)).toHaveLength(1);
+  });
+
   it("never logs Master profile content", async () => {
     const lines: string[] = [];
     const spies = (["log", "warn", "error", "debug", "verbose"] as const).map(
