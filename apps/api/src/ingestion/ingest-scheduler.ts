@@ -7,7 +7,9 @@ import {
   OnModuleDestroy,
 } from "@nestjs/common";
 import { Client } from "pg";
+import { titlePasses } from "../jev/title-filter";
 import { normalizeListingKey } from "../matching/listing-key";
+import { SightingDraft } from "../matching/sighting-draft";
 import { SightingMatcher } from "../matching/sighting-matcher";
 import { PrismaService } from "../prisma/prisma.service";
 import { AlertHook } from "./alert-hook";
@@ -178,11 +180,16 @@ export class IngestScheduler
           now.getTime() - MAX_LOOKBACK_MS,
         ),
       );
-      const result = await adapter.poll({
+      const polled = await adapter.poll({
         since,
         now,
         shouldStop: () => this.stopping,
       });
+      // Filtered after the full read and before matching, so closeMissing sees only kept drafts and a board job retitled to a failing title closes like one that left the Search area. See the "Titles are filtered at ingestion" decision.
+      const result = {
+        ...polled,
+        drafts: this.keepPassingTitles(adapter, polled.drafts),
+      };
       outcome.drafts = result.drafts.length;
       outcome.errors = [...result.errors];
       if (result.boards) outcome.boards = countBoards(result.boards);
@@ -226,6 +233,19 @@ export class IngestScheduler
     }
     outcome.durationMs = Date.now() - started;
     return outcome;
+  }
+
+  private keepPassingTitles(
+    adapter: JobSourceAdapter,
+    drafts: SightingDraft[],
+  ): SightingDraft[] {
+    const kept = drafts.filter((d) => titlePasses(d.title));
+    if (kept.length < drafts.length) {
+      this.logger.log(
+        `${adapter.name}: dropped ${drafts.length - kept.length} of ${drafts.length} rows by title`,
+      );
+    }
+    return kept;
   }
 
   // Only a complete board listing is evidence; see the "Only boards close a Posting" decision.

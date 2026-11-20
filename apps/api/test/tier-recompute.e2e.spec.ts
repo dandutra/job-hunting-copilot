@@ -65,7 +65,7 @@ describe("pnpm tier:recompute", () => {
       const p = await prisma.posting.create({
         data: {
           companyId: company.id,
-          title: `Dev ${i}`,
+          title: `Developer ${i}`,
           location: "Toronto",
           description: "x",
           descriptionKind: "full",

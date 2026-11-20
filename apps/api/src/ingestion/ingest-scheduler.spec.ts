@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { openTestDb, resetTestDb, testDatabaseUrl } from "../../test/test-db";
 import { CompaniesService } from "../companies/companies.service";
@@ -150,6 +151,50 @@ describe("IngestScheduler", () => {
         errors: [{ kind: "bad-row", message: "row skipped" }],
       }),
     ]);
+  });
+
+  it("drops a draft whose title fails before matching, logs the count and reports what it kept", async () => {
+    const lines: string[] = [];
+    const spy = jest
+      .spyOn(Logger.prototype, "log")
+      .mockImplementation(
+        (...args: unknown[]) => void lines.push(String(args[0])),
+      );
+    try {
+      const a = new FakeAdapter("a", {
+        drafts: [
+          draft(1),
+          draft(2, { title: "Account Executive" }),
+          draft(3, { title: "Senior Developer" }),
+        ],
+        errors: [],
+      });
+      await scheduler([a]).tick(T0);
+
+      const stored = await prisma.sighting.findMany();
+      expect(stored.map((s) => s.listingKey)).toEqual(["linkedin:1"]);
+      expect(finished[0][0]).toMatchObject({ drafts: 1, matched: 1 });
+      expect(lines).toContain("a: dropped 2 of 3 rows by title");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("logs nothing about titles when every draft passes", async () => {
+    const lines: string[] = [];
+    const spy = jest
+      .spyOn(Logger.prototype, "log")
+      .mockImplementation(
+        (...args: unknown[]) => void lines.push(String(args[0])),
+      );
+    try {
+      await scheduler([
+        new FakeAdapter("a", { drafts: [draft(1)], errors: [] }),
+      ]).tick(T0);
+      expect(lines.filter((l) => l.includes("by title"))).toEqual([]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("starts the next window at the last good poll minus an overlap", async () => {
@@ -505,6 +550,40 @@ describe("IngestScheduler", () => {
       await s.tick(hoursAfter(25));
       expect(await closedAt(1)).toEqual(hoursAfter(25));
       expect(await closedAt(2)).toBeNull();
+    });
+
+    it("closes a board listing retitled to a failing title after the grace", async () => {
+      const a = new FakeAdapter("boards", listing(acme.id, [1, 2]));
+      const s = scheduler([a]);
+      await s.tick(T0);
+
+      const retitled = listing(acme.id, [1, 2]);
+      retitled.drafts[0].title = "Senior Developer";
+      a.result = retitled;
+      await s.tick(hoursAfter(23));
+      expect(await closedAt(1)).toBeNull();
+
+      await s.tick(hoursAfter(25));
+      expect(await closedAt(1)).toEqual(hoursAfter(25));
+      expect(await closedAt(2)).toBeNull();
+    });
+
+    it("closes a board's gone listings when every row it lists fails the title, with no fault", async () => {
+      const a = new FakeAdapter("boards", listing(acme.id, [1]));
+      const s = scheduler([a]);
+      await s.tick(T0);
+
+      const allFail = listing(acme.id, [1, 2]);
+      for (const d of allFail.drafts) d.title = "Account Executive";
+      a.result = {
+        ...allFail,
+        boards: [{ watchedCompanyId: acme.id, status: "ok", rows: 2 }],
+      };
+      await s.tick(hoursAfter(30));
+
+      expect(await closedAt(1)).toEqual(hoursAfter(30));
+      expect(await prisma.sighting.count()).toBe(1);
+      expect(finished[1][0].errors).toEqual([]);
     });
 
     it("never closes anything on an empty listing, and logs a fault", async () => {

@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { jevConfigFromEnv, TypeSafeJevClient } from "../src/jev/jev-client";
 import { JevRunner } from "../src/jev/jev-runner";
 import { CAP_NAMES } from "../src/jev/question-set";
-import { titleFiltered } from "../src/jev/title-filter";
+import { titlePasses } from "../src/jev/title-filter";
 import { MasterProfileService } from "../src/master-profile/master-profile.service";
 import { PrismaService } from "../src/prisma/prisma.service";
 
@@ -25,7 +25,7 @@ async function main() {
       orderBy: { id: "asc" },
       select: { id: true, title: true },
     });
-    const unfiltered = postings.filter((p) => !titleFiltered(p.title));
+    const unfiltered = postings.filter((p) => titlePasses(p.title));
     const ids = unfiltered.slice(0, count).map((p) => p.id);
     const counts = await new JevRunner(
       prisma,

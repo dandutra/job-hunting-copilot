@@ -62,7 +62,7 @@ describe("recomputeTiers", () => {
     });
   });
 
-  async function posting(kind = "full", title = `Dev ${seq + 1}`) {
+  async function posting(kind = "full", title = `Developer ${seq + 1}`) {
     seq++;
     return prisma.posting.create({
       data: {
@@ -174,6 +174,26 @@ describe("recomputeTiers", () => {
       await prisma.labelDraw.findUnique({ where: { postingId: p.id } }),
     ).not.toBeNull();
     expect(await prisma.jevJudgement.count()).toBe(1);
+  });
+
+  it("removes the Tier of a Posting whose title fails only the include list", async () => {
+    const p = await posting("full", "Account Executive");
+    const j = await judge(p.id, answers(3));
+    await prisma.postingTier.create({
+      data: {
+        postingId: p.id,
+        judgementId: j.id,
+        configVersion: "old",
+        tier: "A",
+        total: 1,
+        capsApplied: [],
+      },
+    });
+    const counts = await recomputeTiers(prisma, config, version);
+    expect(counts).toMatchObject({ processed: 0, skipped: 1, filtered: 1 });
+    expect(
+      await prisma.postingTier.findUnique({ where: { postingId: p.id } }),
+    ).toBeNull();
   });
 
   it("leaves a filtered Posting out of the threshold totals", async () => {

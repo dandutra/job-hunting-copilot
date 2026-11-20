@@ -4,7 +4,7 @@ title: Workday career-site API
 description: A POST list call pages at 20 and wraps past the total, dates need a detail call, and some tenants cap a query at 2000; RBC's robots.txt disallows its career site.
 resource: https://{tenant}.{wdN}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs
 tags: [ingestion, ats]
-sources: ["#5", "#73", "#92"]
+sources: ["#5", "#73", "#92", "#123"]
 generated:
   by: claude-opus-5-5
   at: 2026-11-09T16:00:00-05:00
@@ -26,3 +26,5 @@ generated:
 - Workday sends no rate-limit headers and sits behind Cloudflare. Other crawlers saw synchronized 429 and 303 bursts across many tenants.
 - RBC's robots.txt has `Disallow: /RBCGLOBAL1/` for all agents. That path is the HTML career site, not `/wday/cxs/rbc/RBCGLOBAL1/`, but the intent is plain. RBC is polled anyway, and this is an accepted ToS risk.
 - A live run on 2026-11-09 polled all 19 verified tenants: 359 requests, every one a 200, no 429, in 14 minutes, with most rows treated as already stored. TMX reports `total` on every page, not only page one. Single rows with no `externalPath` (RBC, Sun Life) or no location (Manulife) appeared once and were gone on a re-read, which kept those tenants incomplete for that poll. The fixtures are still trimmed from the research samples.
+- On 2026-11-20 every Workday Watched company in the local database still had a slug in the old `tenant/site` form (for example `manulife/MFCJH_Jobs`), so a local tick faulted all 19 tenants with "slug ... is not tenant.wdN/site" before any request. The local data predates the `tenant.wdN/site` seed, so a local Workday live check first needs the slugs reseeded.
+- On 2026-11-20 a direct adapter run from the Mac against `manulife.wd3/MFCJH_Jobs`, then `cibc.wd3/search`, got 429 on the very first list request for each, so no rows were read. Two unrelated tenants refusing the first request points at a rate limit on the caller's address, not at a tenant. No retry was made.
