@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { readFileSync } from "node:fs";
 import { createServer, IncomingMessage, Server } from "node:http";
 import { AddressInfo } from "node:net";
@@ -43,7 +44,7 @@ describe("JobspyAdapter", () => {
       {
         baseUrl,
         site,
-        searchTerm: "software developer",
+        searchTerms: ["software developer", "AI engineer"],
         location: "Canada",
         resultsWanted: 50,
         timeoutMs: 5_000,
@@ -82,11 +83,45 @@ describe("JobspyAdapter", () => {
     expect(requests[0].url).toBe("/scrape");
     expect(JSON.parse(requests[0].body)).toEqual({
       site: "indeed",
-      search_term: "software developer",
+      search_term: '"software developer" OR "AI engineer"',
       location: "Canada",
       hours_old: 4,
       results_wanted: 50,
     });
+  });
+
+  it("quotes a single term and sends one request per poll", async () => {
+    await adapter({ searchTerms: ["full stack developer"] }).poll(window);
+
+    expect(requests).toHaveLength(1);
+    expect(JSON.parse(requests[0].body).search_term).toBe(
+      '"full stack developer"',
+    );
+  });
+
+  it("warns that rows past the cap were lost when the response holds exactly resultsWanted rows", async () => {
+    const [row] = rows("indeed_rows.json");
+    const full = Array.from({ length: 3 }, (_, i) => ({
+      ...row,
+      id: `in-${i}`,
+    }));
+    const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    try {
+      respond = async () => [200, { rows: full, errors: {} }];
+      await adapter({ resultsWanted: 3 }).poll(window);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("jobspy-indeed"),
+      );
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("3"));
+
+      warn.mockClear();
+      respond = async () => [200, { rows: full.slice(1), errors: {} }];
+      await adapter({ resultsWanted: 3 }).poll(window);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("maps an Indeed row to a draft with the direct URL", async () => {
@@ -255,34 +290,52 @@ describe("JobspyAdapter", () => {
 
 describe("jobspyConfigFromEnv", () => {
   it("uses the defaults for blank variables, as Compose passes unset ones", () => {
-    const config = jobspyConfigFromEnv("indeed", {
-      JOBSPY_SEARCH_TERM: "",
-      JOBSPY_LOCATION: " ",
-      JOBSPY_RESULTS_WANTED: " ",
-    });
+    const config = jobspyConfigFromEnv(
+      "indeed",
+      { JOBSPY_LOCATION: " ", JOBSPY_RESULTS_WANTED: " " },
+      ["software developer"],
+    );
 
     expect(config).toMatchObject({
-      searchTerm: "software developer",
+      searchTerms: ["software developer"],
       location: "Toronto, ON",
       resultsWanted: 50,
     });
   });
 
-  it("reads the search from the environment", () => {
-    const config = jobspyConfigFromEnv("linkedin", {
-      JOBSPY_URL: "http://jobspy:8000",
-      JOBSPY_SEARCH_TERM: "data engineer",
-      JOBSPY_LOCATION: "Montreal, QC",
-      JOBSPY_RESULTS_WANTED: "20",
-    });
+  it("reads the location and cap from the environment", () => {
+    const config = jobspyConfigFromEnv(
+      "linkedin",
+      {
+        JOBSPY_URL: "http://jobspy:8000",
+        JOBSPY_LOCATION: "Montreal, QC",
+        JOBSPY_RESULTS_WANTED: "20",
+      },
+      ["software developer"],
+    );
 
     expect(config).toMatchObject({
       baseUrl: "http://jobspy:8000",
       site: "linkedin",
-      searchTerm: "data engineer",
       location: "Montreal, QC",
       resultsWanted: 20,
     });
+  });
+
+  it("takes its terms from config/title-filter.json and ignores a stray JOBSPY_SEARCH_TERM", () => {
+    const config = jobspyConfigFromEnv("indeed", {
+      JOBSPY_SEARCH_TERM: "data engineer",
+    });
+
+    expect(config.searchTerms).toEqual(
+      JSON.parse(
+        readFileSync(
+          join(__dirname, "../../../../../config/title-filter.json"),
+          "utf8",
+        ),
+      ).searchTerms,
+    );
+    expect(config.searchTerms).not.toContain("data engineer");
   });
 
   it.each(["abc", "0", "2.5"])(

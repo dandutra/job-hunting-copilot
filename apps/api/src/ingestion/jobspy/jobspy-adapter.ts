@@ -7,6 +7,7 @@ import {
   JobSourceAdapter,
   PollWindow,
 } from "../job-source-adapter";
+import { getSearchTerms } from "../../jev/title-filter";
 import { inSearchArea } from "../search-area";
 import type { components } from "./schema";
 
@@ -16,7 +17,8 @@ type ScrapeResponse = components["schemas"]["ScrapeResponse"];
 export interface JobspyConfig {
   baseUrl: string;
   site: ScrapeRequest["site"];
-  searchTerm: string;
+  // From config/title-filter.json. One request carries all of them as an OR query, so a poll still makes one request.
+  searchTerms: string[];
   location: string;
   resultsWanted: number;
   // One request per poll, so this plus matching must stay inside Compose's 6-minute stop grace period.
@@ -31,6 +33,7 @@ const TIMEOUT_MS = 5 * 60 * 1000;
 export function jobspyConfigFromEnv(
   site: JobspyConfig["site"],
   env: NodeJS.ProcessEnv = process.env,
+  searchTerms: string[] = getSearchTerms(),
 ): JobspyConfig {
   const resultsWanted = Number(env.JOBSPY_RESULTS_WANTED?.trim() || 50);
   if (!Number.isInteger(resultsWanted) || resultsWanted < 1) {
@@ -41,7 +44,7 @@ export function jobspyConfigFromEnv(
   return {
     baseUrl: env.JOBSPY_URL || "http://localhost:8000",
     site,
-    searchTerm: env.JOBSPY_SEARCH_TERM?.trim() || "software developer",
+    searchTerms,
     location: env.JOBSPY_LOCATION?.trim() || "Toronto, ON",
     resultsWanted,
     timeoutMs: TIMEOUT_MS,
@@ -77,6 +80,13 @@ export class JobspyAdapter extends JobSourceAdapter {
   async poll(window: PollWindow): Promise<AdapterResult> {
     const response = await this.scrape(window);
     if (typeof response === "string") return this.fault(response);
+
+    // A response at the cap may have had more rows behind it, and /scrape has no paging.
+    if (response.rows.length === this.config.resultsWanted) {
+      this.logger.warn(
+        `${this.name}: ${response.rows.length} rows came back, the JOBSPY_RESULTS_WANTED cap, so rows past it were lost`,
+      );
+    }
 
     const errors: AdapterError[] = [];
     for (const [board, message] of Object.entries(response.errors)) {
@@ -123,7 +133,7 @@ export class JobspyAdapter extends JobSourceAdapter {
   private async scrape(window: PollWindow): Promise<ScrapeResponse | string> {
     const body: ScrapeRequest = {
       site: this.config.site,
-      search_term: this.config.searchTerm,
+      search_term: this.config.searchTerms.map((t) => `"${t}"`).join(" OR "),
       location: this.config.location,
       hours_old: Math.max(
         1,
