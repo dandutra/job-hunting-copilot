@@ -143,13 +143,19 @@ describe("loadTitleFilter", () => {
     );
   });
 
-  it("ignores other keys, such as #124's searchTerms", () => {
+  it("ignores searchTerms, which loadSearchTerms reads", () => {
     expect(() => load({ ...valid, searchTerms: ["x"] })).not.toThrow();
   });
 });
 
 describe("loadSearchTerms", () => {
   const load = (value: unknown) => loadSearchTerms(JSON.stringify(value));
+
+  it("rejects a term holding a double quote, which would unbalance the OR query", () => {
+    expect(() => load({ searchTerms: ["ok", 'say "hi"'] })).toThrow(
+      'title filter: searchTerms[1] must not contain "',
+    );
+  });
 
   it("returns the terms trimmed, in file order, with their case kept", () => {
     expect(

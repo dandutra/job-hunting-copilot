@@ -80,6 +80,9 @@ export function loadSearchTerms(text: string): string[] {
       throw new Error(
         `title filter: searchTerms[${i}] must be a non-blank string`,
       );
+    // The adapter wraps each term in quotes, so a quote inside one would unbalance the query.
+    if (entry.includes('"'))
+      throw new Error(`title filter: searchTerms[${i}] must not contain "`);
     return entry.trim();
   });
 }
