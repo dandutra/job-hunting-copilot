@@ -1,7 +1,13 @@
 import { Logger } from "@nestjs/common";
 import { SightingDraft } from "../../matching/sighting-draft";
 import { AlertHook } from "../alert-hook";
-import { HttpClient, USER_AGENT, fetchHttpClient, str } from "../board-adapter";
+import {
+  HttpClient,
+  USER_AGENT,
+  fetchHttpClient,
+  htmlToText,
+  str,
+} from "../board-adapter";
 import {
   AdapterError,
   AdapterResult,
@@ -38,6 +44,12 @@ export function adzunaConfigFromEnv(
 function idOf(value: unknown): string | null {
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
   return str(value);
+}
+
+// Adzuna may wrap the matched search words in tags, and the Title filter would read "strong" as a word.
+function plain(value: unknown): string | null {
+  const text = str(value);
+  return text ? str(htmlToText(text)) : null;
 }
 
 function isSearchBody(body: unknown): body is { results: unknown[] } {
@@ -169,8 +181,8 @@ export class AdzunaAdapter extends JobSourceAdapter {
   private toDraft(row: Row, now: Date): SightingDraft | "outside" | string {
     const id = idOf(row?.id);
     const url = str(row?.redirect_url);
-    const title = str(row?.title);
-    const companyName = str((row?.company as Row | undefined)?.display_name);
+    const title = plain(row?.title);
+    const companyName = plain((row?.company as Row | undefined)?.display_name);
     const location = row?.location as Row | undefined;
     const place = str(location?.display_name);
     const area = Array.isArray(location?.area)
@@ -195,7 +207,7 @@ export class AdzunaAdapter extends JobSourceAdapter {
     const created = str(row.created);
     const reportedAt = created ? new Date(created) : now;
     // The snippet is cut at 500 characters, so a Thin Posting follows.
-    const description = str(row.description);
+    const description = plain(row.description);
     return {
       jobSource: "adzuna",
       listingKey: `adzuna:${id}`,

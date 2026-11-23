@@ -231,6 +231,28 @@ describe("AdzunaAdapter", () => {
     expect(result.drafts[0].listingKey).toBe("adzuna:4871120031");
   });
 
+  it("strips markup and entities from the title, company and snippet", async () => {
+    // Adzuna may wrap the matched search words in tags, and titlePasses would then read "strong" as a word.
+    const { http } = server(
+      ok([
+        {
+          ...fixtures.toronto,
+          title: "<strong>Software</strong> <strong>Developer</strong>",
+          company: { display_name: "Smith &amp; Sons" },
+          description: "Build <strong>software</strong> for R&amp;D ...",
+        },
+      ]),
+    );
+
+    const result = await make(http).poll(window());
+
+    expect(result.drafts[0]).toMatchObject({
+      title: "Software Developer",
+      companyName: "Smith & Sons",
+      description: "Build software for R&D ...",
+    });
+  });
+
   it("reads a blank description as none", async () => {
     const { http } = server(ok([{ ...fixtures.toronto, description: " " }]));
 
