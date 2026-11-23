@@ -39,12 +39,13 @@ Glossary: [glossary.md](glossary.md)
 - [Postings stay inside the Search area](decisions/postings-stay-inside-the-search-area.md): every adapter drops rows outside Toronto, the GTA and remote-Canada before matching, so out-of-area jobs are never stored and a job that moves out of the area closes.
 - [Jev judges a narrow set of Postings](decisions/jev-judges-a-narrow-set.md): only open Postings posted in the last 14 days whose title passes the Title filter, newest first, at most 150 calls a day; a filtered Posting gets no Tier and leaves the feed.
 - [Titles are filtered at ingestion](decisions/titles-are-filtered-at-ingestion.md): every adapter's rows must hold an include phrase and no exclude word from `config/title-filter.json`, checked in the scheduler after the full read, so a failing row is never stored, a retitled board job closes, and AI-enabled developer is an include group, not yet a Role family.
+- [Boards are found, not only curated](decisions/boards-are-found-not-only-curated.md): a Company with no board gets one from a stored apply link after each poll, so the polled boards grow past the curated CSV; a verified CSV row outranks a found board, and the seed never clears a found one.
 - [Tickets name their risks when written](decisions/tickets-name-their-risks.md): a ticket lists its risks with their checks, a live check and a review tier at planning time, because the late risks on #31, #35, #37, #38 and #73 could have been foreseen then.
 
 ## Gotchas
 
 - [Toolchain version pins](gotchas/toolchain-version-pins.md): NestJS 11, TypeScript 6, Prisma 7.10.1, Node 22 and no Corepack, each for a named reason; `prisma generate` is a manual step after install.
-- [Company names and Watched boards](gotchas/company-names-and-watched-boards.md): "Canada" is stripped from every name, so aliases carry the long forms; only five ATSes count as pollable; some CSV slugs arrive percent-encoded.
+- [Company names and Watched boards](gotchas/company-names-and-watched-boards.md): "Canada" is stripped from every name, so aliases carry the long forms; only five ATSes count as pollable; some CSV slugs arrive percent-encoded; a found board survives the seed, and a verified CSV row outranks it.
 - [Exact-key matching rules](gotchas/exact-key-matching.md): the board veto, the Workday suffix strip, the 30-day window without a unique key, and field precedence.
 - [Text merges and Lookalikes](gotchas/text-matching.md): the 0.9 merge bar, the untuned 0.5 veto, which descriptions count as evidence, how titles and metros normalize, the ATS tie rule, and what waits for the split and Application tickets.
 - [Production Compose stack](gotchas/production-compose-stack.md): `prisma` is a runtime dependency, `migrate` never restarts, `ingest` is healthy by file, CI checks images for `data/` and `.env`, and on the Droplet every command needs `--env-file .env` and values are single-quoted.

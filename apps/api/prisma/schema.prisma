@@ -12,7 +12,7 @@ model Company {
   // A Watched company has both; the pair is the board we poll.
   ats          String?
   boardSlug    String?        @map("board_slug")
-  // Set when discovery made the board from a stored apply link; null for a seeded one, so a seed run leaves a discovered board alone.
+  // Set when discovery made the board from a stored apply link; null for a seeded one, so a seed run leaves a discovered board alone. Set with no board means a wrong board was cleared by hand, and discovery skips the Company.
   boardFoundAt DateTime?      @map("board_found_at")
   aliases      CompanyAlias[]
   postings     Posting[]

@@ -26,7 +26,7 @@ The employer a Posting is at, with every name Job sources use for it (for exampl
 _Avoid_: Employer, organization
 
 **Watched company**:
-A Company whose own ATS board is polled, named by its ATS and board slug.
+A Company whose own ATS board is polled, named by its ATS and board slug. The board is curated from the CSV or found from a Posting's apply link.
 _Avoid_: Target company, tracked company
 
 **Search area**:

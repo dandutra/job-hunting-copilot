@@ -134,6 +134,22 @@ describe("discoverBoards", () => {
     expect(counts).toEqual({ found: 0, processed: 0, skipped: 0, failed: 0 });
   });
 
+  it("never re-adds a board cleared by hand, which keeps boardFoundAt", async () => {
+    const found = new Date("2026-11-20T00:00:00Z");
+    const agency = await company("Staffing Agency", { boardFoundAt: found });
+    await sighting(agency.id, "https://boards.greenhouse.io/acme/jobs/1");
+
+    const counts = await discoverBoards(prisma);
+
+    const after = await reload(agency.id);
+    expect([after.ats, after.boardSlug, after.boardFoundAt]).toEqual([
+      null,
+      null,
+      found,
+    ]);
+    expect(counts.found).toBe(0);
+  });
+
   it("changes nothing on a second run", async () => {
     const acme = await company("Acme");
     await sighting(acme.id, "https://boards.greenhouse.io/acme/jobs/1");

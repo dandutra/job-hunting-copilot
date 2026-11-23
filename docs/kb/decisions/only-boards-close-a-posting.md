@@ -9,7 +9,7 @@ generated:
   at: 2026-11-05T12:00:00-05:00
 ---
 
-JobSpy, Adzuna and alert emails only report listings inside a time window, so a listing they stop reporting may still be open, and its last-seen date stays at the day it was found. Only a Watched company's board lists every open job at once, so only its absence is evidence. A single rule based on last-seen dates would have closed every LinkedIn Posting a few days after it was first seen.
+JobSpy, Adzuna and alert emails only report listings inside a time window, so a listing they stop reporting may still be open, and its last-seen date stays at the day it was found. Only a Watched company's board lists every open job at once, so only its absence is evidence. A Watched company's board is curated from the CSV or found from an apply link ([Boards are found, not only curated](boards-are-found-not-only-curated.md)), and both close alike. A single rule based on last-seen dates would have closed every LinkedIn Posting a few days after it was first seen.
 
 A board Sighting closes after its listing has been missing from complete listings of that board for 24 hours. A listing counts as complete only when the adapter fetched every row with no error. An empty list from a board that had open Sightings never counts, because Workday pages wrap and any board can return a bad page. A listing that reappears inside the 30-day key window reopens the same Sighting. The window counts from the Sighting's last-seen date, not from its close, so a listing that returns more than about 29 days after its close starts a new Sighting.
 

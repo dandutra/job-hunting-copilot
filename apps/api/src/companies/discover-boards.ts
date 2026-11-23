@@ -30,8 +30,9 @@ export async function discoverBoards(
   });
   for (const h of holders) held.set(pairKey(h.ats!, h.boardSlug!), h.name);
 
+  // A Company with boardFoundAt set and no board had a wrong board cleared by hand, so it is never given one again.
   const boardless = await prisma.company.findMany({
-    where: { ats: null, boardSlug: null },
+    where: { ats: null, boardSlug: null, boardFoundAt: null },
     select: { id: true, name: true },
   });
   const names = new Map(boardless.map((c) => [c.id, c.name]));

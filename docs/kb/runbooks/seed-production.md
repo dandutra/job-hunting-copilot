@@ -3,7 +3,7 @@ type: runbook
 title: Seed the production database
 description: How to run the Watched company seed against production from the Mac, through an SSH tunnel, after checking that no seed name would split a Company.
 tags: [ops, companies, ingestion]
-sources: ["#73", "#92"]
+sources: ["#73", "#92", "#130"]
 generated:
   by: claude-opus-5-5
   at: 2026-11-09T16:00:00-05:00
@@ -65,4 +65,20 @@ The password is in the password manager. A `DATABASE_URL` set in the shell wins 
 echo "SELECT ats, count(*) FROM company GROUP BY ats ORDER BY ats;" | tailscale ssh deploy@copilot "$PSQL"
 ```
 
-The counts per ATS must match the verified rows in the CSV whose ATS is pollable. A name you aliased in step 1 must show its board on the old Company id, not on a new one. After the next ingest tick, `docker compose ... logs --since=2h ingest` shows each adapter's dropped-row counts and any faults. The first Workday poll after a seed is slow, because every in-area row needs a detail call.
+The counts per ATS must match the verified rows in the CSV whose ATS is pollable, plus any found boards (those with `board_found_at` set). A name you aliased in step 1 must show its board on the old Company id, not on a new one. After the next ingest tick, `docker compose ... logs --since=2h ingest` shows each adapter's dropped-row counts and any faults. The first Workday poll after a seed is slow, because every in-area row needs a detail call.
+
+## 5. Clear a wrongly found board
+
+Discovery sets a board from a Sighting's apply link ([Boards are found, not only curated](../decisions/boards-are-found-not-only-curated.md)). A staffing agency or parent company can tie a board to the wrong Company. Find the board in the log, where each added board has a line with the Company name and the Sighting id:
+
+```sh
+tailscale ssh deploy@copilot 'cd ~/copilot && docker compose -f deploy/compose.prod.yaml --env-file .env logs ingest | grep BoardDiscovery | grep added'
+```
+
+Then clear that Company's board by hand. `<company id>` is the id of the wrongly tied Company, so look it up each time. Leave `board_found_at` set: discovery skips a Company that has it with no board, so the same apply link can't set the board again on the next poll.
+
+```sh
+echo "UPDATE company SET ats = NULL, board_slug = NULL WHERE id = <company id>;" | tailscale ssh deploy@copilot "$PSQL"
+```
+
+The Company's open board Sightings stop being refreshed once its board is gone, and they go Stale after 30 days. To let discovery try that Company again, also set `board_found_at` to null. A verified CSV row for the Company still gives it a curated board on the next seed.
