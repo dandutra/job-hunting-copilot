@@ -1,5 +1,5 @@
 import { PrismaService } from "../prisma/prisma.service";
-import { boardFromUrl } from "./board-from-url";
+import { boardFromUrl, boardKey } from "./board-from-url";
 
 export interface DiscoverCounts {
   found: number;
@@ -7,8 +7,6 @@ export interface DiscoverCounts {
   skipped: number;
   failed: number;
 }
-
-const pairKey = (ats: string, slug: string) => `${ats}:${slug.toLowerCase()}`;
 
 // A Company with no board gets the one its oldest Sighting's apply link names, unless another Company holds that pair. See the "Boards are found, not only curated" decision.
 export async function discoverBoards(
@@ -22,13 +20,14 @@ export async function discoverBoards(
     failed: 0,
   };
 
-  // Compared without case, because the listing key lowercases a slug and two spellings would poll one board twice.
+  // Compared by boardKey, because two spellings of one board, or two sites of one Workday tenant, would read the same jobs twice.
   const held = new Map<string, string>();
   const holders = await prisma.company.findMany({
     where: { ats: { not: null }, boardSlug: { not: null } },
     select: { name: true, ats: true, boardSlug: true },
   });
-  for (const h of holders) held.set(pairKey(h.ats!, h.boardSlug!), h.name);
+  for (const h of holders)
+    held.set(boardKey({ ats: h.ats!, boardSlug: h.boardSlug! }), h.name);
 
   // A Company with boardFoundAt set and no board had a wrong board cleared by hand, so it is never given one again.
   const boardless = await prisma.company.findMany({
@@ -46,11 +45,11 @@ export async function discoverBoards(
   for (const s of sightings) {
     if (done.has(s.companyId)) continue;
     const board = boardFromUrl(s.directUrl!);
-    const name = names.get(s.companyId)!;
     if (!board) continue;
+    const name = names.get(s.companyId)!;
     counts.found++;
 
-    const holder = held.get(pairKey(board.ats, board.boardSlug));
+    const holder = held.get(boardKey(board));
     if (holder) {
       counts.skipped++;
       log(
@@ -71,7 +70,7 @@ export async function discoverBoards(
       continue;
     }
     done.add(s.companyId);
-    held.set(pairKey(board.ats, board.boardSlug), name);
+    held.set(boardKey(board), name);
     counts.processed++;
     log(
       `added ${board.ats}/${board.boardSlug} for company="${name}" sighting=${s.id}`,

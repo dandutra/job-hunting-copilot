@@ -110,6 +110,23 @@ describe("discoverBoards", () => {
     expect(lines.join("\n")).toContain("Acme Corp");
   });
 
+  it("skips a Workday link on another site of a tenant another Company holds", async () => {
+    await company("Manulife", {
+      ats: "workday",
+      boardSlug: "manulife.wd3/MFCJH_Jobs",
+    });
+    const other = await company("Manulife Financial");
+    await sighting(
+      other.id,
+      "https://manulife.wd3.myworkdayjobs.com/en-US/Other_Site/job/Toronto/Dev_JR1",
+    );
+
+    const counts = await discoverBoards(prisma);
+
+    expect((await reload(other.id)).ats).toBeNull();
+    expect(counts.skipped).toBe(1);
+  });
+
   it("gives a pair to only one of two Companies that name it", async () => {
     const a = await company("Acme");
     const b = await company("Acme Group");

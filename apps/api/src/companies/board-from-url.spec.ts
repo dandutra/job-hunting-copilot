@@ -65,6 +65,9 @@ describe("boardFromUrl", () => {
     "https://boards.greenhouse.io/acme",
     "https://jobs.lever.co/acme",
     "https://acme.com/careers/123",
+    `https://jobs.eu.lever.co/acme/${UUID}`,
+    "https://boards.eu.greenhouse.io/acme/jobs/123456",
+    "https://job-boards.eu.greenhouse.io/acme/jobs/123456",
     "not a url",
   ])("returns null for %s", (url) => {
     expect(boardFromUrl(url)).toBeNull();

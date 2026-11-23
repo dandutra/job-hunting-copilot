@@ -131,6 +131,33 @@ describe("seedCompanies", () => {
     expect([holder.name, holder.boardFoundAt]).toEqual(["Wealthsimple", null]);
   });
 
+  it("takes a found board whose slug differs only in case or names another site of the tenant", async () => {
+    const found = new Date();
+    await prisma.company.create({
+      data: {
+        name: "WS Group",
+        ats: "ashby",
+        boardSlug: "WealthSimple",
+        boardFoundAt: found,
+      },
+    });
+    await prisma.company.create({
+      data: {
+        name: "Royal Group",
+        ats: "workday",
+        boardSlug: "rbc.wd3/Other_Site",
+        boardFoundAt: found,
+      },
+    });
+
+    await seedCompanies(prisma, parseWatchedCsv(CSV));
+
+    for (const name of ["WS Group", "Royal Group"]) {
+      const c = await prisma.company.findFirstOrThrow({ where: { name } });
+      expect([c.ats, c.boardSlug, c.boardFoundAt]).toEqual([null, null, null]);
+    }
+  });
+
   it("resolves RBC and Royal Bank of Canada to one Company", async () => {
     await seedCompanies(prisma, parseWatchedCsv(CSV));
 

@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { PrismaService } from "../prisma/prisma.service";
+import { boardKey } from "./board-from-url";
 import { CompaniesService } from "./companies.service";
 
 export const WATCHED_COMPANIES_CSV = join(
@@ -91,16 +92,24 @@ export async function seedCompanies(
 
     const isWatched = row.verified && row.slug && POLLABLE_ATS.has(row.ats);
     if (isWatched) {
-      // A curated row outranks discovery: it takes a pair a discovered board holds and clears that holder.
-      await prisma.company.updateMany({
+      // A curated row outranks discovery: it takes the board from a found holder of the same boardKey and clears that holder.
+      const key = boardKey({ ats: row.ats, boardSlug: row.slug });
+      const found = await prisma.company.findMany({
         where: {
           id: { not: company.id },
           ats: row.ats,
-          boardSlug: row.slug,
           boardFoundAt: { not: null },
         },
-        data: { ats: null, boardSlug: null, boardFoundAt: null },
+        select: { id: true, ats: true, boardSlug: true },
       });
+      const holders = found.filter(
+        (c) => boardKey({ ats: c.ats!, boardSlug: c.boardSlug! }) === key,
+      );
+      if (holders.length)
+        await prisma.company.updateMany({
+          where: { id: { in: holders.map((c) => c.id) } },
+          data: { ats: null, boardSlug: null, boardFoundAt: null },
+        });
       await prisma.company.update({
         where: { id: company.id },
         data: { ats: row.ats, boardSlug: row.slug, boardFoundAt: null },
