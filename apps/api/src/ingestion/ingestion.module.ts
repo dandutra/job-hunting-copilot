@@ -18,6 +18,7 @@ import { JOB_SOURCE_ADAPTERS, JobSourceAdapter } from "./job-source-adapter";
 import { AshbyAdapter } from "./ashby/ashby-adapter";
 import { GreenhouseAdapter } from "./greenhouse/greenhouse-adapter";
 import { LeverAdapter } from "./lever/lever-adapter";
+import { SmartRecruitersAdapter } from "./smartrecruiters/smartrecruiters-adapter";
 import { WorkdayAdapter } from "./workday/workday-adapter";
 import { JobspyAdapter, jobspyConfigFromEnv } from "./jobspy/jobspy-adapter";
 import { HeartbeatPollHooks } from "./heartbeat-poll-hooks";
@@ -66,6 +67,7 @@ const JOBSPY_SITES = ["linkedin", "indeed"] as const;
         new GreenhouseAdapter(prisma),
         new LeverAdapter(prisma),
         new AshbyAdapter(prisma),
+        new SmartRecruitersAdapter(prisma),
         new WorkdayAdapter(prisma),
       ],
     },

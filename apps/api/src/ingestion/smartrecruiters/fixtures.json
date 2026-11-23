@@ -1,0 +1,126 @@
+{
+  "page": {
+    "totalFound": 225,
+    "limit": 100,
+    "offset": 0,
+    "content": [
+      {
+        "id": "744000163253566",
+        "name": "Senior Level Artist (Splinter Cell Remake)",
+        "refNumber": "REF32202L",
+        "company": {
+          "identifier": "Ubisoft2",
+          "name": "Ubisoft"
+        },
+        "releasedDate": "2026-11-23T15:24:15.731Z",
+        "location": {
+          "city": "Toronto",
+          "region": "ON",
+          "country": "ca",
+          "remote": false,
+          "hybrid": false,
+          "fullLocation": "Toronto, ON, Canada"
+        },
+        "ref": "https://api.smartrecruiters.com/v1/companies/Ubisoft2/postings/744000163253566"
+      },
+      {
+        "id": "744000162541249",
+        "name": "Sr Community Developer - Splinter Cell",
+        "refNumber": "REF32379A",
+        "company": {
+          "identifier": "Ubisoft2",
+          "name": "Ubisoft"
+        },
+        "releasedDate": "2026-11-19T15:20:12.252Z",
+        "location": {
+          "city": "Toronto",
+          "region": "ON",
+          "country": "ca",
+          "remote": false,
+          "hybrid": false,
+          "fullLocation": "Toronto, ON, Canada"
+        },
+        "ref": "https://api.smartrecruiters.com/v1/companies/Ubisoft2/postings/744000162541249"
+      },
+      {
+        "id": "744000163260919",
+        "name": "Project Officer, Corporate Social Responsibility (12 months contract)",
+        "refNumber": "REF32338Y",
+        "company": {
+          "identifier": "Ubisoft2",
+          "name": "Ubisoft"
+        },
+        "releasedDate": "2026-11-23T15:49:07.724Z",
+        "location": {
+          "city": "Montreal",
+          "region": "QC",
+          "country": "ca",
+          "remote": false,
+          "hybrid": false,
+          "fullLocation": "Montreal, QC, Canada"
+        },
+        "ref": "https://api.smartrecruiters.com/v1/companies/Ubisoft2/postings/744000163260919"
+      },
+      {
+        "id": "744000159658729",
+        "name": "CG Supervisor ",
+        "refNumber": "REF32298J",
+        "company": {
+          "identifier": "Ubisoft2",
+          "name": "Ubisoft"
+        },
+        "releasedDate": "2026-11-04T15:09:00.494Z",
+        "location": {
+          "city": "Montreal",
+          "region": "QC",
+          "country": "ca",
+          "remote": true,
+          "hybrid": false,
+          "fullLocation": "Montreal, QC, Canada"
+        },
+        "ref": "https://api.smartrecruiters.com/v1/companies/Ubisoft2/postings/744000159658729"
+      }
+    ]
+  },
+  "detailToronto": {
+    "id": "744000163253566",
+    "name": "Senior Level Artist (Splinter Cell Remake)",
+    "postingUrl": "https://jobs.smartrecruiters.com/Ubisoft2/744000163253566-senior-level-artist-splinter-cell-remake-",
+    "applyUrl": "https://jobs.smartrecruiters.com/Ubisoft2/744000163253566-senior-level-artist-splinter-cell-remake-?oga=true",
+    "releasedDate": "2026-11-23T15:24:15.731Z",
+    "location": {
+      "city": "Toronto",
+      "region": "ON",
+      "country": "ca",
+      "remote": false,
+      "hybrid": false,
+      "fullLocation": "Toronto, ON, Canada"
+    },
+    "jobAd": {
+      "sections": {
+        "companyDescription": {
+          "title": "Description de l'entreprise",
+          "text": "<p>Ubisoft est une référence mondiale du jeu vidéo, avec des équipes réparties aux quatre coins du monde qui créent des expériences de jeu originales et mémorables, de Assassin’s Creed à Rainbow Six en passant par Just Dance et bien d’autres encore. Nous croyons que la diversité des points de vue fait progresser à la fois les joueurs et les les équipes. Si vous êtes passionné·e par l’innovation et que vous souhaitez repousser les limites du divertissement, rejoignez notre aventure et aidez-nous à créer l’inconnu!</p>"
+        },
+        "jobDescription": {
+          "title": "Description du poste",
+          "text": "<p>As a Senior Level Artist at Ubisoft Toronto, you will shape environments for Splinter Cell from early visual direction through production and polish. You will bring together art, gameplay, storytelling and technology to create cohesive, believable levels in collaboration with teams across the project.</p><p><strong>What you’ll do</strong></p><ul><li>Shape the <strong>artistic direction and visual quality</strong> of assigned levels and environments</li><li>Establish each location’s <strong>theme, mood, composition and environmental storytelling</strong> using research and visual references</li><li>Partner with <strong>Level Design</strong> to support gameplay flow, navigation, player guidance and visual clarity</li><li>Create and refine <strong>placeholder geometry, structural models and blockouts</strong> to develop visual ideas</li><li>Build, refine and troubleshoot environments using <strong>Snowdrop</strong> and project tools</li><li>Apply <strong>lighting principles</strong> to support mood, color, composition and gameplay clarity</li><li>Collaborate with <strong>Art Direction, Level Design, Lighting, Modeling, Technical Art, Tech Design and Production</strong></li><li>Work within <strong>technical, performance and production constraints</strong></li><li>Identify issues early, communicate risks and propose practical creative solutions</li><li>Adapt levels to changing gameplay and artistic needs, contribute to reviews and share solutions with the team</li></ul>"
+        },
+        "qualifications": {
+          "title": "Qualifications",
+          "text": "<p><strong>What you bring to the team</strong></p><ul><li>Experience in <strong>level art, environment art or a related triple-A game development discipline</strong></li><li>Knowledge of <strong>Snowdrop</strong> or comparable real-time game engines and technical workflows</li><li>Understanding of <strong>composition, environmental storytelling, architecture, scale, lighting and visual hierarchy</strong></li><li>Ability to turn references and <strong>art direction</strong> into playable environments</li><li><strong>3D skills</strong> for creating and modifying placeholder and structural geometry</li><li>Understanding of <strong>optimization, performance budgets and technical constraints</strong></li><li>Creative problem-solving skills and clear communication across disciplines, including the ability to present and explain artistic choices</li><li>A self-directed, organized approach to prioritizing work, incorporating feedback and maintaining the quality of an assigned level</li></ul><p><strong>What to send our way</strong></p><ul><li>Your CV highlighting relevant skills and experiences</li><li>A portfolio or project links showing relevant level or environment art</li></ul>"
+        },
+        "additionalInformation": {
+          "title": "Informations complémentaires",
+          "text": "<p>This posting is for an existing vacancy and is not intended to build a candidate pool for future opportunities. The final base salary offered will be determined within the compensation standards, following the interview process and will depend on several factors, including but not limited to the candidate’s experience, skills, qualifications, scope of responsibilities, location, and internal equity considerations. In addition to yearly base salary, total compensation may include other elements such as variable pay or benefits, where applicable.</p><ul></ul>"
+        }
+      }
+    }
+  },
+  "unknownCompany": {
+    "offset": 0,
+    "limit": 100,
+    "totalFound": 0,
+    "content": []
+  }
+}
