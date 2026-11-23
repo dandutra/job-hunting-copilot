@@ -28,8 +28,7 @@ function list(value: unknown, key: string, mayBeEmpty: boolean): string[] {
   });
 }
 
-// Pure, so a spec can feed it bad files. Keys it does not know, such as #124's searchTerms, belong to other readers.
-export function loadTitleFilter(text: string): TitleFilter {
+function parseFile(text: string): Record<string, unknown> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -41,7 +40,12 @@ export function loadTitleFilter(text: string): TitleFilter {
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
     throw new Error("title filter: the file must be an object");
-  const file = parsed as Record<string, unknown>;
+  return parsed as Record<string, unknown>;
+}
+
+// Pure, so a spec can feed it bad files. It ignores `searchTerms`, which `loadSearchTerms` reads.
+export function loadTitleFilter(text: string): TitleFilter {
+  const file = parseFile(text);
   const include = list(file.include, "include", false);
   const exclude = list(file.exclude, "exclude", true);
   const exempt = list(file.exempt, "exempt", true);
@@ -64,17 +68,38 @@ export function loadTitleFilter(text: string): TitleFilter {
   };
 }
 
-export function readTitleFilter(path: string = DEFAULT_PATH): TitleFilter {
-  let text: string;
+// JobSpy's search terms live in the same file but are sent to a board as written, so unlike the filter lists they keep their case.
+export function loadSearchTerms(text: string): string[] {
+  const value = parseFile(text).searchTerms;
+  if (!Array.isArray(value))
+    throw new Error("title filter: searchTerms must be a list");
+  if (value.length === 0)
+    throw new Error("title filter: searchTerms must not be empty");
+  return value.map((entry, i) => {
+    if (typeof entry !== "string" || !entry.trim())
+      throw new Error(
+        `title filter: searchTerms[${i}] must be a non-blank string`,
+      );
+    // The adapter wraps each term in quotes, so a quote inside one would unbalance the query.
+    if (entry.includes('"'))
+      throw new Error(`title filter: searchTerms[${i}] must not contain "`);
+    return entry.trim();
+  });
+}
+
+function readConfig(path: string): string {
   try {
-    text = readFileSync(path, "utf8");
+    return readFileSync(path, "utf8");
   } catch (err) {
     throw new Error(
       `title filter: cannot read ${path} (${err instanceof Error ? err.message : String(err)})`,
       { cause: err },
     );
   }
-  return loadTitleFilter(text);
+}
+
+export function readTitleFilter(path: string = DEFAULT_PATH): TitleFilter {
+  return loadTitleFilter(readConfig(path));
 }
 
 let loaded: TitleFilter | undefined;
@@ -87,4 +112,11 @@ export function getTitleFilter(): TitleFilter {
 
 export function titlePasses(title: string): boolean {
   return getTitleFilter().passes(title);
+}
+
+// Read once per process, like the filter. The ingest module builds both JobSpy adapters from it at startup, so a bad list stops `ingest` before the first tick.
+let loadedTerms: string[] | undefined;
+export function getSearchTerms(): string[] {
+  loadedTerms ??= loadSearchTerms(readConfig(DEFAULT_PATH));
+  return loadedTerms;
 }
