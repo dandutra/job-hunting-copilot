@@ -73,6 +73,7 @@ Glossary: [glossary.md](glossary.md)
 - [Lever postings API](job-sources/lever.md): `api.lever.co`, `createdAt` in epoch ms, the description spread over three fields, EU boards not reached.
 - [Ashby job board API](job-sources/ashby.md): `api.ashbyhq.com`, `publishedAt` resets on republish, `workplaceType` over `isRemote`, `isListed` rows skipped.
 - [Workday career-site API](job-sources/workday.md): a POST list that pages at 20 and wraps past the total, a detail call for dates, a 3-hour rate, the 2000 cap, and the RBC robots.txt risk.
+- [SmartRecruiters posting API](job-sources/smartrecruiters.md): `api.smartrecruiters.com`, a paged list at 100 plus a detail call, the Search area read from `fullLocation` not `country`, an unknown slug answers 200 with no rows.
 
 ## Runbooks
 
