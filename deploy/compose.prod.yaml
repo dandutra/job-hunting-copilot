@@ -20,6 +20,10 @@ x-app-env: &app-env
   # Blank means the ingest defaults; see the ingest scheduler gotcha.
   JOBSPY_LOCATION: ${JOBSPY_LOCATION:-}
   JOBSPY_RESULTS_WANTED: ${JOBSPY_RESULTS_WANTED:-}
+  # Blank keys mean Adzuna is not polled, and a blank ADZUNA_WHAT means the default.
+  ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+  ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
+  ADZUNA_WHAT: ${ADZUNA_WHAT:-}
 
 services:
   postgres:

@@ -20,6 +20,7 @@ import { GreenhouseAdapter } from "./greenhouse/greenhouse-adapter";
 import { LeverAdapter } from "./lever/lever-adapter";
 import { WorkdayAdapter } from "./workday/workday-adapter";
 import { JobspyAdapter, jobspyConfigFromEnv } from "./jobspy/jobspy-adapter";
+import { AdzunaAdapter, adzunaConfigFromEnv } from "./adzuna/adzuna-adapter";
 import { HeartbeatPollHooks } from "./heartbeat-poll-hooks";
 import { JevPollHooks } from "./jev-poll-hooks";
 import { PollHooks } from "./poll-hooks";
@@ -63,6 +64,7 @@ const JOBSPY_SITES = ["linkedin", "indeed"] as const;
         ...JOBSPY_SITES.map(
           (site) => new JobspyAdapter(jobspyConfigFromEnv(site), alerts),
         ),
+        new AdzunaAdapter(adzunaConfigFromEnv(), alerts),
         new GreenhouseAdapter(prisma),
         new LeverAdapter(prisma),
         new AshbyAdapter(prisma),

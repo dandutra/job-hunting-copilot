@@ -1,0 +1,47 @@
+{
+  "toronto": {
+    "id": "4871120031",
+    "title": "Software Developer",
+    "created": "2026-11-22T14:03:11Z",
+    "company": { "display_name": "Northwind Systems" },
+    "location": {
+      "display_name": "Toronto, Ontario",
+      "area": ["Canada", "Ontario", "Toronto"]
+    },
+    "description": "Northwind Systems is hiring a Software Developer to build and maintain services that our customers use every day. You will work with a small team on TypeScript and Postgres, review code, and ship changes to production weekly. We are looking for someone with two or more years of experience and a habit of writing tests ...",
+    "redirect_url": "https://www.adzuna.ca/land/ad/4871120031?se=abc&utm_medium=api&utm_source=app&v=123",
+    "adref": "eyJhbGciOiJIUzI1NiJ9.example",
+    "category": { "label": "IT Jobs", "tag": "it-jobs" },
+    "salary_min": 85000,
+    "salary_max": 105000,
+    "salary_is_predicted": "0",
+    "contract_time": "full_time",
+    "latitude": 43.6532,
+    "longitude": -79.3832
+  },
+  "mississauga": {
+    "id": "4871120555",
+    "title": "Junior Backend Developer",
+    "created": "2026-11-22T09:40:00Z",
+    "company": { "display_name": "Lakeshore Digital" },
+    "location": {
+      "display_name": "Mississauga, Ontario",
+      "area": ["Canada", "Ontario", "Mississauga"]
+    },
+    "description": "Lakeshore Digital is looking for a Junior Backend Developer to join its platform team. You will pair with senior engineers, fix bugs, and add endpoints to a Node.js API. Familiarity with SQL and Git is expected, and so is a willingness to ...",
+    "redirect_url": "https://www.adzuna.ca/land/ad/4871120555?se=def&utm_medium=api&utm_source=app&v=456",
+    "salary_is_predicted": "1"
+  },
+  "ottawa": {
+    "id": "4871120777",
+    "title": "Software Developer",
+    "created": "2026-11-22T11:00:00Z",
+    "company": { "display_name": "Rideau Labs" },
+    "location": {
+      "display_name": "Ottawa, Ontario",
+      "area": ["Canada", "Ontario", "Ottawa"]
+    },
+    "description": "Rideau Labs needs a Software Developer in Ottawa for its embedded team ...",
+    "redirect_url": "https://www.adzuna.ca/land/ad/4871120777?se=ghi&utm_medium=api&utm_source=app&v=789"
+  }
+}

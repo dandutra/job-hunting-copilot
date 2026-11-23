@@ -134,6 +134,9 @@ jobs:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           JOBSPY_LOCATION: ${{ vars.JOBSPY_LOCATION }}
           JOBSPY_RESULTS_WANTED: ${{ vars.JOBSPY_RESULTS_WANTED }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          ADZUNA_WHAT: ${{ vars.ADZUNA_WHAT }}
           BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
           BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
           BACKUP_S3_REGION: ${{ vars.BACKUP_S3_REGION }}
@@ -151,6 +154,9 @@ jobs:
             "TYPESAFE_API_KEY=${TYPESAFE_API_KEY}" \
             "JOBSPY_LOCATION=${JOBSPY_LOCATION}" \
             "JOBSPY_RESULTS_WANTED=${JOBSPY_RESULTS_WANTED}" \
+            "ADZUNA_APP_ID=${ADZUNA_APP_ID}" \
+            "ADZUNA_APP_KEY=${ADZUNA_APP_KEY}" \
+            "ADZUNA_WHAT=${ADZUNA_WHAT}" \
             "BACKUP_AGE_RECIPIENT=${BACKUP_AGE_RECIPIENT}" \
             "BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT}" \
             "BACKUP_S3_REGION=${BACKUP_S3_REGION}" \
