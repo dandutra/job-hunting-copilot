@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import { titlePasses } from "../../jev/title-filter";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SightingDraft } from "../../matching/sighting-draft";
 import { WINDOW_DAYS } from "../../matching/sighting-matcher";
@@ -139,6 +140,7 @@ export class SmartRecruitersAdapter extends JobSourceAdapter {
       );
       let readable = 0;
       let outside = 0;
+      let droppedByTitle = 0;
       for (const row of rows) {
         const id = str(row.id);
         if (!id) {
@@ -159,13 +161,20 @@ export class SmartRecruitersAdapter extends JobSourceAdapter {
         const key = keyOf(id);
         const known = stored.get(key);
         if (known) {
-          // The list title costs nothing, and a board can retitle a listed job.
+          // The list row carries the current title and place at no cost, and a board can edit both on a listed job.
           result.drafts.push(
             this.draft(board, key, {
               ...known,
               title: str(row.name) ?? known.title,
+              location: locations.join("; "),
             }),
           );
+          continue;
+        }
+        // The scheduler drops a failing title before matching, so such a row never gets a Sighting and would cost a detail call every poll.
+        const listTitle = str(row.name);
+        if (listTitle !== null && !titlePasses(listTitle)) {
+          droppedByTitle++;
           continue;
         }
         const detail = await this.detail(request, `${api}/${slugPath(id)}`);
@@ -177,7 +186,7 @@ export class SmartRecruitersAdapter extends JobSourceAdapter {
           this.draft(board, key, {
             url:
               detail.url ??
-              `https://jobs.smartrecruiters.com/${board.boardSlug}/${id}`,
+              `https://jobs.smartrecruiters.com/${slugPath(board.boardSlug)}/${id}`,
             reportedAt: dateOrNull(row.releasedDate) ?? now,
             title: str(row.name) ?? detail.title ?? "",
             location: locations.join("; "),
@@ -189,6 +198,12 @@ export class SmartRecruitersAdapter extends JobSourceAdapter {
       if (outside > 0) {
         this.logger.log(
           `${board.name}: dropped ${outside} of ${readable} rows outside the Search area`,
+        );
+      }
+      // The scheduler's count covers only the drafts it receives, so these rows would never show in the tuning log.
+      if (droppedByTitle > 0) {
+        this.logger.log(
+          `${board.name}: dropped ${droppedByTitle} of ${readable} rows by title before the detail call`,
         );
       }
       // A row we could not read may still be listed, so this read cannot close anything.

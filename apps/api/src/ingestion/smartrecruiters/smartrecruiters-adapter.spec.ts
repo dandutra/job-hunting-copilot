@@ -23,9 +23,10 @@ const ok = (json: unknown): HttpResponse => ({
   body: JSON.stringify(json),
 });
 
-// The recorded rows: two in Toronto, one in Montreal, one remote from Montreal.
-const [toronto1, toronto2, montreal, montrealRemote] = fixtures.page
-  .content as Record<string, unknown>[];
+// The recorded rows: two in Toronto, one in Montreal, one remote from Montreal. Their real titles fail the Title filter, so the rows that need a detail call are renamed.
+const [toronto1, toronto2, montreal, montrealRemote] = (
+  fixtures.page.content as Record<string, unknown>[]
+).map((r): Record<string, unknown> => ({ ...r, name: "Software Developer" }));
 
 function torontoRow(n: number) {
   return {
@@ -105,9 +106,10 @@ function make(http: HttpClient, stored: Record<string, unknown>[] = []) {
 
 describe("SmartRecruitersAdapter", () => {
   let warn: jest.SpyInstance;
+  let log: jest.SpyInstance;
   beforeEach(() => {
     warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
-    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    log = jest.spyOn(Logger.prototype, "log").mockImplementation();
   });
   afterEach(() => jest.restoreAllMocks());
 
@@ -163,7 +165,7 @@ describe("SmartRecruitersAdapter", () => {
     expect(result.drafts).toEqual([
       expect.objectContaining({
         listingKey: "smartrecruiters:ubisoft2:744000163253566",
-        title: "Senior Level Artist (Splinter Cell Remake)",
+        title: "Software Developer",
         description: "Stored text",
         reportedAt: new Date("2026-11-20T00:00:00Z"),
       }),
@@ -198,7 +200,7 @@ describe("SmartRecruitersAdapter", () => {
       url: "https://jobs.smartrecruiters.com/Ubisoft2/744000163253566-senior-level-artist-splinter-cell-remake-",
       reportedAt: new Date("2026-11-23T15:24:15.731Z"),
       companyName: "Ubisoft",
-      title: "Senior Level Artist (Splinter Cell Remake)",
+      title: "Software Developer",
       location: "Toronto, ON, Canada",
       descriptionKind: "full",
       watchedCompanyId: 9,
@@ -225,6 +227,51 @@ describe("SmartRecruitersAdapter", () => {
     expect(result.drafts.map((d) => d.listingKey)).toEqual([
       "smartrecruiters:ubisoft2:744000159658729",
     ]);
+  });
+
+  it("keeps the stored description but takes the location from the current row", async () => {
+    const { http } = board([montrealRemote]);
+    const { adapter } = make(http, [
+      {
+        listingKey: "smartrecruiters:ubisoft2:744000159658729",
+        url: "https://jobs.smartrecruiters.com/Ubisoft2/744000159658729-cg",
+        reportedAt: new Date("2026-11-04T00:00:00Z"),
+        title: "CG Supervisor",
+        location: "Toronto, ON, Canada",
+        description: "Stored text",
+        descriptionKind: "full",
+      },
+    ]);
+    const result = await adapter.poll(window());
+
+    expect(result.drafts).toEqual([
+      expect.objectContaining({
+        location: "Montreal, QC, Canada; Remote, Montreal, QC, Canada",
+        description: "Stored text",
+      }),
+    ]);
+  });
+
+  it("makes no detail call for a title the Title filter drops, so the call is not repeated every hour", async () => {
+    const failing = {
+      ...toronto2,
+      name: "Sr Community Developer - Splinter Cell",
+    };
+    const { http, calls } = board([failing, toronto1]);
+    const result = await make(http).adapter.poll(window());
+
+    expect(details(calls).map((c) => c.url)).toEqual([
+      `${API}/744000163253566`,
+    ]);
+    expect(result.drafts).toHaveLength(1);
+    expect(log).toHaveBeenCalledWith(
+      "Ubisoft: dropped 1 of 2 rows by title before the detail call",
+    );
+    // The row is still listed, so the board is read in full.
+    expect(result.boards).toEqual([
+      { watchedCompanyId: 9, status: "ok", rows: 2 },
+    ]);
+    expect(result.completeBoards).toEqual([9]);
   });
 
   it("warns when a 200 listing is empty and reports no rows", async () => {
