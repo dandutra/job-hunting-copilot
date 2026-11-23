@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { PrismaService } from "../prisma/prisma.service";
-import { boardKey } from "./board-from-url";
+import { boardKey, workdaySlug } from "./board-from-url";
 import { CompaniesService } from "./companies.service";
 
 export const WATCHED_COMPANIES_CSV = join(
@@ -37,15 +37,6 @@ export interface SeedCounts {
   rows: number;
   companies: number;
   watched: number;
-}
-
-const WORKDAY_URL =
-  /^https?:\/\/([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?([^/?#]+)/i;
-
-// A Workday board needs all three parts of its URL, and a bare tenant/site slug loses the data centre.
-export function workdaySlug(url: string): string {
-  const m = WORKDAY_URL.exec(url);
-  return m ? `${m[1]}.${m[2]}/${m[3]}` : "";
 }
 
 const HEADER = ["company", "sector", "ats", "slug", "url", "verified"];

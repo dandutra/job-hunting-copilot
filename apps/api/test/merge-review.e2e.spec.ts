@@ -307,7 +307,7 @@ describe("merge review", () => {
           descriptionKind: "full",
         }),
       );
-      // A wrong found board was cleared by hand on both names' Companies but one.
+      // A wrong found board was cleared by hand on every Company but the first, which the merge keeps.
       const cleared = new Date("2026-11-20T00:00:00Z");
       await prisma.company.updateMany({ data: { boardFoundAt: cleared } });
       const [first] = await prisma.company.findMany({ orderBy: { id: "asc" } });

@@ -1,4 +1,4 @@
-import { boardFromUrl } from "./board-from-url";
+import { boardFromUrl, boardKey } from "./board-from-url";
 
 const UUID = "0b6f1b1e-3c1a-4d57-9c1e-2f4d6a8b9c10";
 
@@ -71,5 +71,15 @@ describe("boardFromUrl", () => {
     "not a url",
   ])("returns null for %s", (url) => {
     expect(boardFromUrl(url)).toBeNull();
+  });
+});
+
+describe("boardKey", () => {
+  it.each([
+    [{ ats: "ashby", boardSlug: "PAR%20Technology" }, "ashby:par technology"],
+    [{ ats: "workday", boardSlug: "rbc.wd3/RBCGLOBAL1" }, "workday:rbc"],
+    [{ ats: "workday", boardSlug: "rbc/RBCGLOBAL1" }, "workday:rbc"],
+  ])("keys %j as %s", (board, key) => {
+    expect(boardKey(board)).toBe(key);
   });
 });

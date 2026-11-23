@@ -1,9 +1,17 @@
 import { parseListingKey } from "../matching/listing-key";
-import { workdaySlug } from "./seed";
 
 export interface Board {
   ats: string;
   boardSlug: string;
+}
+
+const WORKDAY_URL =
+  /^https?:\/\/([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?([^/?#]+)/i;
+
+// A Workday board needs all three parts of its URL, and a bare tenant/site slug loses the data centre.
+export function workdaySlug(url: string): string {
+  const m = WORKDAY_URL.exec(url);
+  return m ? `${m[1]}.${m[2]}/${m[3]}` : "";
 }
 
 // The adapters read only the global APIs, so a board on an EU host would fail every poll.
@@ -23,7 +31,8 @@ export function boardKey(board: Board): string {
   }
   slug = slug.toLowerCase();
   return board.ats === "workday"
-    ? `workday:${slug.split(".")[0]}`
+    ? // An older seed stored a Workday slug as tenant/site, without the data centre.
+      `workday:${slug.split(/[./]/)[0]}`
     : `${board.ats}:${slug}`;
 }
 
@@ -34,7 +43,7 @@ export function boardFromUrl(rawUrl: string): Board | null {
   if (!key) return null;
   const ats = key.split(":")[0];
   const url = new URL(rawUrl);
-  if (EU_HOSTS.has(url.hostname.toLowerCase())) return null;
+  if (EU_HOSTS.has(url.hostname)) return null;
 
   if (ats === "workday") {
     const boardSlug = workdaySlug(rawUrl);
