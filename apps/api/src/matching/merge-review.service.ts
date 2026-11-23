@@ -246,6 +246,12 @@ export class MergeReviewService {
         create: { companyId: keep.id, name: drop.name, normalizedName },
         update: {},
       });
+    // A hand-cleared board's marker moves with the Sightings, or discovery would give the kept Company that board again.
+    if (!watched(keep) && !keep.boardFoundAt && drop.boardFoundAt)
+      await tx.company.update({
+        where: { id: keep.id },
+        data: { boardFoundAt: drop.boardFoundAt },
+      });
     await tx.company.delete({ where: { id: drop.id } });
   }
 

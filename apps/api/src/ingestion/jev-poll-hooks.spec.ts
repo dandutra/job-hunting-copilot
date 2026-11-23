@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import * as discovery from "../companies/discover-boards";
 import { openTestDb, resetTestDb } from "../../test/test-db";
 import { TierConfigSource } from "../feed/tier-config-source";
 import { JevRunner } from "../jev/jev-runner";
@@ -130,5 +131,91 @@ describe("JevPollHooks tier recompute", () => {
       () => true,
     );
     expect(await tier()).toBeNull();
+  });
+});
+
+describe("JevPollHooks board discovery", () => {
+  let prisma: PrismaService;
+
+  beforeAll(async () => {
+    prisma = await openTestDb();
+  });
+  afterAll(async () => {
+    await resetTestDb(prisma);
+    await prisma.$disconnect();
+  });
+  beforeEach(() => resetTestDb(prisma));
+  afterEach(() => jest.restoreAllMocks());
+
+  const source = new FixedSource(configJson(0.9, 0.6));
+
+  it("adds boards before Jev runs", async () => {
+    const company = await prisma.company.create({ data: { name: "Acme" } });
+    const now = new Date();
+    const posting = await prisma.posting.create({
+      data: {
+        companyId: company.id,
+        title: "Developer",
+        location: "Toronto",
+        description: "x",
+        descriptionKind: "full",
+        postedAt: now,
+      },
+    });
+    await prisma.sighting.create({
+      data: {
+        postingId: posting.id,
+        jobSource: "jobspy-indeed",
+        listingKey: "indeed:1",
+        url: "https://indeed.example/1",
+        reportedAt: now,
+        companyId: company.id,
+        companyName: "Acme",
+        title: "Developer",
+        location: "Toronto",
+        description: "x",
+        descriptionKind: "full",
+        directUrl: "https://boards.greenhouse.io/acme/jobs/1",
+        firstSeenAt: now,
+        lastSeenAt: now,
+      },
+    });
+    let boardAtJev: string | null = null;
+    const jev = {
+      run: async () => {
+        boardAtJev = (
+          await prisma.company.findUniqueOrThrow({ where: { id: company.id } })
+        ).boardSlug;
+        return {};
+      },
+    } as unknown as JevRunner;
+
+    await new JevPollHooks(
+      new HeartbeatPollHooks(""),
+      jev,
+      source,
+      prisma,
+    ).pollFinished([]);
+
+    expect(boardAtJev).toBe("acme");
+  });
+
+  it("still runs Jev when discovery throws", async () => {
+    jest
+      .spyOn(discovery, "discoverBoards")
+      .mockRejectedValue(new Error("boom"));
+    const run = jest.fn(async () => ({}));
+    const jev = { run } as unknown as JevRunner;
+
+    await expect(
+      new JevPollHooks(
+        new HeartbeatPollHooks(""),
+        jev,
+        source,
+        prisma,
+      ).pollFinished([]),
+    ).resolves.toBeUndefined();
+
+    expect(run).toHaveBeenCalledTimes(1);
   });
 });

@@ -292,6 +292,37 @@ describe("merge review", () => {
       expect(await prisma.company.count()).toBe(1);
     });
 
+    it("keeps the hand-clear marker when a merge drops the cleared Company", async () => {
+      await match(
+        alert({
+          companyName: "Deloitte",
+          description: TEXT,
+          descriptionKind: "full",
+        }),
+      );
+      await match(
+        indeed({
+          companyName: "Deloitte LLP",
+          description: TEXT,
+          descriptionKind: "full",
+        }),
+      );
+      // A wrong found board was cleared by hand on every Company but the first, which the merge keeps.
+      const cleared = new Date("2026-11-20T00:00:00Z");
+      await prisma.company.updateMany({ data: { boardFoundAt: cleared } });
+      const [first] = await prisma.company.findMany({ orderBy: { id: "asc" } });
+      await prisma.company.update({
+        where: { id: first.id },
+        data: { boardFoundAt: null },
+      });
+      const [link] = (await get("/lookalikes")).body;
+
+      await post(`/lookalikes/${link.id}/merge`);
+
+      const [survivor] = await prisma.company.findMany();
+      expect(survivor.boardFoundAt).toEqual(cleared);
+    });
+
     it("does not bring a dismissed pair back when a merge moves a third Posting's Lookalike", async () => {
       const a = await match(alert());
       const b = await match(greenhouse());

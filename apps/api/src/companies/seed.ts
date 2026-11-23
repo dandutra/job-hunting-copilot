@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { PrismaService } from "../prisma/prisma.service";
+import { boardKey, workdaySlug } from "./board-from-url";
 import { CompaniesService } from "./companies.service";
 
 export const WATCHED_COMPANIES_CSV = join(
@@ -36,15 +37,6 @@ export interface SeedCounts {
   rows: number;
   companies: number;
   watched: number;
-}
-
-const WORKDAY_URL =
-  /^https?:\/\/([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?([^/?#]+)/i;
-
-// A Workday board needs all three parts of its URL, and a bare tenant/site slug loses the data centre.
-export function workdaySlug(url: string): string {
-  const m = WORKDAY_URL.exec(url);
-  return m ? `${m[1]}.${m[2]}/${m[3]}` : "";
 }
 
 const HEADER = ["company", "sector", "ats", "slug", "url", "verified"];
@@ -90,13 +82,36 @@ export async function seedCompanies(
       await companies.addAlias(company.id, alias);
 
     const isWatched = row.verified && row.slug && POLLABLE_ATS.has(row.ats);
-    // Clear the board too, so a row that lost its verification stops being polled.
-    await prisma.company.update({
-      where: { id: company.id },
-      data: isWatched
-        ? { ats: row.ats, boardSlug: row.slug }
-        : { ats: null, boardSlug: null },
-    });
+    if (isWatched) {
+      // A curated row outranks discovery: it takes the board from a found holder of the same boardKey and clears that holder.
+      const key = boardKey({ ats: row.ats, boardSlug: row.slug });
+      const found = await prisma.company.findMany({
+        where: {
+          id: { not: company.id },
+          ats: row.ats,
+          boardFoundAt: { not: null },
+        },
+        select: { id: true, ats: true, boardSlug: true },
+      });
+      const holders = found.filter(
+        (c) => boardKey({ ats: c.ats!, boardSlug: c.boardSlug! }) === key,
+      );
+      if (holders.length)
+        await prisma.company.updateMany({
+          where: { id: { in: holders.map((c) => c.id) } },
+          data: { ats: null, boardSlug: null, boardFoundAt: null },
+        });
+      await prisma.company.update({
+        where: { id: company.id },
+        data: { ats: row.ats, boardSlug: row.slug, boardFoundAt: null },
+      });
+    } else {
+      // Clear the board too, so a row that lost its verification stops being polled. A discovered board is not the CSV's to clear.
+      await prisma.company.updateMany({
+        where: { id: company.id, boardFoundAt: null },
+        data: { ats: null, boardSlug: null },
+      });
+    }
     if (isWatched) watched++;
   }
 
