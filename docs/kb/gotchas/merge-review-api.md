@@ -3,7 +3,7 @@ type: gotcha
 title: Merge review API
 description: How splits, "not the same" pairs, hand merges and the reviewed flag behave, and what the review screen must know.
 tags: [matching, api]
-sources: ["#25", "#113"]
+sources: ["#25", "#113", "#130"]
 generated:
   by: claude-opus-5-5
   at: 2026-11-19T16:00:00-05:00
@@ -17,6 +17,7 @@ The endpoints are in `apps/api/src/matching/merge-review.controller.ts`: `GET /m
 - The split Sighting's merge log entries stay as they were, so an old entry can name a Sighting that no longer sits on that entry's Posting.
 - The merge log has `reviewed_at`. Exact-key merges (`shared_listing_key`, `direct_url`) and hand merges (`manual_merge`) are stored reviewed. Only `text_similarity` entries wait. The migration backfills old exact-key rows. Marking an entry reviewed keeps its first timestamp.
 - A Lookalike merge keeps the lower Posting id, like a text merge, and does not call the Jev hook. When it crosses two Companies, it moves every Posting, Sighting and alias of the other Company to the surviving one and deletes the other. That is how the second name becomes an alias. A Watched company always survives. If both are Watched, the merge answers 409. A Lookalike whose two Postings are a "not the same" pair also answers 409.
+- `mergeCompanies` must also carry any Company-level state the dropped Company holds, not only its Postings, Sightings and aliases. `boardFoundAt` is the first such field: with no board it marks a board cleared by hand, so dropping it would let discovery set the wrong board again. A new column on `company` needs a decision in `mergeCompanies` and a test that merges a Company holding it.
 - Because a hand merge can delete a Company, `matchSighting` checks inside the matcher lock that the Company it resolved still exists. If it is gone, it looks the name up in `company_alias` on the same transaction, so it never waits on a second pool connection while holding the lock. `sighting.company_id` has no foreign key, so a stale id would be stored silently.
 - A dismissed Lookalike is deleted. Only the pair remains.
 - `absorbPosting` (`apps/api/src/matching/posting-absorb.ts`) must move or delete every row of every table that references `posting`, because a merge deletes the absorbed Posting and a missed table cascade-deletes its rows or blocks the merge. #113 added `jev_failure` without it, and review caught the gap. A new table that references `posting` needs an `absorbPosting` change and a test that merges two Postings holding a row in that table.
