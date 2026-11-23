@@ -79,6 +79,58 @@ describe("seedCompanies", () => {
     expect([rbc.ats, rbc.boardSlug]).toEqual([null, null]);
   });
 
+  it("leaves a discovered board in place when its Company is absent from the CSV or not verified", async () => {
+    const found = new Date("2026-11-20T00:00:00Z");
+    const absent = await prisma.company.create({
+      data: {
+        name: "Absent Co",
+        ats: "greenhouse",
+        boardSlug: "absent",
+        boardFoundAt: found,
+      },
+    });
+    const unverified = await prisma.company.create({
+      data: {
+        name: "Shopify",
+        ats: "lever",
+        boardSlug: "shopify",
+        boardFoundAt: found,
+      },
+    });
+
+    await seedCompanies(prisma, parseWatchedCsv(CSV));
+
+    for (const [id, ats, slug] of [
+      [absent.id, "greenhouse", "absent"],
+      [unverified.id, "lever", "shopify"],
+    ] as const) {
+      const after = await prisma.company.findUniqueOrThrow({ where: { id } });
+      expect([after.ats, after.boardSlug, after.boardFoundAt]).toEqual([
+        ats,
+        slug,
+        found,
+      ]);
+    }
+  });
+
+  it("lets a verified CSV row take a board that discovery gave another Company", async () => {
+    await prisma.company.create({
+      data: {
+        name: "Wealthsimple Inc Group",
+        ats: "ashby",
+        boardSlug: "wealthsimple",
+        boardFoundAt: new Date(),
+      },
+    });
+
+    await seedCompanies(prisma, parseWatchedCsv(CSV));
+
+    const holder = await prisma.company.findFirstOrThrow({
+      where: { ats: "ashby", boardSlug: "wealthsimple" },
+    });
+    expect([holder.name, holder.boardFoundAt]).toEqual(["Wealthsimple", null]);
+  });
+
   it("resolves RBC and Royal Bank of Canada to one Company", async () => {
     await seedCompanies(prisma, parseWatchedCsv(CSV));
 

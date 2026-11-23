@@ -90,13 +90,28 @@ export async function seedCompanies(
       await companies.addAlias(company.id, alias);
 
     const isWatched = row.verified && row.slug && POLLABLE_ATS.has(row.ats);
-    // Clear the board too, so a row that lost its verification stops being polled.
-    await prisma.company.update({
-      where: { id: company.id },
-      data: isWatched
-        ? { ats: row.ats, boardSlug: row.slug }
-        : { ats: null, boardSlug: null },
-    });
+    if (isWatched) {
+      // A curated row outranks discovery: it takes a pair a discovered board holds and clears that holder.
+      await prisma.company.updateMany({
+        where: {
+          id: { not: company.id },
+          ats: row.ats,
+          boardSlug: row.slug,
+          boardFoundAt: { not: null },
+        },
+        data: { ats: null, boardSlug: null, boardFoundAt: null },
+      });
+      await prisma.company.update({
+        where: { id: company.id },
+        data: { ats: row.ats, boardSlug: row.slug, boardFoundAt: null },
+      });
+    } else {
+      // Clear the board too, so a row that lost its verification stops being polled. A discovered board is not the CSV's to clear.
+      await prisma.company.updateMany({
+        where: { id: company.id, boardFoundAt: null },
+        data: { ats: null, boardSlug: null },
+      });
+    }
     if (isWatched) watched++;
   }
 
