@@ -99,6 +99,57 @@ describe("JobspyAdapter", () => {
     );
   });
 
+  it.each([
+    ["london", "jobspy-linkedin-london", "London, ON"],
+    ["halifax", "jobspy-linkedin-halifax", "Halifax, NS"],
+  ] as const)(
+    "names the %s adapter and sends its own location, and warns under its own name",
+    async (place, name, location) => {
+      const [row] = rows("linkedin_rows.json");
+      respond = async () => [200, { rows: [row], errors: {} }];
+      const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+      try {
+        const a = adapter({ place, location, resultsWanted: 1 }, "linkedin");
+        expect(a.name).toBe(name);
+        await a.poll(window);
+        expect(JSON.parse(requests[0].body).location).toBe(location);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining(name));
+      } finally {
+        warn.mockRestore();
+      }
+    },
+  );
+
+  it("stores a London and a Halifax row under the site's one job source, and drops London, England", async () => {
+    const [row] = rows("linkedin_rows.json");
+    const at = (id: string, location: string) => ({
+      ...row,
+      id,
+      location,
+      is_remote: false,
+    });
+    respond = async () => [
+      200,
+      {
+        rows: [
+          at("li-1", "London, ON"),
+          at("li-2", "Halifax, Nova Scotia, Canada"),
+          at("li-3", "London, United Kingdom"),
+        ],
+        errors: {},
+      },
+    ];
+
+    const { drafts } = await adapter({ place: "london" }, "linkedin").poll(
+      window,
+    );
+
+    expect(drafts.map((d) => [d.jobSource, d.listingKey, d.location])).toEqual([
+      ["jobspy-linkedin", "linkedin:1", "London, ON"],
+      ["jobspy-linkedin", "linkedin:2", "Halifax, Nova Scotia, Canada"],
+    ]);
+  });
+
   it("warns that rows past the cap were lost when the response holds exactly resultsWanted rows", async () => {
     const [row] = rows("indeed_rows.json");
     const full = Array.from({ length: 3 }, (_, i) => ({
@@ -300,6 +351,21 @@ describe("jobspyConfigFromEnv", () => {
       searchTerms: ["software developer"],
       location: "Toronto, ON",
       resultsWanted: 50,
+    });
+  });
+
+  it("gives London and Halifax their own location whatever JOBSPY_LOCATION says", () => {
+    const env = { JOBSPY_LOCATION: "Montreal, QC" };
+    expect(jobspyConfigFromEnv("linkedin", env, [], "london")).toMatchObject({
+      place: "london",
+      location: "London, ON",
+    });
+    expect(jobspyConfigFromEnv("indeed", env, [], "halifax")).toMatchObject({
+      place: "halifax",
+      location: "Halifax, NS",
+    });
+    expect(jobspyConfigFromEnv("indeed", env, [])).toMatchObject({
+      location: "Montreal, QC",
     });
   });
 

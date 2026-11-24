@@ -14,12 +14,21 @@ import type { components } from "./schema";
 type ScrapeRequest = components["schemas"]["ScrapeRequest"];
 type ScrapeResponse = components["schemas"]["ScrapeResponse"];
 
+// JobSpy matches a radius around its location, so Toronto's search never reaches London or Halifax. Each place gets its own adapter, so its cursor and its 429s stay apart. These are code, not variables, because the Search area is code too.
+export const JOBSPY_PLACE_LOCATIONS = {
+  london: "London, ON",
+  halifax: "Halifax, NS",
+} as const;
+export type JobspyPlace = keyof typeof JOBSPY_PLACE_LOCATIONS;
+
 export interface JobspyConfig {
   baseUrl: string;
   site: ScrapeRequest["site"];
   // From config/title-filter.json. One request carries all of them as an OR query, so a poll still makes one request.
   searchTerms: string[];
   location: string;
+  // Absent for the Toronto adapter, which keeps the name `jobspy-<site>` so its cursor survives.
+  place?: JobspyPlace;
   resultsWanted: number;
   // One request per poll, so this plus matching must stay inside Compose's 6-minute stop grace period.
   timeoutMs: number;
@@ -34,6 +43,7 @@ export function jobspyConfigFromEnv(
   site: JobspyConfig["site"],
   env: NodeJS.ProcessEnv = process.env,
   searchTerms: string[] = getSearchTerms(),
+  place?: JobspyPlace,
 ): JobspyConfig {
   const resultsWanted = Number(env.JOBSPY_RESULTS_WANTED?.trim() || 50);
   if (!Number.isInteger(resultsWanted) || resultsWanted < 1) {
@@ -45,7 +55,10 @@ export function jobspyConfigFromEnv(
     baseUrl: env.JOBSPY_URL || "http://localhost:8000",
     site,
     searchTerms,
-    location: env.JOBSPY_LOCATION?.trim() || "Toronto, ON",
+    location: place
+      ? JOBSPY_PLACE_LOCATIONS[place]
+      : env.JOBSPY_LOCATION?.trim() || "Toronto, ON",
+    ...(place ? { place } : {}),
     resultsWanted,
     timeoutMs: TIMEOUT_MS,
   };
@@ -74,7 +87,7 @@ export class JobspyAdapter extends JobSourceAdapter {
     private readonly alerts: AlertHook,
   ) {
     super();
-    this.name = `jobspy-${config.site}`;
+    this.name = `jobspy-${config.site}${config.place ? `-${config.place}` : ""}`;
   }
 
   async poll(window: PollWindow): Promise<AdapterResult> {
@@ -193,6 +206,7 @@ export class JobspyAdapter extends JobSourceAdapter {
     const description = text(row.description);
     const directUrl = text(row.job_url_direct);
     return {
+      // One source per board, whatever place found the row, because the source names are a closed list and a listing is one listing.
       jobSource: `jobspy-${this.config.site}`,
       listingKey: `${this.config.site}:${id!.replace(ID_PREFIX, "")}`,
       url: url!,

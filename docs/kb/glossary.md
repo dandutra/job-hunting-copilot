@@ -30,7 +30,7 @@ A Company whose own ATS board is polled, named by its ATS and board slug. The bo
 _Avoid_: Target company, tracked company
 
 **Search area**:
-The places a Posting must name to enter the app: Toronto, the GTA municipalities, and remote work open to Canada or naming no country. A Posting that names several places is in the area if any one of them is.
+The places a Posting must name to enter the app: Toronto, the GTA municipalities, London with Ontario, Halifax with Nova Scotia, and remote work open to Canada or naming no country. A Posting that names several places is in the area if any one of them is.
 _Avoid_: Region, location filter, GTA
 
 **Lookalike**:

@@ -20,12 +20,22 @@ import { GreenhouseAdapter } from "./greenhouse/greenhouse-adapter";
 import { LeverAdapter } from "./lever/lever-adapter";
 import { SmartRecruitersAdapter } from "./smartrecruiters/smartrecruiters-adapter";
 import { WorkdayAdapter } from "./workday/workday-adapter";
-import { JobspyAdapter, jobspyConfigFromEnv } from "./jobspy/jobspy-adapter";
+import {
+  JobspyAdapter,
+  jobspyConfigFromEnv,
+  JobspyPlace,
+} from "./jobspy/jobspy-adapter";
 import { HeartbeatPollHooks } from "./heartbeat-poll-hooks";
 import { JevPollHooks } from "./jev-poll-hooks";
 import { PollHooks } from "./poll-hooks";
 
 const JOBSPY_SITES = ["linkedin", "indeed"] as const;
+// Toronto first, then the other places, each one request. The scheduler polls adapters one after another, and the sites alternate, so two LinkedIn requests never run back to back.
+const JOBSPY_PLACES: (JobspyPlace | undefined)[] = [
+  undefined,
+  "london",
+  "halifax",
+];
 
 @Module({
   imports: [PrismaModule, MatchingModule, JevModule],
@@ -61,8 +71,14 @@ const JOBSPY_SITES = ["linkedin", "indeed"] as const;
         alerts: AlertHook,
         prisma: PrismaService,
       ): JobSourceAdapter[] => [
-        ...JOBSPY_SITES.map(
-          (site) => new JobspyAdapter(jobspyConfigFromEnv(site), alerts),
+        ...JOBSPY_PLACES.flatMap((place) =>
+          JOBSPY_SITES.map(
+            (site) =>
+              new JobspyAdapter(
+                jobspyConfigFromEnv(site, process.env, undefined, place),
+                alerts,
+              ),
+          ),
         ),
         new GreenhouseAdapter(prisma),
         new LeverAdapter(prisma),
