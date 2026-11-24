@@ -1,7 +1,7 @@
 import type { Posting } from "@prisma/client";
 
 // Bump when any question or level is reworded; stored with every judgement.
-export const QUESTION_SET_VERSION = "1";
+export const QUESTION_SET_VERSION = "2";
 
 export const ROLE_FAMILIES = [
   "full_stack",
@@ -22,8 +22,9 @@ export const WORK_ARRANGEMENTS = [
 export const CAP_QUESTIONS = {
   closed_to_juniors:
     "Does `posting` say it is closed to juniors or new graduates, for example by requiring several years of experience or a senior level?",
+  // The key keeps its old name, because a rename would reach tier-config.json, the feed DTO, the OpenAPI spec and the web types for no change in behaviour. It means "outside the Search area".
   outside_gta:
-    "Does `posting` say the work must be done at a place outside the Greater Toronto Area, with no remote option inside Canada?",
+    "Does `posting` say the work must be done at a place outside the Greater Toronto Area, London (Ontario) and Halifax (Nova Scotia), with no remote option inside Canada?",
   us_only:
     "Does `posting` say it is open only to people in the United States or authorized to work in the United States?",
   security_clearance:

@@ -30,7 +30,7 @@ A Company whose own ATS board is polled, named by its ATS and board slug. The bo
 _Avoid_: Target company, tracked company
 
 **Search area**:
-The places a Posting must name to enter the app: Toronto, the GTA municipalities, and remote work open to Canada or naming no country. A Posting that names several places is in the area if any one of them is.
+The places a Posting must name to enter the app: Toronto, the GTA municipalities, London with Ontario, Halifax with Nova Scotia, and remote work open to Canada or naming no country. A Posting that names several places is in the area if any one of them is.
 _Avoid_: Region, location filter, GTA
 
 **Lookalike**:
@@ -54,7 +54,7 @@ A Posting's relevance band (A, B or C), from its fit with the Master profile, ad
 _Avoid_: Score, rank, match
 
 **Tier cap**:
-A rule that holds a Posting at C however strong its fit, such as a role closed to juniors, work outside the GTA, a US-only role, a required security clearance or required French. The Posting stays visible.
+A rule that holds a Posting at C however strong its fit, such as a role closed to juniors, work outside the Search area, a US-only role, a required security clearance or required French. The Posting stays visible.
 _Avoid_: Filter, disqualifier, gate
 
 **Title filter**:

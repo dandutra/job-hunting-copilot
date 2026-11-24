@@ -154,6 +154,21 @@ describe("judgePair", () => {
     ).toBe("none");
   });
 
+  it("links nothing between a London, Halifax or remote job with the same text", () => {
+    const at = (location: string) => full(para("a"), { location });
+    for (const [a, b] of [
+      ["London, ON", "Remote, Canada"],
+      ["Halifax, NS", "Remote, Canada"],
+      ["London, ON", "Halifax, NS"],
+      ["London, ON", "Toronto, ON"],
+    ]) {
+      expect(judgePair(at(a), at(b), same).kind).toBe("none");
+    }
+    expect(judgePair(at("London, ON"), at("London, Ontario"), same).kind).toBe(
+      "merge",
+    );
+  });
+
   it("links no titles made only of employment words", () => {
     expect(
       judgePair(

@@ -286,6 +286,22 @@ describe("IngestScheduler", () => {
     },
   );
 
+  it("holds back only the blocked adapter's window, so the others' windows advance", async () => {
+    const blocked = new FakeAdapter("jobspy-linkedin-london", {
+      drafts: [],
+      errors: [{ kind: "blocked", message: "429" }],
+    });
+    const fine = new FakeAdapter("jobspy-linkedin-halifax");
+    const s = scheduler([blocked, fine]);
+
+    await s.tick(T0);
+    await s.tick(hoursAfter(1));
+
+    expect(blocked.windows[1].since).toEqual(hoursAfter(1 - 24));
+    // The next window starts 2 hours before the last good poll.
+    expect(fine.windows[1].since).toEqual(hoursAfter(-2));
+  });
+
   it("treats a draft the matcher rejects as a bad row, so the window still advances", async () => {
     const a = new FakeAdapter("a", {
       drafts: [draft(1, { companyName: "Canada" }), draft(2)],
@@ -706,6 +722,27 @@ describe("IngestScheduler", () => {
 });
 
 describe("IngestScheduler in a Nest application", () => {
+  it("polls each JobSpy board for Toronto, London and Halifax, never LinkedIn twice in a row", async () => {
+    const app = await Test.createTestingModule({ imports: [IngestionModule] })
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
+
+    const names = app
+      .get<JobSourceAdapter[]>(JOB_SOURCE_ADAPTERS)
+      .map((a) => a.name)
+      .filter((n) => n.startsWith("jobspy-"));
+
+    expect(names).toEqual([
+      "jobspy-linkedin",
+      "jobspy-indeed",
+      "jobspy-linkedin-london",
+      "jobspy-indeed-london",
+      "jobspy-linkedin-halifax",
+      "jobspy-indeed-halifax",
+    ]);
+  });
+
   it("drains the poll in progress before Prisma disconnects on shutdown", async () => {
     const prisma = new PrismaService(testDatabaseUrl());
     await prisma.$connect();

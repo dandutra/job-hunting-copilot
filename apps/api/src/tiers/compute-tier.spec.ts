@@ -116,6 +116,22 @@ describe("computeTier", () => {
     },
   );
 
+  // A London, ON or Halifax, NS Posting reaches the cap as a Noul answer, not as location text, so a "no" answer leaves it uncapped.
+  it("leaves a strong Posting at A when Noul answers no to the location cap", () => {
+    const r = computeTier(
+      answers({
+        skills: 3,
+        level: 3,
+        role: "full_stack",
+        work: "hybrid",
+        nouls: { outside_gta: 0.05 },
+      }),
+      config,
+    );
+    expect(r.tier).toBe("A");
+    expect(r.capsApplied).toEqual([]);
+  });
+
   it("records every cap that applied", () => {
     const r = computeTier(
       answers({
