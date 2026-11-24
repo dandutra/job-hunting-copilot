@@ -10,6 +10,13 @@ describe("metroOf", () => {
     ["Halifax, Nova Scotia", "halifax"],
     ["Remote, Canada", "remote-canada"],
     ["London, United Kingdom", "other"],
+    // Board adapters join places with "; ", and a province must sit in the same entry as its city.
+    [
+      "London, UK; Ottawa, ON; Remote, London, UK; Remote, Ottawa, ON",
+      "remote-canada",
+    ],
+    ["Halifax, England; Remote - Canada; Dartmouth, NS", "remote-canada"],
+    ["New York; London, ON", "london-on"],
     ["Remote", "remote-canada"],
     ["Vancouver, BC", "other"],
     ["Remote, USA", "other"],
