@@ -217,7 +217,7 @@ it("shows what the Posting detail needs", async () => {
   expect(screen.getByText("Stale")).toBeTruthy();
   expect(screen.getByText("Thin").className).toContain("flag");
   expect(screen.getByText(/US only/).textContent).toContain(
-    "Work outside the GTA",
+    "Work outside the Search area",
   );
   expect(screen.getByText(/No description yet/).textContent).toContain("link");
   const link = screen.getByRole("link", { name: "greenhouse" });

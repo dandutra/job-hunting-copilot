@@ -54,7 +54,7 @@ A Posting's relevance band (A, B or C), from its fit with the Master profile, ad
 _Avoid_: Score, rank, match
 
 **Tier cap**:
-A rule that holds a Posting at C however strong its fit, such as a role closed to juniors, work outside the GTA, a US-only role, a required security clearance or required French. The Posting stays visible.
+A rule that holds a Posting at C however strong its fit, such as a role closed to juniors, work outside the Search area, a US-only role, a required security clearance or required French. The Posting stays visible.
 _Avoid_: Filter, disqualifier, gate
 
 **Title filter**:

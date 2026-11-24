@@ -14,7 +14,7 @@ export function age(postedAt: string, now: number = Date.now()): string {
 
 const CAP_LABELS: Record<string, string> = {
   closed_to_juniors: "Closed to juniors",
-  outside_gta: "Work outside the GTA",
+  outside_gta: "Work outside the Search area",
   us_only: "US only",
   security_clearance: "Security clearance required",
   requires_french: "French required",
