@@ -3,7 +3,7 @@ type: gotcha
 title: JobSpy scrape service
 description: What POST /scrape promises and where JobSpy surprises it: errors by board, no descriptions on LinkedIn, proxies from the environment, and fixtures that were not recorded from a run.
 tags: [ingestion, jobspy]
-sources: ["#19", "#124"]
+sources: ["#19", "#124", "#129"]
 generated:
   by: claude-opus-5-5
   at: 2026-11-03T18:30:00-05:00
@@ -22,4 +22,5 @@ generated:
   - LinkedIn: the OR query returned 20 rows whose titles match all five terms (Software Engineer, Software Developer, Full-Stack Developer, AI Engineer, AI Developer). Every LinkedIn request from the Mac, which has no `JOBSPY_PROXIES`, got a 429 ("blocked: use a proxy"). Each returned at most one page (about 20 to 30 rows) and sometimes none, so the single-term comparison on LinkedIn was only partial.
   - The hourly rotation of one term per poll was the fallback for a board that ignores OR. It was not built, because neither board needed it. Revisit it only if a later run shows a board dropping terms.
   - One ingest tick after the build: `jobspy-linkedin` returned 20 rows with a 429 alert and dropped 1 outside the Search area and 9 of 19 by title. `jobspy-indeed` returned 1 row over a one-hour window, dropped as outside the area. Neither hit the results cap.
+- `site` takes only `linkedin` and `indeed`. JobSpy's `google` site returns no rows from the Mac or the Droplet, because Google serves its client a JavaScript-only page. The live check is in [Google Jobs through JobSpy](../job-sources/google-jobs.md). `ScraperInput` also rejects `proxies=None`, so a script that builds one directly passes `proxies` only when it is set. `scrape_jobs` accepts `None`.
 - The files in `apps/jobspy/tests/fixtures/` were not recorded from a run. They are the trimmed sample rows from the JobSpy research, which came from a real run on 2026-10-29. CI makes no network calls.
