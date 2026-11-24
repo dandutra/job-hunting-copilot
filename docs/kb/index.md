@@ -75,6 +75,7 @@ Glossary: [glossary.md](glossary.md)
 - [Ashby job board API](job-sources/ashby.md): `api.ashbyhq.com`, `publishedAt` resets on republish, `workplaceType` over `isRemote`, `isListed` rows skipped.
 - [Workday career-site API](job-sources/workday.md): a POST list that pages at 20 and wraps past the total, a detail call for dates, a 3-hour rate, the 2000 cap, and the RBC robots.txt risk.
 - [SmartRecruiters posting API](job-sources/smartrecruiters.md): `api.smartrecruiters.com`, a paged list at 100 plus a detail call, the Search area read from `fullLocation` not `country`, an unknown slug answers 200 with no rows.
+- [Google Jobs through JobSpy](job-sources/google-jobs.md): not polled; Google serves JobSpy a JavaScript-only page, so every search returns no rows from the Mac and the Droplet, and JobSpy 1.5.0 has the same Google code.
 
 ## Runbooks
 
