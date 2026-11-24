@@ -20,7 +20,7 @@ export interface AdapterError {
   httpStatus?: number;
 }
 
-// "incomplete" is a board cut off by shouldStop(): not an error, and not a full read of the board.
+// "incomplete" is a board cut off by shouldStop() or, for Workday, by an earlier 429 in the poll: not an error, and not a full read of the board.
 export interface BoardReport {
   watchedCompanyId: number;
   status: "ok" | "failed" | "incomplete";

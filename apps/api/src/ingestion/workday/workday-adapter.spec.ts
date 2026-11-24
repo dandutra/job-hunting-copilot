@@ -89,6 +89,7 @@ function make(
   http: WorkdayHttp,
   stored: Record<string, unknown>[] = [],
   boardSlug = "manulife.wd3/MFCJH_Jobs",
+  companies = [{ id: 7, name: "Manulife", ats: "workday", boardSlug }],
 ) {
   const sleeps: number[] = [];
   const findMany = jest.fn(
@@ -107,9 +108,7 @@ function make(
   const adapter = new WorkdayAdapter(
     {
       company: {
-        findMany: async () => [
-          { id: 7, name: "Manulife", ats: "workday", boardSlug },
-        ],
+        findMany: async () => companies,
       },
       sighting: { findMany },
     } as unknown as ConstructorParameters<typeof WorkdayAdapter>[0],
@@ -388,6 +387,103 @@ describe("WorkdayAdapter", () => {
       expect.objectContaining({ kind: "blocked", httpStatus: 429 }),
     ]);
     expect(result.completeBoards).toEqual([]);
+  });
+
+  describe("after a 429", () => {
+    const boards = [
+      { id: 1, name: "One", ats: "workday", boardSlug: "one.wd3/S" },
+      { id: 2, name: "Two", ats: "workday", boardSlug: "two.wd3/S" },
+      { id: 3, name: "Three", ats: "workday", boardSlug: "three.wd3/S" },
+    ];
+    const hostOf = (url: string) => url.split(".")[0].replace("https://", "");
+
+    // Tenants answer 200 with one row each, except where `answer` says otherwise.
+    function many(
+      answer: (kind: "list" | "detail", host: string) => number = () => 200,
+    ) {
+      const hosts: string[] = [];
+      const http: WorkdayHttp = {
+        async post(url) {
+          hosts.push(hostOf(url));
+          const status = answer("list", hostOf(url));
+          if (status !== 200) return { status, body: "" };
+          return ok({ total: 1, jobPostings: [row(1)], facets: [] });
+        },
+        async get(url) {
+          hosts.push(hostOf(url));
+          const status = answer("detail", hostOf(url));
+          if (status !== 200) return { status, body: "" };
+          return ok({
+            jobPostingInfo: { ...fixtures.detailToronto.jobPostingInfo },
+          });
+        },
+      };
+      return { http, hosts };
+    }
+
+    it("sends no request to a tenant after the one whose list call answered 429", async () => {
+      const { http, hosts } = many((kind, host) =>
+        kind === "list" && host === "two" ? 429 : 200,
+      );
+      const { adapter } = make(http, [], "", boards);
+
+      const result = await adapter.poll(window());
+
+      expect(hosts).not.toContain("three");
+      expect(result.errors).toEqual([
+        expect.objectContaining({
+          kind: "blocked",
+          httpStatus: 429,
+          watchedCompanyId: 2,
+        }),
+      ]);
+      expect(result.boards).toEqual([
+        { watchedCompanyId: 1, status: "ok", rows: 1 },
+        { watchedCompanyId: 2, status: "failed" },
+        { watchedCompanyId: 3, status: "incomplete" },
+      ]);
+      expect(result.drafts.map((d) => d.watchedCompanyId)).toEqual([1]);
+      expect(result.completeBoards).toEqual([1]);
+    });
+
+    it("stops the rest of the poll for a 429 on a detail call too", async () => {
+      const { http, hosts } = many((kind, host) =>
+        kind === "detail" && host === "two" ? 429 : 200,
+      );
+      const { adapter } = make(http, [], "", boards);
+
+      const result = await adapter.poll(window());
+
+      expect(hosts).not.toContain("three");
+      expect(result.errors).toEqual([
+        expect.objectContaining({ kind: "blocked", httpStatus: 429 }),
+      ]);
+      expect(result.boards).toEqual([
+        { watchedCompanyId: 1, status: "ok", rows: 1 },
+        { watchedCompanyId: 2, status: "failed" },
+        { watchedCompanyId: 3, status: "incomplete" },
+      ]);
+      expect(result.completeBoards).toEqual([1]);
+    });
+
+    it("still reads the next tenant after a 403 on a list call", async () => {
+      const { http, hosts } = many((kind, host) =>
+        kind === "list" && host === "two" ? 403 : 200,
+      );
+      const { adapter } = make(http, [], "", boards);
+
+      const result = await adapter.poll(window());
+
+      expect(hosts).toContain("three");
+      expect(result.errors).toEqual([
+        expect.objectContaining({
+          kind: "blocked",
+          httpStatus: 403,
+          watchedCompanyId: 2,
+        }),
+      ]);
+      expect(result.completeBoards).toEqual([1, 3]);
+    });
   });
 
   it("skips a row whose detail answers 403 S22, a listing that closed mid-pass, and reads the rest", async () => {

@@ -116,9 +116,9 @@ interface Tenant {
   boardSlug: string;
 }
 
-type Request = <T>(send: () => Promise<T>) => Promise<T>;
+type Request = (send: () => Promise<HttpResponse>) => Promise<HttpResponse>;
 
-// Thrown by the request gate when shutdown has begun; the tenant is then incomplete, not failed.
+// Thrown by the request gate when shutdown has begun or Workday has answered 429; the tenant is then incomplete, not failed.
 class Stopped extends Error {}
 
 class BoardFailure extends Error {
@@ -191,11 +191,16 @@ export class WorkdayAdapter extends JobSourceAdapter {
     };
     // One request at a time across tenants, each 1.5 s after the last.
     let first = true;
+    // Workday sends no Retry-After, and after one 429 the next requests in this poll are likely refused
+    // too, so the rest of the poll is cut off like a shutdown: one alert, not one per tenant.
+    let limited = false;
     const request: Request = async (send) => {
-      if (window.shouldStop()) throw new Stopped();
+      if (window.shouldStop() || limited) throw new Stopped();
       if (!first) await this.sleep(REQUEST_GAP_MS);
       first = false;
-      return send();
+      const res = await send();
+      if (res.status === 429) limited = true;
+      return res;
     };
 
     for (const company of companies) {
