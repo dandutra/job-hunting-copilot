@@ -1,9 +1,16 @@
-import { inGta, inSearchArea } from "../ingestion/search-area";
+import {
+  inGta,
+  inHalifax,
+  inLondonOn,
+  inSearchArea,
+} from "../ingestion/search-area";
 
-export type Metro = "gta" | "remote-canada" | "other";
+export type Metro = "gta" | "london-on" | "halifax" | "remote-canada" | "other";
 
 export function metroOf(location: string): Metro {
   if (inGta(location)) return "gta";
+  if (inLondonOn(location)) return "london-on";
+  if (inHalifax(location)) return "halifax";
   return inSearchArea([location]) ? "remote-canada" : "other";
 }
 

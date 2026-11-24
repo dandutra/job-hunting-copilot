@@ -15,6 +15,10 @@ export const CITIES = [
   "aurora",
 ];
 
+// A bare "London" is London, England and a bare "Halifax" is in England and Virginia, so these two count only beside their province, unlike a GTA city.
+const LONDON = { city: "london", province: "ontario", code: "on" };
+const HALIFAX = { city: "halifax", province: "nova scotia", code: "ns" };
+
 // Words that can sit beside "remote" without naming a place.
 const REMOTE_FILLER = new Set([
   "remote",
@@ -34,7 +38,7 @@ const REMOTE_FILLER = new Set([
   "international",
 ]);
 
-// "can" and "on" are also English words, so they name Canada or Ontario only where a place code sits; "ca" also means California.
+// "can", "on" and "ns" are also English words or other places' codes, so they name Canada, Ontario or Nova Scotia only where a place code sits; "ca" also means California.
 const CANADA_CODES = new Set(["can", "on"]);
 // A dash joins a code only to another code or to spaced text, so "On-site" and "Add-on" are words, not Ontario.
 const CODE_SEP_BEFORE = /(^|[,(;/|]\s*|\s[-–—]\s*|(^|[^a-z0-9])(can|on)[-–—])$/;
@@ -53,10 +57,10 @@ function hasPhrase(tokens: string[], phrase: string): boolean {
   return tokens.some((_, i) => target.every((w, j) => tokens[i + j] === w));
 }
 
-function hasCanadaCode(text: string): boolean {
+function hasCode(text: string, codes: Set<string>): boolean {
   const lower = text.toLowerCase();
   for (const m of lower.matchAll(/[a-z0-9]+/g)) {
-    if (!CANADA_CODES.has(m[0])) continue;
+    if (!codes.has(m[0])) continue;
     const before = lower.slice(0, m.index);
     const after = lower.slice(m.index + m[0].length);
     if (CODE_SEP_BEFORE.test(before) && CODE_SEP_AFTER.test(after)) return true;
@@ -64,9 +68,29 @@ function hasCanadaCode(text: string): boolean {
   return false;
 }
 
+function hasCanadaCode(text: string): boolean {
+  return hasCode(text, CANADA_CODES);
+}
+
+function inPlace(
+  location: string,
+  place: { city: string; province: string; code: string },
+): boolean {
+  const tokens = words(location);
+  return (
+    hasPhrase(tokens, place.city) &&
+    (hasPhrase(tokens, place.province) ||
+      hasCode(location, new Set([place.code])))
+  );
+}
+
+export const inLondonOn = (location: string) => inPlace(location, LONDON);
+export const inHalifax = (location: string) => inPlace(location, HALIFAX);
+
 function entryInArea(location: string): boolean {
   const tokens = words(location);
   if (CITIES.some((city) => hasPhrase(tokens, city))) return true;
+  if (inLondonOn(location) || inHalifax(location)) return true;
   if (!tokens.includes("remote")) return false;
   if (tokens.includes("canada") || tokens.includes("ontario")) return true;
   if (hasCanadaCode(location)) return true;

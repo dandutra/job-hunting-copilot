@@ -26,6 +26,14 @@ describe("normalizeTitle", () => {
     );
   });
 
+  // London and Halifax name places outside the title's noise list on purpose, because a bare "London" is also England.
+  it("keeps London and Halifax in a title", () => {
+    expect(normalizeTitle("Software Engineer - London")).toBe(
+      "software engineer london",
+    );
+    expect(normalizeTitle("Developer (Halifax)")).toBe("developer halifax");
+  });
+
   it("keeps the employment type, so full time never equals part time", () => {
     expect(normalizeTitle("Cashier - Full Time")).not.toBe(
       normalizeTitle("Cashier - Part Time"),

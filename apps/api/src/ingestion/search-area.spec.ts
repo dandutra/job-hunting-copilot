@@ -43,6 +43,15 @@ describe("inSearchArea", () => {
     "Remote - ON",
     "richmond-hill, on",
     "Toronto; New York",
+    "London, ON",
+    "London, Ontario, Canada",
+    "London, ON, CA",
+    "LONDON, Ontario",
+    "Halifax, NS",
+    "Halifax, Nova Scotia",
+    "Halifax, NS, CA",
+    "Halifax, Nova Scotia, Canada",
+    "New York; London, ON",
   ])("accepts the form %s", (location) => {
     expect(inSearchArea([location])).toBe(true);
   });
@@ -63,6 +72,21 @@ describe("inSearchArea", () => {
     "Montreal, QC",
     "Hamilton, ON",
     "Vancouver, BC",
+    "London, United Kingdom",
+    "London",
+    "London, England",
+    "Greater London, UK",
+    "London, KY",
+    "London, Onsite",
+    "London - On-site",
+    "Halifax",
+    "Halifax, West Yorkshire",
+    "Halifax, VA",
+    "Halifax NS-based team",
+    "Halifax, NSW",
+    "Dartmouth, NS",
+    "Halifax, ON",
+    "London, NS",
     "",
   ])("rejects %s", (location) => {
     expect(inSearchArea([location])).toBe(false);

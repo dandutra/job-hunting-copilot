@@ -4,7 +4,12 @@ describe("metroOf", () => {
   it.each([
     ["Toronto, ON", "gta"],
     ["Mississauga, Ontario, Canada", "gta"],
+    ["London, ON", "london-on"],
+    ["London, Ontario, Canada", "london-on"],
+    ["Halifax, NS", "halifax"],
+    ["Halifax, Nova Scotia", "halifax"],
     ["Remote, Canada", "remote-canada"],
+    ["London, United Kingdom", "other"],
     ["Remote", "remote-canada"],
     ["Vancouver, BC", "other"],
     ["Remote, USA", "other"],
@@ -20,6 +25,23 @@ describe("sameMetro", () => {
   });
   it("keeps the GTA and remote apart", () => {
     expect(sameMetro("Toronto, ON", "Remote, Canada")).toBe(false);
+  });
+  it("keeps London, Halifax, the GTA and remote apart", () => {
+    const places = [
+      "Toronto, ON",
+      "London, ON",
+      "Halifax, NS",
+      "Remote, Canada",
+    ];
+    for (const a of places) {
+      for (const b of places) {
+        expect(sameMetro(a, b)).toBe(a === b);
+      }
+    }
+  });
+  it("joins two spellings of one new place", () => {
+    expect(sameMetro("London, ON", "London, Ontario, Canada")).toBe(true);
+    expect(sameMetro("Halifax, NS", "Halifax, Nova Scotia")).toBe(true);
   });
   it("joins two Other places only when the text is equal", () => {
     expect(sameMetro("Calgary, AB", "calgary,  ab")).toBe(true);

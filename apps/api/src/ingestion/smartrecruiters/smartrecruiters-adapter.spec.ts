@@ -185,6 +185,31 @@ describe("SmartRecruitersAdapter", () => {
     expect(result.completeBoards).toEqual([9]);
   });
 
+  it("stores a London, ON and a Halifax, NS row and drops London, United Kingdom", async () => {
+    const at = (n: number, city: string, region: string, full: string) => ({
+      ...toronto1,
+      id: String(n),
+      ref: `${API}/${n}`,
+      location: {
+        ...(toronto1.location as object),
+        city,
+        region,
+        fullLocation: full,
+      },
+    });
+    const { http } = board([
+      at(1, "London", "ON", "London, ON, Canada"),
+      at(2, "Halifax", "NS", "Halifax, NS, Canada"),
+      at(3, "London", "", "London, United Kingdom"),
+    ]);
+    const result = await make(http).adapter.poll(window());
+
+    expect(result.drafts.map((d) => d.listingKey)).toEqual([
+      "smartrecruiters:ubisoft2:1",
+      "smartrecruiters:ubisoft2:2",
+    ]);
+  });
+
   it("builds a full draft from the detail call for an in-area row with no stored Sighting", async () => {
     const { http, calls } = board([toronto1, montreal, montrealRemote]);
     const result = await make(http).adapter.poll(window());
