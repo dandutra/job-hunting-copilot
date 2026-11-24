@@ -40,3 +40,13 @@ const FACTOR_LABELS: Record<string, string> = {
   work_arrangement: "Work arrangement",
 };
 export const factorLabel = (f: string) => FACTOR_LABELS[f] ?? f;
+
+export type Metro = FeedItem["metros"][number];
+
+// The API decides which places a Posting is in; the screen only names them. A fixed list, so the select does not change shape as data arrives.
+export const METRO_OPTIONS: { value: Metro; label: string }[] = [
+  { value: "gta", label: "Toronto and the GTA" },
+  { value: "london-on", label: "London, Ontario" },
+  { value: "halifax", label: "Halifax, Nova Scotia" },
+  { value: "remote-canada", label: "Remote in Canada" },
+];

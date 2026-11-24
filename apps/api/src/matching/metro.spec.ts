@@ -1,4 +1,51 @@
-import { metroOf, sameMetro } from "./metro";
+import { metroOf, metrosOf, sameMetro } from "./metro";
+
+describe("metrosOf", () => {
+  it.each([
+    ["Toronto, ON", ["gta"]],
+    ["London, ON", ["london-on"]],
+    ["Halifax, Nova Scotia", ["halifax"]],
+    ["Remote, Canada", ["remote-canada"]],
+    ["Toronto; London, ON", ["gta", "london-on"]],
+    ["Halifax, NS; Toronto, ON; London, ON", ["gta", "london-on", "halifax"]],
+    ["Toronto, ON; Remote, Canada", ["gta", "remote-canada"]],
+    ["London, UK; Ottawa, ON", []],
+    ["Vancouver, BC", []],
+    ["Remote, USA", []],
+    ["", []],
+  ])("names the metros of %j", (location, metros) => {
+    expect(metrosOf(location)).toEqual(metros);
+  });
+
+  it("never returns other", () => {
+    expect(metrosOf("Calgary, AB")).not.toContain("other");
+  });
+
+  it("agrees with metroOf: its first entry, or other when there is none", () => {
+    const locations = [
+      "Toronto, ON",
+      "Mississauga, Ontario, Canada",
+      "London, ON",
+      "Halifax, NS",
+      "Remote, Canada",
+      "London, United Kingdom",
+      "London, UK; Ottawa, ON; Remote, London, UK; Remote, Ottawa, ON",
+      "Halifax, England; Remote - Canada; Dartmouth, NS",
+      "New York; London, ON",
+      "USA - Remote; CAN-Remote",
+      "Vancouver, BC; ON - Remote",
+      "Toronto; London, ON",
+      "Toronto, ON; Remote, Canada",
+      "Remote",
+      "Vancouver, BC",
+      "Remote, USA",
+      "",
+    ];
+    for (const location of locations) {
+      expect(metroOf(location)).toBe(metrosOf(location)[0] ?? "other");
+    }
+  });
+});
 
 describe("metroOf", () => {
   it.each([

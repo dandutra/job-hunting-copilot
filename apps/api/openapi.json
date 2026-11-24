@@ -2293,6 +2293,19 @@
           "location": {
             "type": "string"
           },
+          "metros": {
+            "type": "array",
+            "description": "Every Search-area place the location text names, so a Posting that names two places carries both. Empty when it names none.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "gta",
+                "london-on",
+                "halifax",
+                "remote-canada"
+              ]
+            }
+          },
           "postedAt": {
             "type": "string",
             "format": "date-time",
@@ -2349,6 +2362,7 @@
           "title",
           "company",
           "location",
+          "metros",
           "postedAt",
           "sightingCount",
           "thin",
@@ -2516,6 +2530,19 @@
           "location": {
             "type": "string"
           },
+          "metros": {
+            "type": "array",
+            "description": "Every Search-area place the location text names, so a Posting that names two places carries both. Empty when it names none.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "gta",
+                "london-on",
+                "halifax",
+                "remote-canada"
+              ]
+            }
+          },
           "postedAt": {
             "type": "string",
             "format": "date-time",
@@ -2616,6 +2643,7 @@
           "title",
           "company",
           "location",
+          "metros",
           "postedAt",
           "sightingCount",
           "thin",

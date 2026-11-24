@@ -28,6 +28,7 @@ const item = (
   title: `Title ${id}`,
   company: `Company ${id}`,
   location: "Toronto, ON",
+  metros: ["gta"],
   postedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
   sightingCount: 1,
   thin: false,
@@ -469,6 +470,178 @@ it("says so when nothing was posted in the last 3 days", async () => {
   fireEvent.click(screen.getByLabelText("Last 3 days"));
 
   expect(screen.getByText("No Postings in the last 3 days.")).toBeTruthy();
+});
+
+const PLACES = [
+  item(1, "A", { title: "Toronto job", metros: ["gta"] }),
+  item(2, "A", {
+    title: "London job",
+    location: "London, ON",
+    metros: ["london-on"],
+  }),
+  item(3, "B", {
+    title: "Halifax job",
+    location: "Halifax, NS",
+    metros: ["halifax"],
+  }),
+  item(4, "B", {
+    title: "Remote job",
+    location: "Remote, Canada",
+    metros: ["remote-canada"],
+  }),
+  item(5, "B", {
+    title: "Two places job",
+    location: "Toronto; London, ON",
+    metros: ["gta", "london-on"],
+  }),
+];
+
+const pickLocation = (value: string) =>
+  fireEvent.change(screen.getByLabelText("Location"), { target: { value } });
+
+// The selected Posting's title also sits in the detail pane, so read the list rows alone.
+const listed = () =>
+  Array.from(document.querySelectorAll(".feed-item b")).map(
+    (b) => b.textContent,
+  );
+
+it("offers every place, starting at All locations", async () => {
+  renderAt("/", stub({ items: () => PLACES }));
+  await screen.findByText("Halifax job");
+
+  const select = screen.getByLabelText("Location") as HTMLSelectElement;
+
+  expect(select.value).toBe("all");
+  expect(
+    within(select)
+      .getAllByRole("option")
+      .map((o) => o.textContent),
+  ).toEqual([
+    "All locations",
+    "Toronto and the GTA",
+    "London, Ontario",
+    "Halifax, Nova Scotia",
+    "Remote in Canada",
+  ]);
+  expect(listed()).toHaveLength(PLACES.length);
+});
+
+it("hides the Postings of other places, and shows one that names two places under both", async () => {
+  renderAt("/", stub({ items: () => PLACES }));
+  await screen.findByText("Halifax job");
+
+  pickLocation("london-on");
+
+  expect(listed()).toEqual(["London job", "Two places job"]);
+
+  pickLocation("gta");
+
+  expect(listed()).toEqual(["Toronto job", "Two places job"]);
+
+  pickLocation("all");
+
+  expect(listed()).toHaveLength(PLACES.length);
+});
+
+it("passes a Posting only when it clears the location, the 3-day and the closed filters", async () => {
+  const items = (include?: string) => {
+    const rows = [
+      item(1, "A", {
+        title: "Fresh London",
+        metros: ["london-on"],
+        postedAt: daysAgo(1),
+      }),
+      item(2, "A", {
+        title: "Old London",
+        metros: ["london-on"],
+        postedAt: daysAgo(5),
+      }),
+      item(3, "A", { title: "Fresh Toronto", postedAt: daysAgo(1) }),
+    ];
+    return include === "closed"
+      ? [
+          ...rows,
+          item(4, "A", {
+            title: "Closed London",
+            metros: ["london-on"],
+            state: "closed",
+            postedAt: daysAgo(1),
+          }),
+        ]
+      : rows;
+  };
+  renderAt("/", stub({ items }));
+  await screen.findByText("Old London");
+
+  pickLocation("london-on");
+  fireEvent.click(screen.getByLabelText("Last 3 days"));
+
+  expect(listed()).toEqual(["Fresh London"]);
+
+  fireEvent.click(screen.getByLabelText("Closed and stale"));
+
+  await waitFor(() => expect(listed()).toContain("Closed London"));
+  expect(listed()).toEqual(["Fresh London", "Closed London"]);
+});
+
+it("says so when a location has no Postings, and brings the rows back with All locations", async () => {
+  renderAt("/", stub({ items: () => PLACES.slice(0, 1) }));
+  await screen.findByText("Toronto job");
+
+  pickLocation("halifax");
+
+  expect(screen.getByText("No Postings in this location.")).toBeTruthy();
+  expect(listed()).toEqual([]);
+
+  pickLocation("all");
+
+  expect(screen.queryByText("No Postings in this location.")).toBeNull();
+  expect(listed()).toEqual(["Toronto job"]);
+});
+
+it("keeps j and k inside the filtered list", async () => {
+  renderAt(
+    "/postings/2",
+    stub({
+      items: () => [
+        PLACES[0],
+        PLACES[1],
+        PLACES[2],
+        PLACES[4],
+        item(6, "B", {
+          title: "Late London",
+          metros: ["london-on"],
+        }),
+      ],
+    }),
+  );
+  await screen.findByRole("heading", { name: "London job" });
+  await screen.findByText("Late London");
+  pickLocation("london-on");
+
+  fireEvent.keyDown(window, { key: "j" });
+  await screen.findByRole("heading", { name: "Two places job" });
+  fireEvent.keyDown(window, { key: "j" });
+  await screen.findByRole("heading", { name: "Late London" });
+  fireEvent.keyDown(window, { key: "k" });
+  await screen.findByRole("heading", { name: "Two places job" });
+  fireEvent.keyDown(window, { key: "k" });
+  await screen.findByRole("heading", { name: "London job" });
+  // The Toronto Posting above is filtered out, so k stops here.
+  fireEvent.keyDown(window, { key: "k" });
+  fireEvent.keyDown(window, { key: "k" });
+  expect(screen.getByRole("heading", { name: "London job" })).toBeTruthy();
+});
+
+it("still opens a Posting chosen by URL when the location filter hides it", async () => {
+  renderAt("/postings/1", stub({ items: () => PLACES }));
+  await screen.findByRole("heading", { name: "Toronto job" });
+  await screen.findByText("London job");
+
+  pickLocation("london-on");
+
+  expect(listed()).not.toContain("Toronto job");
+  expect(screen.getByRole("heading", { name: "Toronto job" })).toBeTruthy();
 });
 
 it("links a Posting's newest draft as Review draft, and shows no link when it has none", async () => {

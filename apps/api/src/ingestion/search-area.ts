@@ -103,6 +103,13 @@ export function inGta(location: string): boolean {
   return CITIES.some((city) => hasPhrase(tokens, city));
 }
 
+// An entry in the area that names none of the three places is a remote or Canada-wide one.
+export const inRemoteCanada = (location: string) =>
+  entryInArea(location) &&
+  !inGta(location) &&
+  !inLondonOn(location) &&
+  !inHalifax(location);
+
 // A caller splits multi-location text itself.
 export function inSearchArea(locations: string[]): boolean {
   return locations.some(entryInArea);
