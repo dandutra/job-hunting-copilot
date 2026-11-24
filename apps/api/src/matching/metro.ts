@@ -15,9 +15,9 @@ export const AREA_METROS = [
   "remote-canada",
 ] as const satisfies readonly Metro[];
 
-// Board adapters store several places joined with "; ". Each entry is judged alone, as the adapters judged it, so "London, UK; Ottawa, ON" never pairs London with Ontario.
 export type AreaMetro = (typeof AREA_METROS)[number];
 
+// Board adapters store several places joined with "; ". Each entry is judged alone, as the adapters judged it, so "London, UK; Ottawa, ON" never pairs London with Ontario.
 export function metrosOf(location: string): AreaMetro[] {
   const entries = location.split(/;\s*/);
   const found = {
