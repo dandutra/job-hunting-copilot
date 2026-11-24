@@ -191,7 +191,7 @@ export class WorkdayAdapter extends JobSourceAdapter {
     };
     // One request at a time across tenants, each 1.5 s after the last.
     let first = true;
-    // Workday sends no Retry-After, and after one 429 every further request in this poll is refused
+    // Workday sends no Retry-After, and after one 429 the next requests in this poll are likely refused
     // too, so the rest of the poll is cut off like a shutdown: one alert, not one per tenant.
     let limited = false;
     const request: Request = async (send) => {
