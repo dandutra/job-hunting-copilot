@@ -17,6 +17,8 @@ describe("metroOf", () => {
     ],
     ["Halifax, England; Remote - Canada; Dartmouth, NS", "remote-canada"],
     ["New York; London, ON", "london-on"],
+    ["USA - Remote; CAN-Remote", "remote-canada"],
+    ["Vancouver, BC; ON - Remote", "remote-canada"],
     ["Remote", "remote-canada"],
     ["Vancouver, BC", "other"],
     ["Remote, USA", "other"],

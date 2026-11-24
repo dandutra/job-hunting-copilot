@@ -9,7 +9,7 @@ export type Metro = "gta" | "london-on" | "halifax" | "remote-canada" | "other";
 
 // Board adapters store several places joined with "; ". Each entry is judged alone, as the adapters judged it, so "London, UK; Ottawa, ON" never pairs London with Ontario.
 export function metroOf(location: string): Metro {
-  const entries = location.split(";");
+  const entries = location.split(/;\s*/);
   if (entries.some(inGta)) return "gta";
   if (entries.some(inLondonOn)) return "london-on";
   if (entries.some(inHalifax)) return "halifax";
