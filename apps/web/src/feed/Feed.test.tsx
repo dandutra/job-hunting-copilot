@@ -154,6 +154,8 @@ it("moves the selection with j and k, opening each Posting's URL", async () => {
   const s = stub();
   renderAt("/postings/1", s);
   await screen.findByRole("heading", { name: "Title 1" });
+  // The list loads apart from the detail, and j does nothing until it has rows.
+  await screen.findByText("Title 2");
 
   fireEvent.keyDown(window, { key: "j" });
   await screen.findByRole("heading", { name: "Title 2" });
@@ -402,6 +404,8 @@ it("warns when the points come from a newer tier config than the Tier", async ()
 it("keeps j working after the Closed and stale checkbox takes focus", async () => {
   renderAt("/postings/1", stub());
   await screen.findByRole("heading", { name: "Title 1" });
+  // The list loads apart from the detail, and j does nothing until it has rows.
+  await screen.findByText("Title 2");
   const box = screen.getByRole("checkbox", { name: "Closed and stale" });
   box.focus();
 
@@ -446,6 +450,8 @@ it("skips a filtered-out Posting with j", async () => {
     }),
   );
   await screen.findByRole("heading", { name: "Title 1" });
+  // The list loads apart from the detail, and j does nothing until it has rows.
+  await screen.findByText("Title 3");
   fireEvent.click(screen.getByLabelText("Last 3 days"));
 
   fireEvent.keyDown(window, { key: "j" });
@@ -483,6 +489,8 @@ it("links a Posting's newest draft as Review draft, and shows no link when it ha
   const link = screen.getByRole("link", { name: "Review draft" });
   expect(link.getAttribute("href")).toBe("/resumes/9");
 
+  // The list loads apart from the detail.
+  await screen.findByText("Title 2");
   fireEvent.click(rowOf("Title 2"));
   await screen.findByRole("heading", { name: "Title 2" });
   expect(screen.queryByRole("link", { name: "Review draft" })).toBeNull();
