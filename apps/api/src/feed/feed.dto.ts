@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { TIER_VALUES, TierValue } from "../labels/labels.dto";
+import { AREA_METROS, AreaMetro } from "../matching/metro";
 
 export const POSTING_STATES = ["open", "closed", "stale"] as const;
 export type PostingStateValue = (typeof POSTING_STATES)[number];
@@ -9,6 +10,13 @@ class PostingCoreDto {
   @ApiProperty() title!: string;
   @ApiProperty() company!: string;
   @ApiProperty() location!: string;
+  @ApiProperty({
+    enum: AREA_METROS,
+    isArray: true,
+    description:
+      "Every Search-area place the location text names, so a Posting that names two places carries both. Empty when it names none.",
+  })
+  metros!: AreaMetro[];
   @ApiProperty({
     type: String,
     format: "date-time",

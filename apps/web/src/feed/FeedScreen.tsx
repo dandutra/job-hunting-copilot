@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useApi } from "../api/ApiContext";
 import "./feed.css";
-import type { FeedItem, PostingDetail as Detail, TierLetter } from "./format";
+import {
+  METRO_OPTIONS,
+  type FeedItem,
+  type Metro,
+  type PostingDetail as Detail,
+  type TierLetter,
+} from "./format";
 import { PostingDetail } from "./PostingDetail";
 import { PostingList, type GroupKey } from "./PostingList";
 
@@ -30,6 +36,7 @@ export function FeedScreen() {
   const [showClosed, setShowClosed] = useState(false);
   // Taken when the box is ticked, because a render must not read the clock.
   const [cutoff, setCutoff] = useState<number | null>(null);
+  const [place, setPlace] = useState<Metro | "all">("all");
   const [version, setVersion] = useState(0);
   const [list, setList] = useState<{ key: string; items: FeedItem[] } | null>(
     null,
@@ -59,12 +66,19 @@ export function FeedScreen() {
   }, [api, showClosed, listKey]);
 
   const loaded = list?.items;
+  const inPlace = useMemo(
+    () =>
+      place === "all"
+        ? (loaded ?? [])
+        : (loaded ?? []).filter((i) => i.metros.includes(place)),
+    [loaded, place],
+  );
   const items = useMemo(
     () =>
       cutoff === null
-        ? (loaded ?? [])
-        : (loaded ?? []).filter((i) => Date.parse(i.postedAt) >= cutoff),
-    [loaded, cutoff],
+        ? inPlace
+        : inPlace.filter((i) => Date.parse(i.postedAt) >= cutoff),
+    [inPlace, cutoff],
   );
   const visible = useMemo(
     () =>
@@ -147,6 +161,24 @@ export function FeedScreen() {
     <div className="feed">
       <aside className="feed-list">
         <label className="closed-toggle">
+          Location{" "}
+          <select
+            value={place}
+            onChange={(e) => {
+              setPlace(e.target.value as Metro | "all");
+              // A focused select swallows j and k, so give the keys back to the list.
+              e.target.blur();
+            }}
+          >
+            <option value="all">All locations</option>
+            {METRO_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="closed-toggle">
           <input
             type="checkbox"
             checked={showClosed}
@@ -167,7 +199,10 @@ export function FeedScreen() {
         {list && list.items.length === 0 && (
           <p className="muted page">No Postings yet.</p>
         )}
-        {list && list.items.length > 0 && items.length === 0 && (
+        {list && list.items.length > 0 && inPlace.length === 0 && (
+          <p className="muted page">No Postings in this location.</p>
+        )}
+        {inPlace.length > 0 && items.length === 0 && (
           <p className="muted page">No Postings in the last 3 days.</p>
         )}
         <PostingList

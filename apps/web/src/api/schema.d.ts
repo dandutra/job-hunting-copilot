@@ -740,6 +740,8 @@ export interface components {
             title: string;
             company: string;
             location: string;
+            /** @description Every Search-area place the location text names, so a Posting that names two places carries both. Empty when it names none. */
+            metros: ("gta" | "london-on" | "halifax" | "remote-canada")[];
             /**
              * Format: date-time
              * @description The earliest Sighting's date.
@@ -809,6 +811,8 @@ export interface components {
             title: string;
             company: string;
             location: string;
+            /** @description Every Search-area place the location text names, so a Posting that names two places carries both. Empty when it names none. */
+            metros: ("gta" | "london-on" | "halifax" | "remote-canada")[];
             /**
              * Format: date-time
              * @description The earliest Sighting's date.

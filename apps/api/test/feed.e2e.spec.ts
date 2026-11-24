@@ -155,7 +155,41 @@ describe("feed endpoints", () => {
       hasLookalike: false,
       feedCorrection: null,
       state: "open",
+      metros: ["remote-canada"],
     });
+  });
+
+  it("sends the metros each location names, several for a Posting that names several places", async () => {
+    const at = (location: string) =>
+      seedPosting(prisma, { tier: "A", location });
+    const toronto = await at("Toronto, ON");
+    const london = await at("London, ON");
+    const halifax = await at("Halifax, NS");
+    const remote = await at("Remote, Canada");
+    const both = await at("Toronto; London, ON");
+    const metrosOfRow = (
+      rows: { id: number; metros: string[] }[],
+      id: number,
+    ) => rows.find((r) => r.id === id)!.metros;
+
+    const { body } = await get("/postings");
+
+    expect(metrosOfRow(body, toronto)).toEqual(["gta"]);
+    expect(metrosOfRow(body, london)).toEqual(["london-on"]);
+    expect(metrosOfRow(body, halifax)).toEqual(["halifax"]);
+    expect(metrosOfRow(body, remote)).toEqual(["remote-canada"]);
+    expect(metrosOfRow(body, both)).toEqual(["gta", "london-on"]);
+  });
+
+  it("sends the metros on a Posting's detail too", async () => {
+    const id = await seedPosting(prisma, {
+      tier: "A",
+      location: "Toronto; London, ON",
+    });
+
+    const { body } = await get(`/postings/${id}`);
+
+    expect(body.metros).toEqual(["gta", "london-on"]);
   });
 
   it("flags a Posting with an open Lookalike", async () => {

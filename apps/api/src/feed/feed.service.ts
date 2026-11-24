@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { Clock } from "../labels/labels-env";
+import { metrosOf } from "../matching/metro";
 import { PostingState, postingState } from "../matching/posting-state";
 import { PrismaService } from "../prisma/prisma.service";
 import { isThin } from "../tiers/compute-tier";
@@ -120,6 +121,7 @@ export class FeedService {
       title: p.title,
       company: p.company.name,
       location: p.location,
+      metros: metrosOf(p.location),
       postedAt: p.postedAt.toISOString(),
       sightingCount: p.sightings.length,
       thin: isThin(p),
