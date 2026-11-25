@@ -19,6 +19,7 @@ import {
   PollWindow,
 } from "../job-source-adapter";
 import { inSearchArea } from "../search-area";
+import { workdayHttp } from "./workday-http";
 
 export interface WorkdayHttp {
   get(url: string, headers: Record<string, string>): Promise<HttpResponse>;
@@ -28,27 +29,6 @@ export interface WorkdayHttp {
     headers: Record<string, string>,
   ): Promise<HttpResponse>;
 }
-
-const REQUEST_TIMEOUT_MS = 30_000;
-
-export const fetchWorkdayHttp: WorkdayHttp = {
-  async get(url, headers) {
-    const res = await fetch(url, {
-      headers,
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-    return { status: res.status, body: await res.text() };
-  },
-  async post(url, body, headers) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-      body,
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-    return { status: res.status, body: await res.text() };
-  },
-};
 
 const PAGE_SIZE = 20;
 // Some tenants refuse to page past 2000 results, so a bigger tenant can never be read in full.
@@ -171,7 +151,7 @@ export class WorkdayAdapter extends JobSourceAdapter {
 
   constructor(
     private readonly prisma: Pick<PrismaService, "company" | "sighting">,
-    private readonly http: WorkdayHttp = fetchWorkdayHttp,
+    private readonly http: WorkdayHttp = workdayHttp,
     private readonly sleep: (ms: number) => Promise<void> = (ms) =>
       new Promise((resolve) => setTimeout(resolve, ms)),
   ) {
