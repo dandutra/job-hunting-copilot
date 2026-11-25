@@ -208,7 +208,7 @@ export class IngestScheduler
         }
       }
 
-      await this.closeMissing(result, now, outcome);
+      await this.closeMissing(result, now);
 
       const retry = outcome.errors.some((e) => RETRYABLE.includes(e.kind));
       outcome.status = retry ? "failed" : "ok";
@@ -249,11 +249,7 @@ export class IngestScheduler
   }
 
   // Only a complete board listing is evidence; see the "Only boards close a Posting" decision.
-  private async closeMissing(
-    result: AdapterResult,
-    now: Date,
-    outcome: AdapterOutcome,
-  ) {
+  private async closeMissing(result: AdapterResult, now: Date) {
     for (const id of result.completeBoards) {
       const listed = new Set(
         result.drafts
@@ -265,11 +261,14 @@ export class IngestScheduler
       if (listed.size === 0 && !rows) {
         const count = await this.prisma.sighting.count({ where: openOnBoard });
         if (count > 0) {
-          // No watchedCompanyId on the error: a board that really emptied would alert every hour.
-          outcome.errors.push({
-            kind: "fault",
-            message: `board of company ${id} listed no jobs but has ${count} open; closed none`,
-          });
+          // A warning, not an error: the open Sightings stay open, so the count never drops and a retryable fault would fail the adapter every hour. See the Ingest scheduler gotcha.
+          // The name only feeds a log line, so a failed lookup must not fail the poll.
+          const company = await this.prisma.company
+            .findUnique({ where: { id }, select: { name: true } })
+            .catch(() => null);
+          this.logger.warn(
+            `board of company ${id} (${company?.name ?? "unknown"}) listed no jobs but has ${count} open; closed none`,
+          );
         }
         continue;
       }
