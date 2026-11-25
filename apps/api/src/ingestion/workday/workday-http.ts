@@ -2,7 +2,7 @@ import http from "node:http";
 import https from "node:https";
 import type { WorkdayHttp } from "./workday-adapter";
 
-export const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 // Cloudflare answers Node's `fetch` (undici) with 429 on Workday's list call and answers `node:https` with
 // 200 for the same request, so Workday is read through `node:https`. See the Workday career-site API concept.
