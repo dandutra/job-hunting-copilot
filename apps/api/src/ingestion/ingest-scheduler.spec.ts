@@ -602,18 +602,57 @@ describe("IngestScheduler", () => {
       expect(finished[1][0].errors).toEqual([]);
     });
 
-    it("never closes anything on an empty listing, and logs a fault", async () => {
+    it("never closes anything on an empty listing, logs a warning and leaves the adapter ok", async () => {
+      const lines: string[] = [];
+      const spy = jest
+        .spyOn(Logger.prototype, "warn")
+        .mockImplementation(
+          (...args: unknown[]) => void lines.push(String(args[0])),
+        );
+      try {
+        const a = new FakeAdapter("boards", listing(acme.id, [1]));
+        const s = scheduler([a]);
+        await s.tick(T0);
+
+        a.result = listing(acme.id, []);
+        await s.tick(hoursAfter(30));
+
+        expect(await closedAt(1)).toBeNull();
+        expect(finished[1][0]).toMatchObject({ status: "ok", errors: [] });
+        const cursor = await prisma.ingestCursor.findUniqueOrThrow({
+          where: { adapter: "boards" },
+        });
+        expect(cursor.lastPollAt).toEqual(hoursAfter(30));
+        expect(lines).toEqual([
+          `board of company ${acme.id} (Acme) listed no jobs but has 1 open; closed none`,
+        ]);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it("still fails the adapter when another board faults next to an empty one", async () => {
+      const other = await prisma.company.create({
+        data: { name: "Other", ats: "greenhouse", boardSlug: "other" },
+      });
       const a = new FakeAdapter("boards", listing(acme.id, [1]));
       const s = scheduler([a]);
       await s.tick(T0);
 
-      a.result = listing(acme.id, []);
+      a.result = {
+        ...listing(acme.id, []),
+        errors: [
+          {
+            kind: "fault",
+            message: "board read failed",
+            watchedCompanyId: other.id,
+          },
+        ],
+      };
       await s.tick(hoursAfter(30));
 
       expect(await closedAt(1)).toBeNull();
-      expect(finished[1][0].errors).toEqual([
-        expect.objectContaining({ kind: "fault" }),
-      ]);
+      expect(finished[1][0].status).toBe("failed");
     });
 
     it("closes the last in-area listing when the board still lists rows outside the area", async () => {
