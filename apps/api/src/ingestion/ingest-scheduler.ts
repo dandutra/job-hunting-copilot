@@ -262,9 +262,10 @@ export class IngestScheduler
         const count = await this.prisma.sighting.count({ where: openOnBoard });
         if (count > 0) {
           // A warning, not an error: the open Sightings stay open, so the count never drops and a retryable fault would fail the adapter every hour. See the Ingest scheduler gotcha.
-          const company = await this.prisma.company.findUnique({
-            where: { id },
-          });
+          // The name only feeds a log line, so a failed lookup must not fail the poll.
+          const company = await this.prisma.company
+            .findUnique({ where: { id }, select: { name: true } })
+            .catch(() => null);
           this.logger.warn(
             `board of company ${id} (${company?.name ?? "unknown"}) listed no jobs but has ${count} open; closed none`,
           );
