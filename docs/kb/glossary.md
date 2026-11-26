@@ -122,7 +122,7 @@ A cover letter written for one Posting from the Master profile, with every parag
 _Avoid_: Custom cover letter
 
 **Trace check**:
-The app's rule check that every line of a Tailored resume or Tailored cover letter cites Entries it is allowed to use. It runs when a draft is submitted and again when it is approved. It cannot catch overstatement.
+The app's rule check that every line of a Tailored resume or Tailored cover letter cites Entries it is allowed to use. It runs when a draft is submitted and again when it is approved, and a local `/tailor` run does the same check on the Mac before it builds the files. It cannot catch overstatement.
 _Avoid_: Validation, citation check
 
 **Claim review**:
