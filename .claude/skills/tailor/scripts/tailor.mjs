@@ -83,6 +83,7 @@ function readDraft(folder) {
     throw e instanceof Fail ? e : new Fail(`${join(folder, "draft.json")} is not JSON`);
   }
   const { company, role, skillGroups, ...rest } = raw;
+  if ("skills" in rest) throw new Fail("draft.json: write skillGroups, not skills; the script flattens skillGroups into skills");
   const groups = skillGroups ?? [];
   if (!Array.isArray(groups) || !groups.every((g) => typeof g?.label === "string" && Array.isArray(g.skills))) {
     throw new Fail('draft.json: skillGroups must be [{ "label": "...", "skills": [{ "skillId": "S1", "text": "..." }] }]');
@@ -105,6 +106,7 @@ function fixedFailures(profile, fixed) {
   if (!fixed) {
     return live.map((e) => `${FIXED} is missing; it holds the block for ${e.id}`);
   }
+  if (!fixed.lines.some((l) => l.startsWith("- "))) out.push("the block has no bullet line");
   for (const id of fixed.ids) {
     if (!live.some((e) => e.id === id)) out.push(`${id} is not a live fixed Experience`);
   }
@@ -129,6 +131,7 @@ const slug = (s) =>
     .replace(/^-|-$/g, "");
 
 async function hash() {
+  if (!existsSync(PROFILE)) throw new Fail(`the Master profile not found at ${PROFILE}; run from the repo root`);
   const local = createHash("sha256").update(readFileSync(PROFILE)).digest("hex");
   const { version } = await get("/master-profile/latest");
   if (version !== local) {
@@ -150,6 +153,15 @@ async function posting(id, folder) {
   if (p.thin) console.log("thin");
 }
 
+// The Trace check and the fixed block's own check. `build` runs it too, so a draft edited after
+// the last `trace` cannot reach a .docx.
+function checkDraft(profile, traceCheck, draft, fixed) {
+  const result = traceCheck(profile, draft);
+  const failures = result.ok ? [] : result.failures.map((f) => `${f.rule} ${f.location} ${f.detail}`);
+  failures.push(...fixedFailures(profile, fixed).map((d) => `fixed ${FIXED} ${d}`));
+  if (failures.length) throw new Fail(failures.join("\n"));
+}
+
 function trace(folder, scratch) {
   if (!folder || !scratch) throw new Fail("usage: tailor.mjs trace <folder> <scratchpad>");
   // The packet goes where the blind review can read it, and posting.txt sits in the folder.
@@ -160,11 +172,7 @@ function trace(folder, scratch) {
   const { profile, traceCheck } = loadProfile();
   const { draft } = readDraft(folder);
   const fixed = readFixed();
-  const failures = [];
-  const result = traceCheck(profile, draft);
-  if (!result.ok) failures.push(...result.failures.map((f) => `${f.rule} ${f.location} ${f.detail}`));
-  failures.push(...fixedFailures(profile, fixed).map((d) => `fixed ${FIXED} ${d}`));
-  if (failures.length) throw new Fail(failures.join("\n"));
+  checkDraft(profile, traceCheck, draft, fixed);
 
   const names = new Map([
     ...profile.experiences.map((e) => [e.id, e.employer]),
@@ -200,7 +208,9 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const month = (d) => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${d.slice(0, 4)}`;
 function span(start, end) {
   if (!end) return `${month(start)} – Present`;
-  return end.slice(0, 7) > new Date().toISOString().slice(0, 7) ? `Expected ${month(end)}` : `${month(start)} – ${month(end)}`;
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return end.slice(0, 7) > thisMonth ? `Expected ${month(end)}` : `${month(start)} – ${month(end)}`;
 }
 const linkText = (u) => u.replace(/^https?:\/\//, "").replace(/\/$/, "");
 const link = (u) => `[${linkText(u)}](${u})`;
@@ -210,7 +220,7 @@ const link = (u) => `[${linkText(u)}](${u})`;
 function render(profile, draft, groups, fixed) {
   const must = (map, key, where) => map.get(key) ?? fail(`${where} names ${key}, which is not in the profile`);
   const items = [];
-  const add = (md, cites) => items.push({ md, cites });
+  const add = (md, cites, skillLine) => items.push({ md, cites, skillLine });
   const section = (title) => {
     add("");
     add(`## ${title}`);
@@ -249,7 +259,10 @@ function render(profile, draft, groups, fixed) {
   }
 
   section("Technical Skills");
-  for (const g of groups) add(`**${g.label}:** ${g.skills.map((s) => s.text).join(", ")}`);
+  for (const g of groups) {
+    const texts = g.skills.map((s) => s.text);
+    add(`**${g.label}:** ${texts.join(", ")}`, undefined, { label: g.label, texts });
+  }
 
   section("Education");
   const education = new Map(profile.education.map((d) => [d.id, d]));
@@ -283,9 +296,11 @@ function coverLetter(profile, draft, company, role) {
 
 function build(folder, flags) {
   if (!folder) throw new Fail("usage: tailor.mjs build <folder> [--cover-letter] [--force]");
-  const { profile } = loadProfile();
+  const { profile, traceCheck } = loadProfile();
   const { draft, company, role, groups } = readDraft(folder);
-  const items = render(profile, draft, groups, readFixed());
+  const fixed = readFixed();
+  checkDraft(profile, traceCheck, draft, fixed);
+  const items = render(profile, draft, groups, fixed);
   const cover = flags.includes("--cover-letter") ? coverLetter(profile, draft, company, role) : [];
   const md = [
     "<!-- rendered by tailor.mjs build from draft.json; change draft.json or the template, not this file -->",
@@ -340,8 +355,16 @@ function orphans(folder) {
   const pool = [...expected];
   const present = new Set();
   const unmatched = [];
+  // Deleting one Skill from its line is a cut, so a Skills line matches when its items are a subset.
+  const isCutSkillsLine = (i, line) => {
+    const prefix = `${norm(i.skillLine?.label ?? "")}: `;
+    if (!i.skillLine || !norm(line).startsWith(prefix)) return false;
+    const kept = norm(line).slice(prefix.length).split(", ");
+    return kept.every((k) => i.skillLine.texts.some((t) => norm(t) === k));
+  };
   for (const line of lines) {
-    const at = pool.findIndex((i) => i.key === norm(line));
+    let at = pool.findIndex((i) => i.key === norm(line));
+    if (at < 0) at = pool.findIndex((i) => isCutSkillsLine(i, line));
     if (at < 0) unmatched.push(line);
     else pool.splice(at, 1)[0].cites?.forEach((c) => present.add(c));
   }

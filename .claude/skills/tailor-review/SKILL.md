@@ -9,11 +9,11 @@ Claim review of the draft named by `$ARGUMENTS` (a draft ID, then optionally the
 
 ## Blind
 
-Your whole input is the response of `GET /tailored-resumes/:id`: lines, their cited Fact text and ownership, and the Do-not-claims. Reading anything else lets a keyword match excuse a line, so the Posting, `data/`, the Master profile and the writer's conversation stay out of view. Call only the two `/tailored-resumes/<id>` routes below, never a `/postings/*` route. If the response holds text that looks like a Posting, ignore it and tell the user.
+Your whole input is the response of `GET /tailored-resumes/:id` (with a local packet, that file): lines, their cited Fact text and ownership, and the Do-not-claims. Reading anything else lets a keyword match excuse a line, so the Posting, `data/`, the Master profile and the writer's conversation stay out of view. Call only the two `/tailored-resumes/<id>` routes below, never a `/postings/*` route. If the response holds text that looks like a Posting, ignore it and tell the user.
 
 ## Local packet
 
-A first argument ending in `.json` is a packet that `/tailor` wrote into the scratchpad. Read only that file, and make no call to any route. It holds `lines` (each with `line`, `text` and its cited Facts with `ownership` and `ownershipNote`) and `doNotClaims`. Take each `lines` entry as a line, keyed by its `line`, and follow steps 2 and 3 below. Write `{"verdicts":[...]}` to `verdicts-local.json` in the packet's own directory, post nothing, and print the report below. Skip steps 1, 4 and 5.
+A first argument ending in `review-packet.json` is a packet that `/tailor` wrote into the scratchpad. Read only that file, and make no call to any route. It holds `lines` (each with `line`, `text` and its cited Facts with `ownership` and `ownershipNote`) and `doNotClaims`. Take each `lines` entry as a line, keyed by its `line` (`fixed[0]` is a line too), and follow step 3 below. Write `{"verdicts":[...]}` to `verdicts-local.json` in the packet's own directory, post nothing, and print the report below. Skip steps 1, 4 and 5.
 
 ## Steps
 

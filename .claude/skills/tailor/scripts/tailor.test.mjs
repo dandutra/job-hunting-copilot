@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -243,11 +243,11 @@ test("build: --cover-letter adds the letter from draft.json's company and role",
   assert.ok(existsSync(join(folder, "Sam-Sample-Cover-Letter.docx")));
 });
 
-test("build: an unknown ID names itself", async () => {
+test("build: an unknown ID names its location", async () => {
   const { cwd, folder } = workspace({ draft: withDraft((d) => (d.projects[0].id = "P9")) });
   const r = await run(cwd, "build", folder);
   assert.notEqual(r.status, 0);
-  assert.match(r.stderr, /P9/);
+  assert.match(r.stderr, /^1 projects\[0\] an unknown ID$/m);
 });
 
 test("orphans: a bullet cut in Word lists the Skill whose only evidence it was", async () => {
@@ -291,6 +291,54 @@ test("orphans: a .docx with no lines exits non-zero with its counts", async () =
   const r = await run(cwd, "orphans", folder);
   assert.equal(r.status, 1);
   assert.match(r.stdout, /found 0, matched 0, unmatched 0, orphaned skills \d+/);
+});
+
+test("build: a draft that leaves out the fixed Experience, or a block with no bullet, builds nothing", async () => {
+  for (const change of [
+    { draft: withDraft((d) => d.experiences.shift()) },
+    { fixed: FIXED.split("\n").slice(0, 2).join("\n") + "\n" },
+    { draft: withDraft((d) => (d.experiences[1].bullets[0].cites = ["F4"])) },
+  ]) {
+    const { cwd, folder } = workspace(change);
+    const r = await run(cwd, "build", folder);
+    assert.equal(r.status, 1, r.stdout);
+    assert.ok(!existsSync(join(folder, RESUME)));
+    assert.ok(!existsSync(join(folder, "draft.md")));
+  }
+});
+
+test("trace: a draft.json in the API shape, with skills and no skillGroups, is refused", async () => {
+  const { cwd, folder } = workspace({
+    draft: withDraft((d) => {
+      delete d.skillGroups;
+      d.skills = [{ skillId: "S1", text: "TypeScript" }];
+    }),
+  });
+  const r = await run(cwd, "trace", folder, join(cwd, "scratch"));
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /skillGroups/);
+});
+
+test("orphans: a Skill deleted from its line in Word is a cut, not a rewording", async () => {
+  const { cwd, folder } = workspace({
+    draft: withDraft((d) => d.skillGroups[0].skills.push({ skillId: "S2", text: "SQL" })),
+  });
+  assert.equal((await run(cwd, "build", folder)).status, 0);
+  await editDocx(join(folder, RESUME), (xml) => xml.replace("TypeScript, SQL", "TypeScript"));
+  const r = await run(cwd, "orphans", folder);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /unmatched 0/);
+  await editDocx(join(folder, RESUME), (xml) => xml.replace("TypeScript", "Rust"));
+  assert.equal((await run(cwd, "orphans", folder)).status, 1);
+});
+
+test("hash: a missing profile names the file", async () => {
+  const { cwd } = workspace({ env: "COPILOT_API_URL=http://127.0.0.1:9/api\n" });
+  rmSync(join(cwd, "data/master-profile.yaml"));
+  const r = await run(cwd, "hash");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /master-profile\.yaml/);
+  assert.doesNotMatch(r.stderr, /at .*node:/);
 });
 
 test("hash: exit 0 on a matching version and 3 on a different one", async () => {

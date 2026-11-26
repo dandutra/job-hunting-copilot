@@ -32,9 +32,9 @@ Each shell call starts fresh, so run every command from the repo root. `<scratch
 2. Make the folder `data/tailored/<company>-<role>/` and write `posting.txt` in it. A first argument that is a whole number is a Posting ID: `node .claude/skills/tailor/scripts/tailor.mjs posting <id>` creates the folder, writes `posting.txt` and prints the folder path. Anything else is the pasted description: choose a kebab-case folder name and write the pasted text to `posting.txt`.
    - A second printed line `thin` is a Thin Posting. Ask the user to paste the full description, write it to `posting.txt`, and use it as the Posting text from here on.
    - An existing folder is a revision: read its `draft.json` first and start from it.
-   - When `--cover-letter` is absent and the Posting text mentions a cover letter, tell the user before writing. They may re-run with the flag.
 
 3. **Gate 1.** Read the Posting and tell the user, then wait for the user to approve or iterate. The theme sets the order of every section, so never skip this step or guess it.
+   - Whether the Posting asks for a cover letter. When `--cover-letter` is absent and it does, the user may re-run with the flag.
    - The stack: full-stack, back end, front end, DevOps, cloud or operations, with the Posting lines that show it.
    - Any second angle the Posting stresses, such as AI-assisted development, with its lines.
    - The stretch lines. List the hard requirements ("must have", "you'll need") the profile does not plainly meet. A requirement with no related Fact stays out, and nothing is written for it. A requirement with a related Fact gets the strongest line that Fact supports, shown with its requirement and its Facts. The line never claims the requirement itself. Only the lines the user accepts enter the draft.
@@ -43,12 +43,12 @@ Each shell call starts fresh, so run every command from the repo root. `<scratch
 
    The contact details are current: the user keeps them up to date in the profile.
 
-4. **Gate 2.** Choose Facts and write `<folder>/draft.json` by `TEMPLATE.md` and the rules under Writing. Print every line in the order it will appear on the page: each section runs from the strongest fit to the theme and angles to the weakest. Wait for the user to approve or iterate.
+4. **Gate 2.** Choose Facts and write `<folder>/draft.json` by `TEMPLATE.md` and the rules under Writing. Print every line in the order it will appear on the page, with the lines of `fixed.md` where its block will sit: each section runs from the strongest fit to the theme and angles to the weakest. Wait for the user to approve or iterate.
 
 5. **Gate 3.** Run `node .claude/skills/tailor/scripts/tailor.mjs trace <folder> <scratchpad>`.
    - Each failure prints as `rule location detail`. Fix those lines in `draft.json` and run it again.
    - On success, run `/tailor-review <scratchpad>/review-packet.json`. It judges the lines blind and prints the flagged ones. Rewrite those lines and nothing else, then run both commands again. After 2 rewrite rounds with lines still flagged, stop and show the user the draft and the verdicts.
-   - Print the reviewed lines in the Gate 2 order, and wait for the user to approve or iterate.
+   - Print the reviewed lines in the Gate 2 order, and wait for the user to approve or iterate. Each change the user asks for goes into `draft.json`, then `trace` and `/tailor-review` run again, because the build runs the Trace check but not the blind review.
 
 6. Run `node .claude/skills/tailor/scripts/tailor.mjs build <folder>` (add `--cover-letter` when asked). It renders `draft.md`, then builds the `.docx`. The user cuts lines in Word to fit one page with nothing below 11 pt, and the weakest lines are already at the bottom of each section. Exit 4 means the user saved the `.docx` in Word after the last build. Build with `--force` only when the user asks, because it replaces their edits.
 
