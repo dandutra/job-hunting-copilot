@@ -1083,7 +1083,8 @@
           },
           "importedAt": {
             "type": "string",
-            "description": "When that version was stored, ISO 8601."
+            "format": "date-time",
+            "description": "When that version was stored."
           }
         },
         "required": [

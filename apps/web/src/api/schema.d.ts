@@ -427,7 +427,10 @@ export interface components {
         LatestVersionDto: {
             /** @description SHA-256 of the newest stored file. */
             version: string;
-            /** @description When that version was stored, ISO 8601. */
+            /**
+             * Format: date-time
+             * @description When that version was stored.
+             */
             importedAt: string;
         };
         InputPostingDto: {

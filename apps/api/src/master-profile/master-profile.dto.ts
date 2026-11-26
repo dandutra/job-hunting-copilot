@@ -31,7 +31,9 @@ export class LatestVersionDto {
   version!: string;
 
   @ApiProperty({
-    description: "When that version was stored, ISO 8601.",
+    type: String,
+    format: "date-time",
+    description: "When that version was stored.",
   })
   importedAt!: string;
 }
