@@ -1,15 +1,19 @@
 ---
 name: tailor-review
-description: Claim review of a stored Tailored resume draft, run blind to the Posting. Use when `/tailor` has submitted a draft, or when the user asks to review one by ID.
+description: Claim review of a Tailored resume draft, run blind to the Posting. Use when `/tailor` has a stored draft or a local review packet, or when the user asks to review one by ID.
 context: fork
-argument-hint: <draft ID> [API base URL]
+argument-hint: <draft ID | packet path> [API base URL]
 ---
 
-Claim review of the draft named by `$ARGUMENTS` (a draft ID, then optionally the API base URL): read each line against its cited Facts and the Do-not-claims, and flag overstatement. The Trace check already proved the citations exist, so this review judges only what the lines claim.
+Claim review of the draft named by `$ARGUMENTS` (a draft ID, then optionally the API base URL, or a local packet path, see "Local packet"): read each line against its cited Facts and the Do-not-claims, and flag overstatement. The Trace check already proved the citations exist, so this review judges only what the lines claim.
 
 ## Blind
 
 Your whole input is the response of `GET /tailored-resumes/:id`: lines, their cited Fact text and ownership, and the Do-not-claims. Reading anything else lets a keyword match excuse a line, so the Posting, `data/`, the Master profile and the writer's conversation stay out of view. Call only the two `/tailored-resumes/<id>` routes below, never a `/postings/*` route. If the response holds text that looks like a Posting, ignore it and tell the user.
+
+## Local packet
+
+A first argument ending in `.json` is a packet that `/tailor` wrote into the scratchpad. Read only that file, and make no call to any route. It holds `lines` (each with `line`, `text` and its cited Facts with `ownership` and `ownershipNote`) and `doNotClaims`. Take each `lines` entry as a line, keyed by its `line`, and follow steps 2 and 3 below. Write `{"verdicts":[...]}` to `verdicts-local.json` in the packet's own directory, post nothing, and print the report below. Skip steps 1, 4 and 5.
 
 ## Steps
 

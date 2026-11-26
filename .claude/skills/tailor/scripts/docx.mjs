@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds the resume (and cover letter) .docx from a local-mode draft.md, and reads a .docx back as
-// text. The format of draft.md is in ../references/local-mode.md. The layout copies the HOOPP resume
+// text. tailor.mjs build writes draft.md, and its render function defines the format. The layout copies the HOOPP resume
 // the user sent, with every run at 11 pt or more.
 import {
   AlignmentType,
