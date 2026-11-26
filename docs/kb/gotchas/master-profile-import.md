@@ -19,3 +19,4 @@ generated:
 - A 400 body lists every error with its Entry ID. Messages can quote the file's text (`got "..."`), so they go to the caller and never to the log. Logs hold the 12-character hash prefix only.
 - `added` and `retired` compare against the latest version before the import. For a file already stored, both are 0 and `created` is false.
 - "Immutable" is a convention in the code, with no database trigger. Nothing calls update or delete on `master_profile_version` except the test reset.
+- `GET /master-profile/latest` returns `{ version, importedAt }` for the newest `created_at` row, the rule the import uses, and 404 when nothing is stored. It sends no YAML and sits behind the Tailnet guard. `/tailor` compares `version` with the SHA-256 of `data/master-profile.yaml`.

@@ -26,6 +26,16 @@ export class ImportResultDto {
   retired!: number;
 }
 
+export class LatestVersionDto {
+  @ApiProperty({ description: "SHA-256 of the newest stored file." })
+  version!: string;
+
+  @ApiProperty({
+    description: "When that version was stored, ISO 8601.",
+  })
+  importedAt!: string;
+}
+
 export class ProfileErrorDto {
   @ApiProperty({ description: 'Entry ID, or "(file)".' })
   id!: string;

@@ -4,11 +4,12 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { type Profile, validateProfile } from "master-profile";
 import { PrismaService } from "../prisma/prisma.service";
-import { ImportResultDto } from "./master-profile.dto";
+import { ImportResultDto, LatestVersionDto } from "./master-profile.dto";
 
 type EntryStates = Map<string, boolean>;
 
@@ -86,10 +87,21 @@ export class MasterProfileService {
     return { ...counts, created: true };
   }
 
-  private async latestStates(): Promise<EntryStates> {
-    const latest = await this.prisma.masterProfileVersion.findFirst({
+  // Only the hash and the time: the caller compares hashes, and the YAML holds personal data.
+  async latestVersion(): Promise<LatestVersionDto> {
+    const latest = await this.newest();
+    if (!latest) throw new NotFoundException();
+    return { version: latest.id, importedAt: latest.createdAt.toISOString() };
+  }
+
+  private newest() {
+    return this.prisma.masterProfileVersion.findFirst({
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  private async latestStates(): Promise<EntryStates> {
+    const latest = await this.newest();
     if (!latest) return new Map();
     const result = validateProfile(latest.rawYaml);
     if (!result.ok) {
