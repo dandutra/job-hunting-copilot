@@ -90,6 +90,33 @@
         ]
       }
     },
+    "/master-profile/latest": {
+      "get": {
+        "operationId": "MasterProfileController_latest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestVersionDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": "No version is stored."
+          }
+        },
+        "tags": [
+          "MasterProfile"
+        ]
+      }
+    },
     "/postings/{id}/tailoring-input": {
       "get": {
         "operationId": "TailoringController_input",
@@ -1045,6 +1072,24 @@
         },
         "required": [
           "errors"
+        ]
+      },
+      "LatestVersionDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "SHA-256 of the newest stored file."
+          },
+          "importedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When that version was stored."
+          }
+        },
+        "required": [
+          "version",
+          "importedAt"
         ]
       },
       "InputPostingDto": {

@@ -19,3 +19,6 @@ generated:
 - A 400 body lists every error with its Entry ID. Messages can quote the file's text (`got "..."`), so they go to the caller and never to the log. Logs hold the 12-character hash prefix only.
 - `added` and `retired` compare against the latest version before the import. For a file already stored, both are 0 and `created` is false.
 - "Immutable" is a convention in the code, with no database trigger. Nothing calls update or delete on `master_profile_version` except the test reset.
+- `GET /master-profile/latest` returns `{ version, importedAt }` for the newest `created_at` row, the rule the import uses, and 404 when nothing is stored. It sends no YAML and sits behind the Tailnet guard. The caller compares `version` with the SHA-256 of `data/master-profile.yaml`; nothing calls the route yet.
+- Three places hold the "newest `created_at`" rule: `newest()` in `MasterProfileService` (the import and `/latest`), `latest()` in `tailoring.service.ts` (rule 6 and the tailoring input) and the profile read in `jev-runner.ts`. A change to what "latest" means needs all three edits.
+- The ordering has no tie-break and `created_at` is `TIMESTAMP(3)`, so two imports in the same millisecond have no defined latest. A real fix needs a monotonic column, because `id` is a hash and does not sort by time.

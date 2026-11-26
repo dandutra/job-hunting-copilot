@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/master-profile/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MasterProfileController_latest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/postings/{id}/tailoring-input": {
         parameters: {
             query?: never;
@@ -407,6 +423,15 @@ export interface components {
         };
         RejectedProfileDto: {
             errors: components["schemas"]["ProfileErrorDto"][];
+        };
+        LatestVersionDto: {
+            /** @description SHA-256 of the newest stored file. */
+            version: string;
+            /**
+             * Format: date-time
+             * @description When that version was stored.
+             */
+            importedAt: string;
         };
         InputPostingDto: {
             id: number;
@@ -939,6 +964,38 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MasterProfileController_latest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LatestVersionDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No version is stored. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

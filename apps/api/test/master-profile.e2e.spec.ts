@@ -204,6 +204,50 @@ describe("PUT /master-profile", () => {
     expect(await prisma.masterProfileVersion.count()).toBe(0);
   });
 
+  describe("GET /master-profile/latest", () => {
+    const get = () =>
+      request(app.getHttpServer())
+        .get("/master-profile/latest")
+        .set("Tailscale-User-Login", LOGIN);
+
+    it("answers 404 when no version is stored", async () => {
+      const res = await get();
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns the hash of the one stored file and nothing else", async () => {
+      const yaml = profileYaml();
+      await put(yaml);
+      const res = await get();
+
+      expect(res.status).toBe(200);
+      expect(Object.keys(res.body).sort()).toEqual(["importedAt", "version"]);
+      expect(res.body.version).toBe(sha(yaml));
+      const row = await prisma.masterProfileVersion.findFirstOrThrow();
+      expect(res.body.importedAt).toBe(row.createdAt.toISOString());
+    });
+
+    it("returns the newer version after a second import", async () => {
+      await put(profileYaml());
+      const newer = profileYaml({ withSecondFact: true });
+      await put(newer);
+      const res = await get();
+
+      expect(res.status).toBe(200);
+      expect(res.body.version).toBe(sha(newer));
+    });
+
+    it("answers 401 without the Tailscale login", async () => {
+      await put(profileYaml());
+      const res = await request(app.getHttpServer()).get(
+        "/master-profile/latest",
+      );
+
+      expect(res.status).toBe(401);
+    });
+  });
+
   it("never logs the profile's content", async () => {
     const lines: string[] = [];
     const spies = (["log", "warn", "error", "debug", "verbose"] as const).map(
