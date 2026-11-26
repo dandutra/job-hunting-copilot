@@ -324,7 +324,7 @@ test("orphans: a Skill deleted from its line in Word is a cut, not a rewording",
     draft: withDraft((d) => d.skillGroups[0].skills.push({ skillId: "S2", text: "SQL" })),
   });
   assert.equal((await run(cwd, "build", folder)).status, 0);
-  await editDocx(join(folder, RESUME), (xml) => xml.replace("TypeScript, SQL", "TypeScript"));
+  await editDocx(join(folder, RESUME), (xml) => xml.replace("TypeScript, SQL", "TypeScript, "));
   const r = await run(cwd, "orphans", folder);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /unmatched 0/);

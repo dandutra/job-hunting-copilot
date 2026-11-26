@@ -13,7 +13,7 @@ Your whole input is the response of `GET /tailored-resumes/:id` (with a local pa
 
 ## Local packet
 
-A first argument ending in `review-packet.json` is a packet that `/tailor` wrote into the scratchpad. Read only that file, and make no call to any route. It holds `lines` (each with `line`, `text` and its cited Facts with `ownership` and `ownershipNote`) and `doNotClaims`. Take each `lines` entry as a line, keyed by its `line` (`fixed[0]` is a line too), and follow step 3 below. Write `{"verdicts":[...]}` to `verdicts-local.json` in the packet's own directory, post nothing, and print the report below. Skip steps 1, 4 and 5.
+A first argument ending in `review-packet.json` is a packet that `/tailor` wrote into the scratchpad. Read only that file, and make no call to any route. It holds `lines` (each with `line`, `text` and its cited Facts with `ownership` and `ownershipNote`) and `doNotClaims`. Take each `lines` entry as a line, keyed by its `line` (every `fixed[i]` is a line too), and follow step 3 below. Write `{"verdicts":[...]}` to `verdicts-local.json` in the packet's own directory, post nothing, and print the report below. Skip steps 1, 4 and 5.
 
 ## Steps
 

@@ -131,7 +131,7 @@ const slug = (s) =>
     .replace(/^-|-$/g, "");
 
 async function hash() {
-  if (!existsSync(PROFILE)) throw new Fail(`the Master profile not found at ${PROFILE}; run from the repo root`);
+  if (!existsSync(PROFILE)) throw new Fail(`the Master profile is not at ${PROFILE}; run from the repo root`);
   const local = createHash("sha256").update(readFileSync(PROFILE)).digest("hex");
   const { version } = await get("/master-profile/latest");
   if (version !== local) {
@@ -359,7 +359,8 @@ function orphans(folder) {
   const isCutSkillsLine = (i, line) => {
     const prefix = `${norm(i.skillLine?.label ?? "")}: `;
     if (!i.skillLine || !norm(line).startsWith(prefix)) return false;
-    const kept = norm(line).slice(prefix.length).split(", ");
+    // Word leaves the separator behind when the last item goes, so "A, B" cut to "A," keeps A.
+    const kept = norm(line).slice(prefix.length).replace(/,$/, "").split(", ");
     return kept.every((k) => i.skillLine.texts.some((t) => norm(t) === k));
   };
   for (const line of lines) {
