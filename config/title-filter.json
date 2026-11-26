@@ -51,6 +51,21 @@
     "ML"
   ],
   "exempt": ["member of technical staff"],
+  "entryLevel": [
+    "junior",
+    "jr",
+    "new grad",
+    "new graduate",
+    "recent graduate",
+    "graduate",
+    "entry level",
+    "early career",
+    "campus",
+    "undergraduate",
+    "associate",
+    "apprentice",
+    "trainee"
+  ],
   "searchTerms": [
     "software developer",
     "software engineer",

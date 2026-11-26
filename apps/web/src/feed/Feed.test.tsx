@@ -29,6 +29,7 @@ const item = (
   company: `Company ${id}`,
   location: "Toronto, ON",
   metros: ["gta"],
+  entryLevel: false,
   postedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
   sightingCount: 1,
   thin: false,
@@ -642,6 +643,167 @@ it("still opens a Posting chosen by URL when the location filter hides it", asyn
 
   expect(listed()).not.toContain("Toronto job");
   expect(screen.getByRole("heading", { name: "Toronto job" })).toBeTruthy();
+});
+
+const tickEntryLevel = () =>
+  fireEvent.click(screen.getByLabelText("Entry level"));
+
+const ENTRY = [
+  item(1, "A", {
+    title: "Fresh junior London",
+    entryLevel: true,
+    metros: ["london-on"],
+    postedAt: daysAgo(1),
+  }),
+  item(2, "A", {
+    title: "Old junior London",
+    entryLevel: true,
+    metros: ["london-on"],
+    postedAt: daysAgo(5),
+  }),
+  item(3, "A", {
+    title: "Fresh junior Toronto",
+    entryLevel: true,
+    postedAt: daysAgo(1),
+  }),
+  item(4, "B", {
+    title: "Fresh plain London",
+    metros: ["london-on"],
+    postedAt: daysAgo(1),
+  }),
+  item(5, "B", { title: "Fresh plain Toronto", postedAt: daysAgo(1) }),
+];
+
+it("shows only entry-level Postings with the box ticked, and everything again when it is cleared", async () => {
+  renderAt("/", stub({ items: () => ENTRY }));
+  await screen.findByText("Fresh plain Toronto");
+
+  tickEntryLevel();
+
+  expect(listed()).toEqual([
+    "Fresh junior London",
+    "Old junior London",
+    "Fresh junior Toronto",
+  ]);
+
+  tickEntryLevel();
+
+  expect(listed()).toHaveLength(ENTRY.length);
+});
+
+it("stacks Entry level with Location, and clearing one leaves the other's state", async () => {
+  renderAt("/", stub({ items: () => ENTRY }));
+  await screen.findByText("Fresh plain Toronto");
+
+  tickEntryLevel();
+  pickLocation("london-on");
+
+  expect(listed()).toEqual(["Fresh junior London", "Old junior London"]);
+
+  tickEntryLevel();
+
+  expect((screen.getByLabelText("Location") as HTMLSelectElement).value).toBe(
+    "london-on",
+  );
+  expect(listed()).toEqual([
+    "Fresh junior London",
+    "Old junior London",
+    "Fresh plain London",
+  ]);
+});
+
+it("stacks Entry level with Last 3 days, and clearing one leaves the other's state", async () => {
+  renderAt("/", stub({ items: () => ENTRY }));
+  await screen.findByText("Fresh plain Toronto");
+
+  tickEntryLevel();
+  fireEvent.click(screen.getByLabelText("Last 3 days"));
+
+  expect(listed()).toEqual(["Fresh junior London", "Fresh junior Toronto"]);
+
+  tickEntryLevel();
+
+  expect(
+    (screen.getByLabelText("Last 3 days") as HTMLInputElement).checked,
+  ).toBe(true);
+  expect(listed()).not.toContain("Old junior London");
+  expect(listed()).toContain("Fresh plain Toronto");
+});
+
+it("says 'No entry-level Postings.' when the box empties a list that Location left", async () => {
+  renderAt("/", stub({ items: () => ENTRY.slice(3) }));
+  await screen.findByText("Fresh plain Toronto");
+
+  tickEntryLevel();
+
+  expect(screen.getByText("No entry-level Postings.")).toBeTruthy();
+  expect(screen.queryByText(/No Postings in/)).toBeNull();
+});
+
+it("names the location in that message once one is chosen, and blames the location when it empties the list first", async () => {
+  renderAt("/", stub({ items: () => [...ENTRY.slice(0, 1), ENTRY[4]] }));
+  await screen.findByText("Fresh plain Toronto");
+  tickEntryLevel();
+  pickLocation("gta");
+
+  expect(
+    screen.getByText("No entry-level Postings in this location."),
+  ).toBeTruthy();
+
+  pickLocation("halifax");
+
+  expect(screen.getByText("No Postings in this location.")).toBeTruthy();
+  expect(screen.queryByText(/No entry-level Postings/)).toBeNull();
+});
+
+it("says 'No Postings in the last 3 days.' when only the cutoff empties a list that Entry level left", async () => {
+  renderAt("/", stub({ items: () => ENTRY.slice(1, 2) }));
+  await screen.findByText("Old junior London");
+  tickEntryLevel();
+  fireEvent.click(screen.getByLabelText("Last 3 days"));
+
+  expect(screen.getByText("No Postings in the last 3 days.")).toBeTruthy();
+  expect(screen.queryByText(/No entry-level/)).toBeNull();
+});
+
+it("keeps j and k inside the entry-level list", async () => {
+  renderAt("/postings/1", stub({ items: () => ENTRY }));
+  await screen.findByRole("heading", { name: "Fresh junior London" });
+  await screen.findByText("Fresh plain Toronto");
+  tickEntryLevel();
+
+  fireEvent.keyDown(window, { key: "j" });
+  await screen.findByRole("heading", { name: "Old junior London" });
+  fireEvent.keyDown(window, { key: "j" });
+  await screen.findByRole("heading", { name: "Fresh junior Toronto" });
+  // The plain Postings below are filtered out, so j stops here.
+  fireEvent.keyDown(window, { key: "j" });
+  fireEvent.keyDown(window, { key: "j" });
+  expect(
+    screen.getByRole("heading", { name: "Fresh junior Toronto" }),
+  ).toBeTruthy();
+});
+
+it("keeps Tier C collapsed with Entry level ticked", async () => {
+  renderAt(
+    "/",
+    stub({
+      items: () => [
+        item(1, "C", { title: "Junior C", entryLevel: true }),
+        item(2, "A", { title: "Junior A", entryLevel: true }),
+      ],
+    }),
+  );
+  await screen.findByText("Junior A");
+
+  tickEntryLevel();
+
+  expect(listed()).toEqual(["Junior A"]);
+  expect(
+    screen
+      .getByRole("button", { name: /Tier C/ })
+      .getAttribute("aria-expanded"),
+  ).toBe("false");
 });
 
 it("links a Posting's newest draft as Review draft, and shows no link when it has none", async () => {

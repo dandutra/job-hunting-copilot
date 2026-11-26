@@ -2306,6 +2306,10 @@
               ]
             }
           },
+          "entryLevel": {
+            "type": "boolean",
+            "description": "True when the title holds an entryLevel phrase from config/title-filter.json or a level number I or 1."
+          },
           "postedAt": {
             "type": "string",
             "format": "date-time",
@@ -2363,6 +2367,7 @@
           "company",
           "location",
           "metros",
+          "entryLevel",
           "postedAt",
           "sightingCount",
           "thin",
@@ -2543,6 +2548,10 @@
               ]
             }
           },
+          "entryLevel": {
+            "type": "boolean",
+            "description": "True when the title holds an entryLevel phrase from config/title-filter.json or a level number I or 1."
+          },
           "postedAt": {
             "type": "string",
             "format": "date-time",
@@ -2644,6 +2653,7 @@
           "company",
           "location",
           "metros",
+          "entryLevel",
           "postedAt",
           "sightingCount",
           "thin",

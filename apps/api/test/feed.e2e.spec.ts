@@ -156,7 +156,28 @@ describe("feed endpoints", () => {
       feedCorrection: null,
       state: "open",
       metros: ["remote-canada"],
+      entryLevel: false,
     });
+  });
+
+  it("flags a Posting whose title is entry level, on the list and on the detail", async () => {
+    const junior = await seedPosting(prisma, {
+      tier: "A",
+      title: "Jr. Software Engineer (New Grad)",
+    });
+    const plain = await seedPosting(prisma, {
+      tier: "A",
+      title: "Software Engineer II",
+    });
+
+    const { body } = await get("/postings");
+
+    const flag = (id: number) =>
+      body.find((r: { id: number }) => r.id === id).entryLevel;
+    expect(flag(junior)).toBe(true);
+    expect(flag(plain)).toBe(false);
+    expect((await get(`/postings/${junior}`)).body.entryLevel).toBe(true);
+    expect((await get(`/postings/${plain}`)).body.entryLevel).toBe(false);
   });
 
   it("sends the metros each location names, several for a Posting that names several places", async () => {

@@ -18,6 +18,11 @@ class PostingCoreDto {
   })
   metros!: AreaMetro[];
   @ApiProperty({
+    description:
+      "True when the title holds an entryLevel phrase from config/title-filter.json or a level number I or 1.",
+  })
+  entryLevel!: boolean;
+  @ApiProperty({
     type: String,
     format: "date-time",
     description: "The earliest Sighting's date.",
