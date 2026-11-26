@@ -37,6 +37,7 @@ export function FeedScreen() {
   // Taken when the box is ticked, because a render must not read the clock.
   const [cutoff, setCutoff] = useState<number | null>(null);
   const [place, setPlace] = useState<Metro | "all">("all");
+  const [entryOnly, setEntryOnly] = useState(false);
   const [version, setVersion] = useState(0);
   const [list, setList] = useState<{ key: string; items: FeedItem[] } | null>(
     null,
@@ -73,12 +74,17 @@ export function FeedScreen() {
         : (loaded ?? []).filter((i) => i.metros.includes(place)),
     [loaded, place],
   );
+  // The API decides what is entry level; the screen only reads the flag.
+  const inEntry = useMemo(
+    () => (entryOnly ? inPlace.filter((i) => i.entryLevel) : inPlace),
+    [inPlace, entryOnly],
+  );
   const items = useMemo(
     () =>
       cutoff === null
-        ? inPlace
-        : inPlace.filter((i) => Date.parse(i.postedAt) >= cutoff),
-    [inPlace, cutoff],
+        ? inEntry
+        : inEntry.filter((i) => Date.parse(i.postedAt) >= cutoff),
+    [inEntry, cutoff],
   );
   const visible = useMemo(
     () =>
@@ -189,6 +195,14 @@ export function FeedScreen() {
         <label className="closed-toggle">
           <input
             type="checkbox"
+            checked={entryOnly}
+            onChange={(e) => setEntryOnly(e.target.checked)}
+          />
+          Entry level
+        </label>
+        <label className="closed-toggle">
+          <input
+            type="checkbox"
             checked={cutoff !== null}
             onChange={(e) =>
               setCutoff(e.target.checked ? Date.now() - RECENT_MS : null)
@@ -202,7 +216,14 @@ export function FeedScreen() {
         {list && list.items.length > 0 && inPlace.length === 0 && (
           <p className="muted page">No Postings in this location.</p>
         )}
-        {inPlace.length > 0 && items.length === 0 && (
+        {inPlace.length > 0 && inEntry.length === 0 && (
+          <p className="muted page">
+            {place === "all"
+              ? "No entry-level Postings."
+              : "No entry-level Postings in this location."}
+          </p>
+        )}
+        {inEntry.length > 0 && items.length === 0 && (
           <p className="muted page">No Postings in the last 3 days.</p>
         )}
         <PostingList

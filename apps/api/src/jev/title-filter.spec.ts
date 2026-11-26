@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import {
+  getTitleFilter,
   loadSearchTerms,
   loadTitleFilter,
   readTitleFilter,
@@ -59,6 +60,44 @@ describe("titlePasses, with the committed config", () => {
   });
 });
 
+describe("entryLevel, with the committed config", () => {
+  const entryLevel = (title: string) => getTitleFilter().entryLevel(title);
+
+  it.each([
+    "Junior Full Stack Developer",
+    "Jr. Software Engineer (New Grad)",
+    "Software Developer, New Graduate",
+    "Recent Graduate Developer",
+    "Graduate Software Engineer",
+    "Entry-Level Software Engineer",
+    "Early Career Developer",
+    "Software Engineer, Campus",
+    "Undergraduate Developer",
+    "Associate Software Developer",
+    "Software Engineer Apprentice",
+    "Developer Trainee",
+    "Software Engineer I, Fullstack",
+    "Software Developer 1",
+    "Developer Technology I",
+  ])("flags %s", (title) => {
+    expect(entryLevel(title)).toBe(true);
+  });
+
+  it.each([
+    "Software Engineer II",
+    "Software Developer II",
+    "Software Programmer (1 year contract)",
+    "Developer, 1 Years of experience",
+    "Developer (6 months, 1 month notice)",
+    "AI Engineer",
+    "Intermediate Software Developer",
+    "Graduated Developer",
+    "Software Engineer 10",
+  ])("does not flag %s", (title) => {
+    expect(entryLevel(title)).toBe(false);
+  });
+});
+
 describe("the committed config", () => {
   it("loads", () => {
     const text = readFileSync("../../config/title-filter.json", "utf8");
@@ -82,6 +121,7 @@ describe("loadTitleFilter", () => {
     include: ["developer"],
     exclude: ["senior"],
     exempt: [],
+    entryLevel: ["junior"],
   };
   const load = (value: unknown) => loadTitleFilter(JSON.stringify(value));
 
@@ -90,11 +130,21 @@ describe("loadTitleFilter", () => {
       include: ["widget maker"],
       exclude: ["lead"],
       exempt: ["lead widget maker"],
+      entryLevel: ["apprentice widget maker"],
     });
     expect(filter.passes("Widget-Maker")).toBe(true);
     expect(filter.passes("Lead Widget Maker")).toBe(true);
     expect(filter.passes("Lead Widget Maker II, Lead")).toBe(false);
     expect(filter.passes("Developer")).toBe(false);
+  });
+
+  it("flags an entry-level title by its own list, whole words and level numbers", () => {
+    const filter = load({ ...valid, entryLevel: ["New  Grad", "trainee"] });
+    expect(filter.entryLevel("Developer (new-grad)")).toBe(true);
+    expect(filter.entryLevel("Trainee")).toBe(true);
+    expect(filter.entryLevel("Developer I")).toBe(true);
+    expect(filter.entryLevel("Junior Developer")).toBe(false);
+    expect(filter.entryLevel("Traineeship Lead")).toBe(false);
   });
 
   it("rejects invalid JSON, naming the file", () => {
@@ -113,7 +163,7 @@ describe("loadTitleFilter", () => {
     expect(() => load([])).toThrow("title filter: the file must be an object");
   });
 
-  it.each(["include", "exclude", "exempt"])(
+  it.each(["include", "exclude", "exempt", "entryLevel"])(
     "rejects a missing %s list",
     (key) => {
       const bad: Record<string, unknown> = { ...valid };
@@ -128,7 +178,7 @@ describe("loadTitleFilter", () => {
     );
   });
 
-  it.each(["include", "exclude", "exempt"])(
+  it.each(["include", "exclude", "exempt", "entryLevel"])(
     "rejects a non-string entry in %s",
     (key) => {
       expect(() => load({ ...valid, [key]: ["ok", 3] })).toThrow(
@@ -136,6 +186,12 @@ describe("loadTitleFilter", () => {
       );
     },
   );
+
+  it("rejects an empty entryLevel list", () => {
+    expect(() => load({ ...valid, entryLevel: [] })).toThrow(
+      "title filter: entryLevel must not be empty",
+    );
+  });
 
   it("rejects a blank entry", () => {
     expect(() => load({ ...valid, exclude: ["  "] })).toThrow(

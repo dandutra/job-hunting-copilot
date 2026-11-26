@@ -6,6 +6,19 @@ const DEFAULT_PATH = "../../config/title-filter.json";
 export interface TitleFilter {
   // A title passes when it holds an include phrase and no exclude word; exempt phrases are removed before the exclude check only.
   passes(title: string): boolean;
+  // A title is entry level when it holds an entryLevel phrase, or a level number I or 1 that is not a count of years or months.
+  entryLevel(title: string): boolean;
+}
+
+// "Software Engineer I" and "Developer 1" name a level, but "(1 year contract)" counts time.
+const DURATION_WORDS = new Set(["year", "years", "month", "months", "yr"]);
+
+function hasLevelNumber(normalized: string): boolean {
+  const tokens = normalized.split(" ");
+  return tokens.some(
+    (token, i) =>
+      (token === "i" || token === "1") && !DURATION_WORDS.has(tokens[i + 1]),
+  );
 }
 
 // Whole words, ignoring case: any run of characters other than letters and digits is one boundary, so "Sr." and "co-op" match their words and "Internal" does not match "intern".
@@ -49,6 +62,7 @@ export function loadTitleFilter(text: string): TitleFilter {
   const include = list(file.include, "include", false);
   const exclude = list(file.exclude, "exclude", true);
   const exempt = list(file.exempt, "exempt", true);
+  const entryLevel = list(file.entryLevel, "entryLevel", false);
 
   // Matching runs on space-padded word strings, so a phrase can only match whole words.
   const has = (padded: string, phrase: string) =>
@@ -63,6 +77,13 @@ export function loadTitleFilter(text: string): TitleFilter {
       return (
         include.some((p) => has(padded, p)) &&
         !exclude.some((p) => has(stripped, p))
+      );
+    },
+    entryLevel(title) {
+      const normalized = words(title);
+      const padded = ` ${normalized} `;
+      return (
+        entryLevel.some((p) => has(padded, p)) || hasLevelNumber(normalized)
       );
     },
   };
