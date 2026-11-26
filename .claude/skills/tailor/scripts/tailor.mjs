@@ -212,7 +212,7 @@ function span(start, end) {
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   return end.slice(0, 7) > thisMonth ? `Expected ${month(end)}` : `${month(start)} – ${month(end)}`;
 }
-const linkText = (u) => u.replace(/^https?:\/\//, "").replace(/\/$/, "");
+const linkText = (u) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
 const link = (u) => `[${linkText(u)}](${u})`;
 
 // One pipeline feeds both draft.md and `orphans`, so the lines the user cut in Word map back exactly.
@@ -220,7 +220,11 @@ const link = (u) => `[${linkText(u)}](${u})`;
 function render(profile, draft, groups, fixed) {
   const must = (map, key, where) => map.get(key) ?? fail(`${where} names ${key}, which is not in the profile`);
   const items = [];
-  const add = (md, cites, skillLine) => items.push({ md, cites, skillLine });
+  const add = (md, cites, skillLine) => {
+    // The references set an entry apart from the bullets above it; docx.mjs ignores blank lines.
+    if (md.startsWith("### ") && items.at(-1)?.md.startsWith("- ")) items.push({ md: "" });
+    items.push({ md, cites, skillLine });
+  };
   const section = (title) => {
     add("");
     add(`## ${title}`);

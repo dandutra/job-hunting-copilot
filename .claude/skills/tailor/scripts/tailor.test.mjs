@@ -195,6 +195,7 @@ Exampleton · [sam@example.com](mailto:sam@example.com) · [example.com/sam](htt
 
 ## Experience
 ${FIXED.split("\n").slice(1).join("\n").trimEnd()}
+
 ### **Volunteer Web Lead / Volunteer Webmaster**, Example Community Club, Remote | Mar 2023 – Present
 - Rebuilt the club site with React and Express.
 - Answered member emails about the site.
@@ -215,6 +216,12 @@ ${FIXED.split("\n").slice(1).join("\n").trimEnd()}
   assert.ok(!existsSync(join(folder, "Sam-Sample-Cover-Letter.docx")));
   const text = await run(cwd, "orphans", folder);
   assert.equal(text.status, 0, text.stderr);
+});
+
+test("build: link text drops the protocol, www. and a trailing slash", async () => {
+  const { cwd, folder } = workspace({ profile: SAMPLE.replace("https://example.com/sam\n", "https://www.example.com/sam/\n") });
+  assert.equal((await run(cwd, "build", folder)).status, 0);
+  assert.match(readFileSync(join(folder, "draft.md"), "utf8"), /\[example\.com\/sam\]\(https:\/\/www\.example\.com\/sam\/\)/);
 });
 
 test("build: a future education end prints Expected", async () => {
